@@ -45,4 +45,9 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+    // Relasi: User "Punya Banyak" Post
+    public function posts()
+    {
+        return $this->hasMany(Post::class);
+    }
 }
