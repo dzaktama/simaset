@@ -88,18 +88,18 @@ class AssetController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Asset::with('holder')->latest();
+        // Tambahkan 'activeLoan' agar kita bisa ambil tanggal kembali
+        $query = Asset::with(['holder', 'activeLoan'])->latest();
 
-        // Fitur Pencarian
         if ($request->search) {
             $query->where('name', 'like', '%' . $request->search . '%')
                   ->orWhere('serial_number', 'like', '%' . $request->search . '%');
         }
 
-        // Filter: Karyawan HANYA boleh melihat barang AVAILABLE
-        if (auth()->user()->role !== 'admin') {
-            $query->where('status', 'available');
-        }
+        // gadipake dulu biar gampang testing
+        // if (auth()->user()->role !== 'admin') {
+        //    $query->where('status', 'available');
+        // }
 
         return view('assets.index', [
             'title' => 'Katalog Aset IT',
@@ -230,9 +230,10 @@ class AssetController extends Controller
     {
         $asset = Asset::findOrFail($id);
         
-        // Validasi ketersediaan
-        if($asset->status != 'available') {
-            return back()->with('loginError', 'Maaf, aset ini sudah tidak tersedia saat ini.');
+        // REVISI LOGIKA: Barang Maintenance/Broken gabisa dipinjam. 
+        // Tapi Available/Deployed BISA (Deployed = Booking).
+        if(in_array($asset->status, ['maintenance', 'broken'])) {
+            return back()->with('loginError', 'Maaf, aset sedang dalam perbaikan/rusak.');
         }
 
         // Cek double request
@@ -245,23 +246,27 @@ class AssetController extends Controller
             return back()->with('loginError', 'Anda sudah mengajukan permintaan untuk aset ini.');
         }
 
-        // Validasi input dari Modal
         $request->validate([
             'return_date' => 'nullable|date|after:today',
             'reason' => 'required|string|max:255',
         ]);
 
-        // Simpan Request
+        // Tentukan tipe request di notes/reason jika barang sedang dipinjam
+        $reason = $request->reason;
+        if($asset->status == 'deployed') {
+            $reason = "[BOOKING ANTREAN] " . $reason;
+        }
+
         AssetRequest::create([
             'user_id' => auth()->id(),
             'asset_id' => $id,
             'request_date' => now(),
-            'return_date' => $request->return_date, // Simpan tanggal kembali
+            'return_date' => $request->return_date,
             'status' => 'pending',
-            'reason' => $request->reason
+            'reason' => $reason
         ]);
 
-        return redirect('/my-assets')->with('success', 'Permintaan berhasil dikirim! Silakan tunggu persetujuan Admin.');
+        return redirect('/my-assets')->with('success', 'Permintaan berhasil dikirim! Admin akan memproses antrean Anda.');
     }
 
     public function approveRequest($requestId) {

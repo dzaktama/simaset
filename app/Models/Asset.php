@@ -9,18 +9,25 @@ class Asset extends Model
 {
     use HasFactory;
 
-    // Semua field boleh diisi massal kecuali id
     protected $guarded = ['id'];
 
-    // Relasi ke user pemegang aset (Holder)
     public function holder()
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    // Relasi ke history perubahan aset
     public function histories()
     {
         return $this->hasMany(AssetHistory::class)->latest();
+    }
+
+    // --- TAMBAHAN BARU ---
+    // Relasi untuk mengambil peminjaman yang sedang aktif/berjalan
+    // Gunanya untuk mengambil 'return_date'
+    public function activeLoan()
+    {
+        return $this->hasOne(AssetRequest::class)
+                    ->where('status', 'approved') // Hanya yang sudah disetujui
+                    ->latest(); // Ambil yang paling baru
     }
 }
