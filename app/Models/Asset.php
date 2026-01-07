@@ -11,23 +11,15 @@ class Asset extends Model
 
     protected $guarded = ['id'];
 
+    // Relasi ke User pemegang saat ini
     public function holder()
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function histories()
+    // Relasi untuk mengambil Request Terakhir yang Disetujui (Untuk cek tanggal kembali)
+    public function latestApprovedRequest()
     {
-        return $this->hasMany(AssetHistory::class)->latest();
-    }
-
-    // --- TAMBAHAN BARU ---
-    // Relasi untuk mengambil peminjaman yang sedang aktif/berjalan
-    // Gunanya untuk mengambil 'return_date'
-    public function activeLoan()
-    {
-        return $this->hasOne(AssetRequest::class)
-                    ->where('status', 'approved') // Hanya yang sudah disetujui
-                    ->latest(); // Ambil yang paling baru
+        return $this->hasOne(AssetRequest::class)->where('status', 'approved')->latest();
     }
 }

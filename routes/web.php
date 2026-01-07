@@ -24,35 +24,23 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth');
 // 2. ROUTE LOGGED IN (Admin & Karyawan)
 Route::middleware(['auth'])->group(function () {
     
-    // DASHBOARD
-    Route::get('/', [AssetController::class, 'dashboard'])->name('dashboard');
+    // Dashboard & Profile
+    Route::get('/', [AssetController::class, 'dashboard']);
+    Route::get('/my-assets', [AssetController::class, 'myAssets']);
+    Route::post('/assets/{id}/request', [AssetController::class, 'requestAsset']);
 
-    // FITUR KARYAWAN
-    Route::get('/my-assets', [AssetController::class, 'myAssets'])->name('my-assets');
-    Route::post('/assets/{id}/request', [AssetController::class, 'requestAsset']); 
-
-    // FITUR SHARED (Daftar Aset)
-    Route::get('/assets', [AssetController::class, 'index'])->name('assets.index'); 
-
-    // 3. AREA KHUSUS ADMIN
+    // AREA ADMIN (Wajib di dalam middleware is_admin)
     Route::middleware(['is_admin'])->group(function () {
         
-        // MANAJEMEN ASET
-        Route::get('/assets/create', [AssetController::class, 'create'])->name('assets.create');
-        Route::post('/assets', [AssetController::class, 'store'])->name('assets.store');
-        Route::get('/assets/{asset}/edit', [AssetController::class, 'edit'])->name('assets.edit');
-        Route::put('/assets/{asset}', [AssetController::class, 'update'])->name('assets.update');
-        Route::delete('/assets/{asset}', [AssetController::class, 'destroy'])->name('assets.destroy');
-
-        // MANAJEMEN USER
+        // Manajemen Aset
+        Route::resource('assets', AssetController::class)->except(['show']); // show diganti modal
+        
+        // MANAJEMEN USER (INI YANG WAJIB ADA)
         Route::resource('users', UserController::class);
 
-        // APPROVAL SYSTEM
+        // Approval & Report
         Route::post('/requests/{id}/approve', [AssetController::class, 'approveRequest']);
         Route::post('/requests/{id}/reject', [AssetController::class, 'rejectRequest']);
-
-        // LAPORAN PDF (Route Baru)
         Route::get('/report/print-assets', [AssetController::class, 'printReport'])->name('report.assets');
     });
-
 });
