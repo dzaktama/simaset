@@ -3,12 +3,12 @@
     <div class="flex h-16 items-center justify-between">
       <div class="flex items-center">
         <div class="flex-shrink-0">
-  <img class="h-10 w-10 rounded-full object-cover border-2 border-white" 
-       src="{{ asset('img/logoJekouw.png') }}" 
+  <img class="h-10 w-10  object-cover border-2 border-white" 
+       src="{{ asset('img/logoVitechAsia.png') }}" 
        alt="Foto Profil">
 </div>
         <div class="hidden md:block">
-          <div class="ml-10 flex items-baseline space-x-4">
+          <div class="ml-50 flex items-baseline">
             <a href="/" class="{{ request()->is('/') ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' }} rounded-md px-3 py-2 text-sm font-medium">Home</a>
             <a href="/about" class="{{ request()->is('about') ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' }} rounded-md px-3 py-2 text-sm font-medium">About</a>
             <a href="/blog" class="{{ request()->is('blog*') ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' }} rounded-md px-3 py-2 text-sm font-medium">Blog</a>
