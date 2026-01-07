@@ -47,7 +47,7 @@ class User extends Authenticatable
         ];
     }
 
-    // --- NEW CODE: Relasi ke Asset ---
+    // --- Relasi ke Asset ---
     
     /**
      * User bisa memegang banyak aset (Laptop, Monitor, Mouse).
@@ -55,5 +55,10 @@ class User extends Authenticatable
     public function assets(): HasMany
     {
         return $this->hasMany(Asset::class);
+    }
+    // Relasi: User punya banyak request peminjaman
+    public function requests()
+    {
+        return $this->hasMany(AssetRequest::class);
     }
 }

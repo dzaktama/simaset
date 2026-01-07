@@ -1,174 +1,214 @@
 @extends('layouts.main')
 
 @section('container')
-    <div class="md:flex md:items-center md:justify-between mb-8">
-        <div class="min-w-0 flex-1">
+    <div class="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
             <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
-                Dashboard Aset IT
+                Dashboard Overview
             </h2>
             <p class="mt-1 text-sm text-gray-500">
-                PT Vitech Asia - Asset Management System
+                Halo, <span class="font-semibold text-indigo-600">{{ auth()->user()->name }}</span>! Berikut ringkasan aset hari ini.
             </p>
         </div>
-        <div class="mt-4 flex md:ml-4 md:mt-0">
-            <a href="/assets/create" class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-all">
-                <svg class="-ml-0.5 mr-1.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.25a.75.75 0 00-1.5 0v2.5h-2.5a.75.75 0 000 1.5h2.5v2.5a.75.75 0 001.5 0v-2.5h2.5a.75.75 0 000-1.5h-2.5v-2.5z" clip-rule="evenodd" />
-                </svg>
-                Input Aset Baru
-            </a>
+        <div class="text-sm text-gray-500 bg-white px-3 py-1 rounded-full border border-gray-200 shadow-sm">
+            📅 {{ now()->isoFormat('dddd, D MMMM Y') }}
         </div>
     </div>
+
+    @if(auth()->user()->role == 'admin' && isset($stats['pending_requests']) && $stats['pending_requests'] > 0)
+    <div class="rounded-md bg-yellow-50 p-4 mb-8 border-l-4 border-yellow-400 shadow-sm animate-pulse">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+                </svg>
+            </div>
+            <div class="ml-3 flex-1 md:flex md:justify-between">
+                <p class="text-sm text-yellow-700 font-medium">
+                    Perhatian! Ada <span class="font-bold text-yellow-800">{{ $stats['pending_requests'] }} permintaan peminjaman aset</span> yang menunggu persetujuan Anda.
+                </p>
+                <p class="mt-3 text-sm md:ml-6 md:mt-0">
+                    <a href="#request-section" class="whitespace-nowrap font-bold text-yellow-700 hover:text-yellow-600 hover:underline">
+                        Lihat Detail &rarr;
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+    @endif
 
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         
-        <div class="relative overflow-hidden rounded-lg bg-white px-4 pb-12 pt-5 shadow sm:px-6 sm:pt-6 border-l-4 border-indigo-500">
-            <dt>
-                <div class="absolute rounded-md bg-indigo-500 p-3">
-                    <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
-                    </svg>
+        <div class="bg-white overflow-hidden shadow rounded-lg border-b-4 border-indigo-500 hover:shadow-md transition-shadow">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 bg-indigo-100 rounded-md p-3">
+                        <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Total Aset Fisik</dt>
+                            <dd class="text-2xl font-bold text-gray-900">{{ $stats['total'] }}</dd>
+                        </dl>
+                    </div>
                 </div>
-                <p class="ml-16 truncate text-sm font-medium text-gray-500">Total Inventaris</p>
-            </dt>
-            <dd class="ml-16 flex items-baseline pb-1 sm:pb-2">
-                <p class="text-2xl font-semibold text-gray-900">{{ $totalAssets }}</p>
-                <p class="ml-2 flex items-baseline text-sm font-semibold text-green-600">
-                    <span class="sr-only">Increased by</span>
-                    Unit
-                </p>
-            </dd>
+            </div>
         </div>
 
-        <div class="relative overflow-hidden rounded-lg bg-white px-4 pb-12 pt-5 shadow sm:px-6 sm:pt-6 border-l-4 border-green-500">
-            <dt>
-                <div class="absolute rounded-md bg-green-500 p-3">
-                    <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+        <div class="bg-white overflow-hidden shadow rounded-lg border-b-4 border-green-500 hover:shadow-md transition-shadow">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 bg-green-100 rounded-md p-3">
+                        <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Tersedia (Gudang)</dt>
+                            <dd class="text-2xl font-bold text-gray-900">{{ $stats['available'] }}</dd>
+                        </dl>
+                    </div>
                 </div>
-                <p class="ml-16 truncate text-sm font-medium text-gray-500">Tersedia (Ready)</p>
-            </dt>
-            <dd class="ml-16 flex items-baseline pb-1 sm:pb-2">
-                <p class="text-2xl font-semibold text-gray-900">{{ $availableAssets }}</p>
-            </dd>
+            </div>
         </div>
 
-        <div class="relative overflow-hidden rounded-lg bg-white px-4 pb-12 pt-5 shadow sm:px-6 sm:pt-6 border-l-4 border-blue-500">
-            <dt>
-                <div class="absolute rounded-md bg-blue-500 p-3">
-                    <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-                    </svg>
+        <div class="bg-white overflow-hidden shadow rounded-lg border-b-4 border-blue-500 hover:shadow-md transition-shadow">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 bg-blue-100 rounded-md p-3">
+                        <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Sedang Dipinjam</dt>
+                            <dd class="text-2xl font-bold text-gray-900">{{ $stats['deployed'] }}</dd>
+                        </dl>
+                    </div>
                 </div>
-                <p class="ml-16 truncate text-sm font-medium text-gray-500">Digunakan Karyawan</p>
-            </dt>
-            <dd class="ml-16 flex items-baseline pb-1 sm:pb-2">
-                <p class="text-2xl font-semibold text-gray-900">{{ $deployedAssets }}</p>
-            </dd>
+            </div>
         </div>
 
-        <div class="relative overflow-hidden rounded-lg bg-white px-4 pb-12 pt-5 shadow sm:px-6 sm:pt-6 border-l-4 border-red-500">
-            <dt>
-                <div class="absolute rounded-md bg-red-500 p-3">
-                    <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.794 1.871c-1.472-1.472-3.818-1.576-5.063-.145-1.298 1.492.38 5.768 2.302 4.414 1.258-.885 1.705-3.21.674-4.269z" />
-                    </svg>
+        <div class="bg-white overflow-hidden shadow rounded-lg border-b-4 border-red-500 hover:shadow-md transition-shadow">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 bg-red-100 rounded-md p-3">
+                        <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Rusak / Servis</dt>
+                            <dd class="text-2xl font-bold text-gray-900">{{ $stats['maintenance'] }}</dd>
+                        </dl>
+                    </div>
                 </div>
-                <p class="ml-16 truncate text-sm font-medium text-gray-500">Maintenance / Rusak</p>
-            </dt>
-            <dd class="ml-16 flex items-baseline pb-1 sm:pb-2">
-                <p class="text-2xl font-semibold text-gray-900">{{ $maintenanceAssets }}</p>
-            </dd>
+            </div>
         </div>
     </div>
 
-    <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
-        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-gray-900">Aktivitas Aset Terbaru</h3>
-            <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">Real-time Update</span>
+    @if(auth()->user()->role == 'admin')
+    <div id="request-section" class="bg-white shadow-lg rounded-lg mb-8 overflow-hidden border border-gray-200">
+        <div class="px-6 py-5 border-b border-gray-200 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h3 class="text-lg leading-6 font-bold text-gray-900 flex items-center gap-2">
+                    📥 Permintaan Peminjaman Masuk
+                </h3>
+                <p class="text-xs text-gray-500 mt-1">Daftar permintaan aset yang diajukan karyawan.</p>
+            </div>
+            @if(isset($stats['pending_requests']) && $stats['pending_requests'] > 0)
+                <span class="inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-xs font-bold text-red-800 animate-pulse">
+                    {{ $stats['pending_requests'] }} Perlu Tindakan
+                </span>
+            @endif
         </div>
         
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Barang</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Serial Number</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pemegang (User)</th>
-                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Beli</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Karyawan</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Barang Diminta</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Tanggal Request</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Konfirmasi</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    @forelse ($recentAssets as $asset)
-                    <tr class="hover:bg-gray-50 transition duration-150 ease-in-out">
+                    @forelse($recentRequests as $req)
+                    <tr class="hover:bg-gray-50 transition-colors">
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
-                                <div class="h-10 w-10 flex-shrink-0">
-                                    <img class="h-10 w-10 rounded-lg object-cover bg-gray-100" src="https://ui-avatars.com/api/?name={{ urlencode($asset->name) }}&background=random&color=fff" alt="">
+                                <div class="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs">
+                                    {{ substr($req->user->name, 0, 1) }}
                                 </div>
-                                <div class="ml-4">
-                                    <div class="font-medium text-gray-900">{{ $asset->name }}</div>
-                                    <div class="text-xs text-gray-500">{{ Str::limit($asset->description, 25) }}</div>
+                                <div class="ml-3">
+                                    <div class="text-sm font-medium text-gray-900">{{ $req->user->name }}</div>
+                                    <div class="text-xs text-gray-500">{{ $req->user->email }}</div>
                                 </div>
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="font-mono text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded border">{{ $asset->serial_number }}</span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            @if($asset->status == 'available')
-                                <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Available</span>
-                            @elseif($asset->status == 'deployed')
-                                <span class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">Deployed</span>
-                            @elseif($asset->status == 'maintenance')
-                                <span class="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">Maintenance</span>
-                            @else
-                                <span class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">Broken</span>
-                            @endif
+                            <div class="text-sm font-semibold text-gray-900">{{ $req->asset->name }}</div>
+                            <div class="text-xs text-gray-500 font-mono bg-gray-100 px-1 rounded inline-block">SN: {{ $req->asset->serial_number }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            @if($asset->holder)
-                                <div class="flex items-center gap-2">
-                                    <div class="h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600">
-                                        {{ substr($asset->holder->name, 0, 1) }}
-                                    </div>
-                                    {{ $asset->holder->name }}
-                                </div>
-                            @else
-                                <span class="text-gray-400 italic text-xs">- Di Gudang -</span>
-                            @endif
+                            {{ \Carbon\Carbon::parse($req->request_date)->format('d M Y') }}
+                            <br>
+                            <span class="text-xs text-gray-400">{{ \Carbon\Carbon::parse($req->request_date)->diffForHumans() }}</span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500">
-                            {{ $asset->purchase_date->format('d M Y') }}
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-semibold text-yellow-800 border border-yellow-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
+                                Menunggu Approval
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div class="flex justify-end gap-2">
+                                <form action="/requests/{{ $req->id }}/approve" method="POST">
+                                    @csrf
+                                    <button type="submit" class="inline-flex items-center gap-1 bg-green-50 text-green-700 hover:bg-green-100 hover:text-green-800 px-3 py-1.5 rounded-md text-xs font-bold border border-green-200 transition-colors" title="Setujui Peminjaman">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                        Terima
+                                    </button>
+                                </form>
+
+                                <form action="/requests/{{ $req->id }}/reject" method="POST" onsubmit="return confirm('Yakin ingin menolak permintaan ini?')">
+                                    @csrf
+                                    <button type="submit" class="inline-flex items-center gap-1 bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800 px-3 py-1.5 rounded-md text-xs font-bold border border-red-200 transition-colors" title="Tolak Peminjaman">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                        Tolak
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="px-6 py-10 text-center text-gray-500">
-                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                                <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                        <td colspan="5" class="px-6 py-10 text-center text-gray-500 italic bg-gray-50">
+                            <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <h3 class="mt-2 text-sm font-semibold text-gray-900">Belum ada aset</h3>
-                            <p class="mt-1 text-sm text-gray-500">Mulai dengan menambahkan aset baru.</p>
-                            <div class="mt-6">
-                                <a href="/assets/create" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
-                                    <svg class="-ml-0.5 mr-1.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.25a.75.75 0 00-1.5 0v2.5h-2.5a.75.75 0 000 1.5h2.5v2.5a.75.75 0 001.5 0v-2.5h2.5a.75.75 0 000-1.5h-2.5v-2.5z" clip-rule="evenodd" />
-                                    </svg>
-                                    Tambah Aset
-                                </a>
-                            </div>
+                            <span class="block mt-2 font-medium">Tidak ada permintaan peminjaman baru.</span>
                         </td>
                     </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-        <div class="bg-gray-50 px-6 py-3 border-t border-gray-200 flex items-center justify-between">
-            <p class="text-xs text-gray-500">Menampilkan 5 data terbaru</p>
-            <a href="/assets" class="text-xs font-medium text-indigo-600 hover:text-indigo-500">Lihat Semua Aset &rarr;</a>
+        
+        @if($recentRequests->count() > 0)
+        <div class="bg-gray-50 px-6 py-3 border-t border-gray-200 text-right">
+            <span class="text-xs text-gray-500">Menampilkan 5 permintaan terbaru</span>
         </div>
+        @endif
     </div>
+    @endif
+
 @endsection

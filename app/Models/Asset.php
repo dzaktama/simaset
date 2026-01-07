@@ -43,4 +43,9 @@ class Asset extends Model
             default => 'gray',
         };
     }
+    // Relasi: Aset bisa punya banyak history request
+    public function requests()
+    {
+        return $this->hasMany(AssetRequest::class);
+    }
 }

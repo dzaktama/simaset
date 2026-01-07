@@ -39,49 +39,34 @@
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 bg-white">
-            @foreach ($assets as $asset)
-            <tr>
-                <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6">
-                    <div class="flex items-center">
-                        <div class="h-10 w-10 flex-shrink-0">
-                            @if($asset->image)
-                                <img class="h-10 w-10 rounded-full object-cover" src="{{ asset('storage/' . $asset->image) }}" alt="">
-                            @else
-                                <img class="h-10 w-10 rounded-full bg-gray-100" src="https://ui-avatars.com/api/?name={{ urlencode($asset->name) }}&background=random" alt="">
-                            @endif
-                        </div>
-                        <div class="ml-4">
-                            <div class="font-medium text-gray-900">{{ $asset->name }}</div>
-                            <div class="text-gray-500 text-xs">{{ $asset->purchase_date ? $asset->purchase_date->format('Y') : '-' }}</div>
-                        </div>
-                    </div>
-                </td>
-                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 font-mono">{{ $asset->serial_number }}</td>
-                <td class="whitespace-nowrap px-3 py-4 text-sm">
-                    @if($asset->status == 'available')
-                        <span class="inline-flex rounded-full bg-green-100 px-2 text-xs font-semibold leading-5 text-green-800">Tersedia</span>
-                    @elseif($asset->status == 'deployed')
-                        <span class="inline-flex rounded-full bg-blue-100 px-2 text-xs font-semibold leading-5 text-blue-800">Digunakan</span>
-                    @elseif($asset->status == 'maintenance')
-                        <span class="inline-flex rounded-full bg-yellow-100 px-2 text-xs font-semibold leading-5 text-yellow-800">Servis</span>
-                    @else
-                        <span class="inline-flex rounded-full bg-red-100 px-2 text-xs font-semibold leading-5 text-red-800">Rusak</span>
-                    @endif
-                </td>
-                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    {{ $asset->holder ? $asset->holder->name : '-' }}
-                </td>
-                <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                    <a href="/assets/{{ $asset->id }}/edit" class="text-indigo-600 hover:text-indigo-900 mr-4">Edit</a>
-                    <form action="/assets/{{ $asset->id }}" method="POST" class="inline-block" onsubmit="return confirm('Yakin hapus aset ini?')">
+    @foreach ($assets as $asset)
+    <tr>
+        <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+            
+            @if(auth()->user()->role == 'admin')
+                <a href="/assets/{{ $asset->id }}/edit" class="text-indigo-600 hover:text-indigo-900 mr-4">Edit</a>
+                <form action="/assets/{{ $asset->id }}" method="POST" class="inline-block" onsubmit="return confirm('Hapus aset?')">
+                    @csrf @method('DELETE')
+                    <button type="submit" class="text-red-600 hover:text-red-900">Hapus</button>
+                </form>
+            
+            @else
+                @if($asset->status == 'available')
+                    <form action="/assets/{{ $asset->id }}/request" method="POST" class="inline-block" onsubmit="return confirm('Ajukan peminjaman untuk barang ini?')">
                         @csrf
-                        @method('DELETE')
-                        <button type="submit" class="text-red-600 hover:text-red-900">Hapus</button>
+                        <button type="submit" class="inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none">
+                            Pinjam Aset Ini
+                        </button>
                     </form>
-                </td>
-            </tr>
-            @endforeach
-        </tbody>
+                @else
+                    <span class="text-gray-400 italic text-xs">Tidak tersedia</span>
+                @endif
+            @endif
+
+        </td>
+    </tr>
+    @endforeach
+</tbody>
     </table>
     <div class="p-4 border-t border-gray-200">
         {{ $assets->links() }}
