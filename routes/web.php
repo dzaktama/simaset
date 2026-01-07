@@ -38,4 +38,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/blog', [PostController::class, 'store']);
     Route::get('/blog', [PostController::class, 'index']);
     Route::get('/blog/{id}', [PostController::class, 'show']);
+    // Ini otomatis bikin route: index, create, store, show, edit, update, destroy
+    Route::resource('assets', AssetController::class);
 });
