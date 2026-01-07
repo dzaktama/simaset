@@ -6,27 +6,25 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('assets', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            // Serial number biasanya string karena bisa ada huruf
-            $table->string('serial_number')->unique(); 
-            // Status aset sangat penting untuk dashboard
-            $table->enum('status', ['available', 'borrowed', 'maintenance', 'broken'])->default('available');
+            $table->string('serial_number')->unique();
+            // Status: available, deployed, maintenance, broken
+            $table->string('status')->default('available');
             $table->text('description')->nullable();
             $table->string('image')->nullable();
+            $table->date('purchase_date')->nullable();
+            
+            // Relasi ke User (Holder)
+            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
+            
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('assets');

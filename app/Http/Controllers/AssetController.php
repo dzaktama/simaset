@@ -74,9 +74,11 @@ class AssetController extends Controller
             $query->where('status', 'available');
         }
 
+        // FIX: Kirim data 'users' agar tidak error undefined variable
         return view('assets.index', [
             'title' => 'Daftar Aset',
-            'assets' => $query->paginate(10)->withQueryString()
+            'assets' => $query->paginate(10)->withQueryString(),
+            'users' => User::all() // Tambahan penting
         ]);
     }
 
