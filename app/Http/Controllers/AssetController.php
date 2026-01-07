@@ -5,55 +5,71 @@ namespace App\Http\Controllers;
 use App\Models\Asset;
 use App\Models\User;
 use App\Models\AssetRequest;
+use App\Models\AssetHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class AssetController extends Controller
 {
-    /**
-     * 1. DASHBOARD UTAMA (Pusat Informasi)
-     */
+    // DASHBOARD
     public function dashboard()
     {
-        // Statistik untuk Cards
-        $stats = [
-            'total' => Asset::count(),
-            'available' => Asset::where('status', 'available')->count(),
-            'deployed' => Asset::where('status', 'deployed')->count(),
-            'maintenance' => Asset::whereIn('status', ['maintenance', 'broken'])->count(),
-            // Hitung request yang masih 'pending'
-            'pending_requests' => AssetRequest::where('status', 'pending')->count(),
-        ];
+        $user = auth()->user();
 
-        // Ambil 5 Request terbaru untuk tabel notifikasi
-        $recentRequests = AssetRequest::with(['user', 'asset'])
-                            ->where('status', 'pending')
+        if ($user->role === 'admin') {
+            $stats = [
+                'total' => Asset::count(),
+                'available' => Asset::where('status', 'available')->count(),
+                'deployed' => Asset::where('status', 'deployed')->count(),
+                'maintenance' => Asset::whereIn('status', ['maintenance', 'broken'])->count(),
+                'pending_requests' => AssetRequest::where('status', 'pending')->count(),
+            ];
+
+            $recentRequests = AssetRequest::with(['user', 'asset'])
+                                ->where('status', 'pending')
+                                ->latest()
+                                ->take(5)
+                                ->get();
+
+            $activities = AssetHistory::with(['user', 'asset'])
+                            ->latest()
+                            ->take(6)
+                            ->get();
+
+            return view('home', [
+                'title' => 'Dashboard Admin',
+                'stats' => $stats,
+                'recentRequests' => $recentRequests,
+                'activities' => $activities
+            ]);
+        } else {
+            $myAssetsCount = Asset::where('user_id', $user->id)->count();
+            $myRequests = AssetRequest::with('asset')
+                            ->where('user_id', $user->id)
                             ->latest()
                             ->take(5)
                             ->get();
 
-        return view('home', [
-            'title' => 'Dashboard Utama',
-            'stats' => $stats,
-            'recentRequests' => $recentRequests
-        ]);
+            return view('home', [
+                'title' => 'Dashboard Karyawan',
+                'myAssetsCount' => $myAssetsCount,
+                'myRequests' => $myRequests
+            ]);
+        }
     }
 
-    /**
-     * 2. HALAMAN LIST ASET (Bisa dilihat Admin & Karyawan)
-     */
+    // LIST SEMUA ASET (Untuk Admin & Peminjaman User)
     public function index(Request $request)
     {
         $query = Asset::with('holder')->latest();
 
-        // Fitur Pencarian
         if ($request->search) {
             $query->where('name', 'like', '%' . $request->search . '%')
                   ->orWhere('serial_number', 'like', '%' . $request->search . '%');
         }
 
-        // --- LOGIC PENTING: FILTER KARYAWAN ---
-        // Jika yang login BUKAN Admin, cuma kasih lihat barang yang 'Available'
+        // Karyawan hanya boleh lihat barang AVAILABLE
         if (auth()->user()->role !== 'admin') {
             $query->where('status', 'available');
         }
@@ -64,9 +80,7 @@ class AssetController extends Controller
         ]);
     }
 
-    /**
-     * 3. ASET SAYA (Khusus Karyawan melihat barang yang dia pegang)
-     */
+    // ASET SAYA (Khusus Karyawan)
     public function myAssets()
     {
         $myAssets = Asset::where('user_id', auth()->id())->latest()->get();
@@ -77,7 +91,7 @@ class AssetController extends Controller
         ]);
     }
 
-    // --- FITUR CRUD ADMIN (Create, Store, Edit, Update, Destroy) ---
+    // --- CRUD ADMIN ---
 
     public function create()
     {
@@ -103,8 +117,16 @@ class AssetController extends Controller
             $validatedData['image'] = $request->file('image')->store('asset-images');
         }
 
-        Asset::create($validatedData);
-        return redirect('/assets')->with('success', 'Aset baru berhasil ditambahkan!');
+        $asset = Asset::create($validatedData);
+
+        AssetHistory::create([
+            'asset_id' => $asset->id,
+            'user_id' => auth()->id(),
+            'action' => 'created',
+            'notes' => 'Aset baru ditambahkan.'
+        ]);
+
+        return redirect('/assets')->with('success', 'Aset berhasil ditambahkan!');
     }
 
     public function edit(Asset $asset)
@@ -138,86 +160,96 @@ class AssetController extends Controller
             $validatedData['image'] = $request->file('image')->store('asset-images');
         }
 
+        if ($asset->status != $validatedData['status']) {
+            AssetHistory::create([
+                'asset_id' => $asset->id,
+                'user_id' => auth()->id(),
+                'action' => 'status_change',
+                'notes' => "Status diubah: {$asset->status} -> {$validatedData['status']}"
+            ]);
+        }
+
         $asset->update($validatedData);
-        return redirect('/assets')->with('success', 'Data aset berhasil diperbarui!');
+        return redirect('/assets')->with('success', 'Aset berhasil diperbarui!');
     }
 
     public function destroy(Asset $asset)
     {
         if ($asset->image) Storage::delete($asset->image);
         $asset->delete();
-        return redirect('/assets')->with('success', 'Aset telah dihapus.');
+        return redirect('/assets')->with('success', 'Aset dihapus.');
     }
 
-    // --- FITUR TRANSAKSI (REQUEST & APPROVAL) ---
+    // --- TRANSAKSI ---
 
-    /**
-     * Karyawan meminta barang (Klik tombol 'Pinjam')
-     */
     public function requestAsset(Request $request, $id)
     {
-        // Cek dulu apakah barang masih available
         $asset = Asset::findOrFail($id);
         if($asset->status != 'available') {
-            return back()->with('loginError', 'Maaf, aset ini sudah tidak tersedia.');
+            return back()->with('loginError', 'Aset tidak tersedia.');
         }
 
-        // Cek apakah user sudah pernah request barang ini dan statusnya masih pending
         $existingRequest = AssetRequest::where('user_id', auth()->id())
                             ->where('asset_id', $id)
                             ->where('status', 'pending')
                             ->first();
         
         if($existingRequest) {
-            return back()->with('loginError', 'Anda sudah mengajukan permintaan untuk aset ini, harap tunggu konfirmasi Admin.');
+            return back()->with('loginError', 'Permintaan sudah diajukan sebelumnya.');
         }
 
-        // Buat Request Baru
         AssetRequest::create([
             'user_id' => auth()->id(),
             'asset_id' => $id,
             'request_date' => now(),
             'status' => 'pending',
-            'reason' => 'Saya membutuhkan aset ini untuk operasional kerja.' // Bisa dikembangkan jadi inputan form
+            'reason' => 'Permintaan via Web'
         ]);
 
-        return redirect('/my-assets')->with('success', 'Permintaan peminjaman berhasil dikirim! Menunggu persetujuan Admin.');
+        return redirect('/my-assets')->with('success', 'Permintaan terkirim!');
     }
 
-    /**
-     * Admin Menyetujui Permintaan
-     */
     public function approveRequest($requestId)
     {
         $request = AssetRequest::findOrFail($requestId);
-        
-        // 1. Update status request jadi 'approved'
         $request->update(['status' => 'approved']);
 
-        // 2. Update aset jadi 'deployed' dan pindah tangan ke peminjam
         $asset = Asset::findOrFail($request->asset_id);
         $asset->update([
             'status' => 'deployed',
             'user_id' => $request->user_id
         ]);
 
-        // 3. (Opsional) Tolak request lain untuk barang yang sama
+        AssetHistory::create([
+            'asset_id' => $asset->id,
+            'user_id' => auth()->id(),
+            'action' => 'deployed',
+            'notes' => "Dipinjamkan ke: " . $request->user->name
+        ]);
+
         AssetRequest::where('asset_id', $asset->id)
                     ->where('id', '!=', $requestId)
                     ->where('status', 'pending')
                     ->update(['status' => 'rejected']);
 
-        return back()->with('success', 'Permintaan disetujui. Aset telah dipindahtangankan.');
+        return back()->with('success', 'Disetujui.');
     }
 
-    /**
-     * Admin Menolak Permintaan
-     */
     public function rejectRequest($requestId)
     {
         $request = AssetRequest::findOrFail($requestId);
         $request->update(['status' => 'rejected']);
+        return back()->with('success', 'Ditolak.');
+    }
 
-        return back()->with('success', 'Permintaan telah ditolak.');
+    public function printReport()
+    {
+        $assets = Asset::with('holder')->orderBy('name')->get();
+        $pdf = Pdf::loadView('pdf.assets_report', [
+            'assets' => $assets,
+            'title' => 'Laporan Aset'
+        ]);
+        $pdf->setPaper('A4', 'portrait');
+        return $pdf->stream('laporan-aset.pdf');
     }
 }

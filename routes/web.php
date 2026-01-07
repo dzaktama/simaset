@@ -11,7 +11,7 @@ use App\Http\Controllers\AuthController;
 |--------------------------------------------------------------------------
 */
 
-// 1. ROUTE PUBLIC (Tamu / Belum Login)
+// 1. ROUTE PUBLIC
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'authenticate']);
@@ -19,9 +19,7 @@ Route::middleware('guest')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
 });
 
-// Logout harus bisa diakses siapa saja yang login
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth');
-
 
 // 2. ROUTE LOGGED IN (Admin & Karyawan)
 Route::middleware(['auth'])->group(function () {
@@ -31,17 +29,15 @@ Route::middleware(['auth'])->group(function () {
 
     // FITUR KARYAWAN
     Route::get('/my-assets', [AssetController::class, 'myAssets'])->name('my-assets');
-    Route::post('/assets/{id}/request', [AssetController::class, 'requestAsset']); // Action klik tombol pinjam
+    Route::post('/assets/{id}/request', [AssetController::class, 'requestAsset']); 
 
-    // FITUR SHARED (PENTING: Ini perbaikannya!)
-    // Kita keluarkan 'index' dari middleware admin, biar Karyawan bisa lihat daftar barang available
+    // FITUR SHARED (Daftar Aset)
     Route::get('/assets', [AssetController::class, 'index'])->name('assets.index'); 
 
-    // 3. AREA KHUSUS ADMIN (Satpam: IsAdmin)
+    // 3. AREA KHUSUS ADMIN
     Route::middleware(['is_admin'])->group(function () {
         
-        // MANAJEMEN ASET (Create, Edit, Update, Delete)
-        // Kita definisikan manual karena 'index' sudah di luar
+        // MANAJEMEN ASET
         Route::get('/assets/create', [AssetController::class, 'create'])->name('assets.create');
         Route::post('/assets', [AssetController::class, 'store'])->name('assets.store');
         Route::get('/assets/{asset}/edit', [AssetController::class, 'edit'])->name('assets.edit');
@@ -55,8 +51,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/requests/{id}/approve', [AssetController::class, 'approveRequest']);
         Route::post('/requests/{id}/reject', [AssetController::class, 'rejectRequest']);
 
-        // LAPORAN
-        Route::get('/report/print-assets', [AssetController::class, 'printReport']);
+        // LAPORAN PDF (Route Baru)
+        Route::get('/report/print-assets', [AssetController::class, 'printReport'])->name('report.assets');
     });
 
 });

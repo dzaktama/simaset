@@ -2,103 +2,78 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User; // Jangan lupa panggil Model User
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
-    // Fungsi untuk menampilkan halaman index (Daftar User)
     public function index()
     {
-        return view('home', [
-            'title' => 'Halaman Home',
-            'users' => User::all() // Ambil data dari database
+        return view('users.index', [
+            'title' => 'Manajemen User',
+            'users' => User::latest()->get()
         ]);
     }
 
     public function create()
     {
-        return view('create', [
-            'title' => 'Tambah User Baru'
+        return view('users.create', ['title' => 'Tambah User Baru']);
+    }
+
+    public function store(Request $request)
+    {
+        $validatedData = $request->validate([
+            'name' => 'required|max:255',
+            'email' => 'required|email:dns|unique:users',
+            'role' => 'required',
+            'password' => 'required|min:5|max:255'
+        ]);
+
+        // HASH MANUAL DISINI
+        $validatedData['password'] = bcrypt($validatedData['password']); 
+
+        User::create($validatedData); // Simpan
+
+        return redirect('/users')->with('success', 'User baru berhasil ditambahkan!');
+    }
+
+    public function edit(User $user)
+    {
+        return view('users.edit', [
+            'title' => 'Edit Data User',
+            'user' => $user
         ]);
     }
 
-    // FUNGSI BARU UNTUK SIMPAN DATA
-public function store(Request $request)
-{
-    // 1. Validasi dulu inputannya (Biar gak asal-asalan)
-    $validatedData = $request->validate([
-        'name' => 'required|max:255',
-        'email' => 'required|email|unique:users', // Email gak boleh kembar
-        'password' => 'required|min:5'
-    ]);
+    public function update(Request $request, User $user)
+    {
+        $rules = [
+            'name' => 'required|max:255',
+            'role' => 'required'
+        ];
 
-    // 2. Enkripsi Password (Biar aman, jadi acak-acakan di database)
-    $validatedData['password'] = bcrypt($validatedData['password']);
+        if($request->email != $user->email) {
+            $rules['email'] = 'required|email:dns|unique:users';
+        }
 
-    // 3. Simpan ke Database
-    User::create($validatedData);
+        $validatedData = $request->validate($rules);
 
-    // 4. Kalau sukses, tendang balik ke Halaman Utama
-    return redirect('/');
-}
+        if($request->password) {
+            // HASH MANUAL DISINI
+            $validatedData['password'] = bcrypt($request->password);
+        }
 
-// FUNGSI UNTUK MENGHAPUS DATA
-public function destroy($id)
-{
-    // 1. Cari user berdasarkan ID
-    $user = User::find($id);
+        $user->update($validatedData);
 
-    // 2. Hapus datanya
-    $user->delete();
-
-    // 3. Kembali ke halaman utama
-    return redirect('/');
-}
-
-// FUNGSI TAMPILKAN FORM EDIT
-public function edit($id)
-{
-    // Cari user berdasarkan ID, kalau gak ketemu error 404
-    $user = User::findOrFail($id);
-
-    return view('edit', [
-        'title' => 'Edit Data User',
-        'user' => $user // Kirim data user ke view edit
-    ]);
-}
-
-// FUNGSI PROSES UPDATE
-public function update(Request $request, $id)
-{
-    // 1. Cari user yang mau diedit
-    $user = User::findOrFail($id);
-
-    // 2. Validasi inputan
-    $rules = [
-        'name' => 'required|max:255',
-        'email' => 'required|email', // Hapus unique biar gak error kalau email gak diganti
-    ];
-
-    // Cek kalau password diisi, berarti mau ganti password
-    if($request->filled('password')) {
-        $rules['password'] = 'min:5';
+        return redirect('/users')->with('success', 'Data user berhasil diperbarui!');
     }
 
-    $validatedData = $request->validate($rules);
-
-    // 3. Update Password kalau diisi
-    if($request->filled('password')) {
-        $validatedData['password'] = bcrypt($request->password);
-    } else {
-        // Kalau kosong, hapus key password dari array biar gak ikut ke-update jadi kosong
-        unset($validatedData['password']);
+    public function destroy(User $user)
+    {
+        if ($user->id == auth()->user()->id) {
+            return back()->with('loginError', 'Anda tidak bisa menghapus akun sendiri!');
+        }
+        $user->delete();
+        return redirect('/users')->with('success', 'User telah dihapus.');
     }
-
-    // 4. Update ke Database
-    $user->update($validatedData);
-
-    // 5. Balik ke Home
-    return redirect('/');
-}
 }
