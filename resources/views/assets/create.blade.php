@@ -1,55 +1,75 @@
 @extends('layouts.main')
 
 @section('container')
-<div class="max-w-2xl mx-auto">
-    <div class="md:flex md:items-center md:justify-between mb-6">
-        <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
-            Tambah User Baru
-        </h2>
-        <a href="/users" class="mt-4 md:mt-0 inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 transition">
-            &larr; Kembali
-        </a>
+<div class="mx-auto max-w-5xl">
+    <div class="mb-8 flex items-center justify-between">
+        <h2 class="text-2xl font-bold text-gray-900">Input Aset Baru</h2>
+        <a href="/assets" class="text-sm font-medium text-gray-600 hover:text-gray-900">&larr; Kembali</a>
     </div>
 
-    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg border border-gray-200">
-        <div class="p-6 bg-white border-b border-gray-200">
-            <form action="/users" method="POST">
-                @csrf
-                <div class="space-y-6">
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        {{-- PENTING: enctype wajib ada buat upload foto --}}
+        <form action="/assets" method="POST" enctype="multipart/form-data" class="p-8">
+            @csrf
+            
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                {{-- Kiri --}}
+                <div class="space-y-4">
                     <div>
-                        <label for="name" class="block text-sm font-medium text-gray-700">Nama Lengkap</label>
-                        <input type="text" name="name" id="name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" value="{{ old('name') }}" required>
-                        @error('name') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                        <label class="block text-sm font-medium text-gray-700">Nama Barang</label>
+                        <input type="text" name="name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
                     </div>
-
                     <div>
-                        <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
-                        <input type="email" name="email" id="email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" value="{{ old('email') }}" required>
-                        @error('email') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                        <label class="block text-sm font-medium text-gray-700">Serial Number</label>
+                        <input type="text" name="serial_number" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
                     </div>
-
                     <div>
-                        <label for="role" class="block text-sm font-medium text-gray-700">Role / Jabatan</label>
-                        <select name="role" id="role" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                            <option value="user">Karyawan (User)</option>
-                            <option value="admin">Administrator</option>
+                        <label class="block text-sm font-medium text-gray-700">Status</label>
+                        <select name="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                            <option value="available">Available</option>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="broken">Broken</option>
                         </select>
                     </div>
-
                     <div>
-                        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                        <input type="password" name="password" id="password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
-                        @error('password') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div class="pt-4 flex justify-end">
-                        <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                            Simpan Data User
-                        </button>
+                        <label class="block text-sm font-medium text-gray-700">Tanggal Beli</label>
+                        <input type="date" name="purchase_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
                     </div>
                 </div>
-            </form>
-        </div>
+
+                {{-- Kanan --}}
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Deskripsi</label>
+                        <textarea name="description" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Catatan Kondisi Fisik</label>
+                        <textarea name="condition_notes" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm" placeholder="Contoh: Lecet di bagian siku kiri"></textarea>
+                    </div>
+                    
+                    {{-- Upload 3 Foto --}}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Foto Utama</label>
+                        <input type="file" name="image" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500">Foto Samping/Detail 1</label>
+                            <input type="file" name="image2" class="mt-1 block w-full text-xs text-gray-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500">Foto Belakang/Detail 2</label>
+                            <input type="file" name="image3" class="mt-1 block w-full text-xs text-gray-500">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end">
+                <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">Simpan</button>
+            </div>
+        </form>
     </div>
 </div>
 @endsection

@@ -1,7 +1,6 @@
 <div class="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-50">
-    <div class="flex-1 flex flex-col min-h-0 bg-gray-800 shadow-xl">
+    <div class="flex-1 flex flex-col min-h-0 bg-gray-800 shadow-xl border-r border-gray-700">
         
-        {{-- Logo & Brand --}}
         <div class="flex items-center h-16 flex-shrink-0 px-4 bg-gray-900 border-b border-gray-700">
             <img class="h-8 w-auto mr-3 bg-white rounded p-1" src="{{ asset('img/logoVitechAsia.png') }}" alt="Logo">
             <span class="text-white font-bold text-lg tracking-wide">SIMASET</span>
@@ -10,73 +9,73 @@
         <div class="flex-1 flex flex-col overflow-y-auto">
             <nav class="flex-1 px-2 py-4 space-y-1">
                 
-                {{-- Dashboard --}}
                 <a href="/" class="{{ request()->is('/') ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' }} group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors">
-                    <svg class="text-gray-400 mr-3 flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg class="mr-3 flex-shrink-0 h-6 w-6 {{ request()->is('/') ? 'text-gray-300' : 'text-gray-400 group-hover:text-gray-300' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                     </svg>
                     Dashboard
                 </a>
 
-                {{-- MENU ADMIN --}}
                 @if(auth()->user()->role === 'admin')
-                    <div class="mt-4 mb-1 px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <div class="mt-6 mb-1 px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                         Administrator
                     </div>
 
-                    <a href="/assets" class="{{ request()->is('assets*') ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' }} group flex items-center px-2 py-2 text-sm font-medium rounded-md">
-                        <svg class="text-gray-400 mr-3 flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <a href="/assets" class="{{ request()->is('assets*') ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' }} group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors">
+                        <svg class="mr-3 flex-shrink-0 h-6 w-6 {{ request()->is('assets*') ? 'text-gray-300' : 'text-gray-400 group-hover:text-gray-300' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                         </svg>
                         Data Aset IT
                     </a>
 
-                    <a href="/users" class="{{ request()->is('users*') ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' }} group flex items-center px-2 py-2 text-sm font-medium rounded-md">
-                        <svg class="text-gray-400 mr-3 flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <a href="/users" class="{{ request()->is('users*') ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' }} group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors">
+                        <svg class="mr-3 flex-shrink-0 h-6 w-6 {{ request()->is('users*') ? 'text-gray-300' : 'text-gray-400 group-hover:text-gray-300' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                         </svg>
                         Manajemen User
                     </a>
-                    
-                    <a href="{{ route('report.assets') }}" target="_blank" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">
-                        <svg class="text-gray-400 mr-3 flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+
+                    <a href="{{ route('report.assets') }}" target="_blank" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors">
+                        <svg class="mr-3 flex-shrink-0 h-6 w-6 text-gray-400 group-hover:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         Cetak Laporan
                     </a>
                 @endif
 
-                {{-- MENU KARYAWAN --}}
                 @if(auth()->user()->role !== 'admin')
-                    <div class="mt-4 mb-1 px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Karyawan
+                    <div class="mt-6 mb-1 px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Menu Karyawan
                     </div>
 
-                    <a href="/my-assets" class="{{ request()->is('my-assets*') ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' }} group flex items-center px-2 py-2 text-sm font-medium rounded-md">
-                        <svg class="text-gray-400 mr-3 flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <a href="/my-assets" class="{{ request()->is('my-assets*') ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' }} group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors">
+                        <svg class="mr-3 flex-shrink-0 h-6 w-6 {{ request()->is('my-assets*') ? 'text-gray-300' : 'text-gray-400 group-hover:text-gray-300' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                         </svg>
                         Aset Saya
                     </a>
 
-                    <a href="/assets" class="{{ request()->is('assets*') ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' }} group flex items-center px-2 py-2 text-sm font-medium rounded-md">
-                        <svg class="text-gray-400 mr-3 flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <a href="/assets" class="{{ request()->is('assets*') ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' }} group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors">
+                        <svg class="mr-3 flex-shrink-0 h-6 w-6 {{ request()->is('assets*') ? 'text-gray-300' : 'text-gray-400 group-hover:text-gray-300' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         Pinjam Aset Baru
                     </a>
                 @endif
+
             </nav>
         </div>
         
-        <div class="flex-shrink-0 flex bg-gray-700 p-4">
+        <div class="flex-shrink-0 flex bg-gray-700 p-4 border-t border-gray-600">
             <div class="flex items-center">
                 <div class="inline-block h-9 w-9 rounded-full bg-gray-500 flex items-center justify-center text-white font-bold">
                     {{ substr(auth()->user()->name, 0, 1) }}
                 </div>
                 <div class="ml-3">
                     <p class="text-sm font-medium text-white">{{ auth()->user()->name }}</p>
-                    <p class="text-xs font-medium text-gray-300">{{ ucfirst(auth()->user()->role) }}</p>
+                    <p class="text-xs font-medium text-gray-300 group-hover:text-gray-200">
+                        {{ auth()->user()->role == 'admin' ? 'Administrator' : 'Karyawan' }}
+                    </p>
                 </div>
             </div>
         </div>

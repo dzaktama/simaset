@@ -12,11 +12,14 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class AssetController extends Controller
 {
-    // DASHBOARD
+    /**
+     * DASHBOARD UTAMA (Logic Admin & Karyawan Dipisah)
+     */
     public function dashboard()
     {
         $user = auth()->user();
 
+        // --- LOGIC ADMIN ---
         if ($user->role === 'admin') {
             $stats = [
                 'total' => Asset::count(),
@@ -38,69 +41,90 @@ class AssetController extends Controller
                             ->get();
 
             return view('home', [
-                'title' => 'Dashboard Admin',
+                'title' => 'Dashboard Administrator',
                 'stats' => $stats,
                 'recentRequests' => $recentRequests,
                 'activities' => $activities
             ]);
-        } else {
-            $myAssetsCount = Asset::where('user_id', $user->id)->count();
+        } 
+        
+        // --- LOGIC KARYAWAN (IMPROVED) ---
+        else {
+            // 1. Hitung Aset yang SEDANG DIPEGANG (Active)
+            $activeAssetsCount = Asset::where('user_id', $user->id)
+                                    ->where('status', 'deployed')
+                                    ->count();
+            
+            // 2. Hitung Permintaan yang masih PENDING
+            $pendingRequestsCount = AssetRequest::where('user_id', $user->id)
+                                    ->where('status', 'pending')
+                                    ->count();
+
+            // 3. Ambil 5 History Request Terakhir
             $myRequests = AssetRequest::with('asset')
                             ->where('user_id', $user->id)
                             ->latest()
                             ->take(5)
                             ->get();
 
+            // 4. Ambil list aset yang dipegang (untuk tabel mini di dashboard)
+            $myActiveAssets = Asset::where('user_id', $user->id)
+                                ->latest()
+                                ->take(3)
+                                ->get();
+
             return view('home', [
                 'title' => 'Dashboard Karyawan',
-                'myAssetsCount' => $myAssetsCount,
-                'myRequests' => $myRequests
+                'activeAssetsCount' => $activeAssetsCount,
+                'pendingRequestsCount' => $pendingRequestsCount,
+                'myRequests' => $myRequests,
+                'myActiveAssets' => $myActiveAssets
             ]);
         }
     }
 
-    // LIST SEMUA ASET (Untuk Admin & Peminjaman User)
+    /**
+     * HALAMAN KATALOG ASET (Untuk Menu "Pinjam Aset Baru")
+     */
     public function index(Request $request)
     {
         $query = Asset::with('holder')->latest();
 
+        // Fitur Pencarian
         if ($request->search) {
             $query->where('name', 'like', '%' . $request->search . '%')
                   ->orWhere('serial_number', 'like', '%' . $request->search . '%');
         }
 
-        // Karyawan hanya boleh lihat barang AVAILABLE
+        // Filter: Karyawan HANYA boleh melihat barang AVAILABLE
         if (auth()->user()->role !== 'admin') {
             $query->where('status', 'available');
         }
 
-        // FIX: Kirim data 'users' agar tidak error undefined variable
         return view('assets.index', [
-            'title' => 'Daftar Aset',
+            'title' => 'Katalog Aset IT',
             'assets' => $query->paginate(10)->withQueryString(),
-            'users' => User::all() // Tambahan penting
+            'users' => User::all()
         ]);
     }
 
-    // ASET SAYA (Khusus Karyawan)
+    /**
+     * HALAMAN ASET SAYA (Detail Barang yg Dipegang)
+     */
     public function myAssets()
     {
         $myAssets = Asset::where('user_id', auth()->id())->latest()->get();
 
         return view('assets.my_assets', [
-            'title' => 'Aset Saya',
+            'title' => 'Inventaris Saya',
             'assets' => $myAssets
         ]);
     }
 
-    // --- CRUD ADMIN ---
+    // --- LOGIC CRUD & REQUEST (Tetap sama, fungsi inti) ---
 
-    public function create()
-    {
-        return view('assets.create', [
-            'title' => 'Input Aset Baru',
-            'users' => User::all()
-        ]);
+    public function create() {
+        return view('assets.create', ['title' => 'Input Aset Baru', 'users' => User::all()]);
     }
 
     public function store(Request $request)
@@ -112,11 +136,18 @@ class AssetController extends Controller
             'user_id' => 'nullable|exists:users,id',
             'purchase_date' => 'nullable|date',
             'description' => 'nullable',
-            'image' => 'image|file|max:2048'
+            'condition_notes' => 'nullable', // Tambahan field baru
+            'image' => 'image|file|max:2048',
+            'image2' => 'image|file|max:2048', // Tambahan foto
+            'image3' => 'image|file|max:2048', // Tambahan foto
         ]);
 
-        if ($request->file('image')) {
-            $validatedData['image'] = $request->file('image')->store('asset-images');
+        // Logic simpan gambar (Looping biar rapi)
+        $images = ['image', 'image2', 'image3'];
+        foreach ($images as $imgField) {
+            if ($request->file($imgField)) {
+                $validatedData[$imgField] = $request->file($imgField)->store('asset-images');
+            }
         }
 
         $asset = Asset::create($validatedData);
@@ -125,7 +156,7 @@ class AssetController extends Controller
             'asset_id' => $asset->id,
             'user_id' => auth()->id(),
             'action' => 'created',
-            'notes' => 'Aset baru ditambahkan.'
+            'notes' => 'Aset baru ditambahkan dengan detail lengkap.'
         ]);
 
         return redirect('/assets')->with('success', 'Aset berhasil ditambahkan!');
@@ -133,10 +164,14 @@ class AssetController extends Controller
 
     public function edit(Asset $asset)
     {
+        // PERBAIKAN ERROR UNDEFINED VARIABLE $user
+        // Masalahnya di view edit.blade.php memanggil $user tapi controller tidak kirim.
+        // Kita kirim data semua user untuk dropdown "Holder"
+        
         return view('assets.edit', [
             'title' => 'Edit Data Aset',
             'asset' => $asset,
-            'users' => User::all()
+            'users' => User::all() // Ini variabel $users (jamak)
         ]);
     }
 
@@ -148,7 +183,10 @@ class AssetController extends Controller
             'user_id' => 'nullable|exists:users,id',
             'purchase_date' => 'nullable|date',
             'description' => 'nullable',
-            'image' => 'image|file|max:2048'
+            'condition_notes' => 'nullable',
+            'image' => 'image|file|max:2048',
+            'image2' => 'image|file|max:2048',
+            'image3' => 'image|file|max:2048',
         ];
 
         if($request->serial_number != $asset->serial_number) {
@@ -157,101 +195,95 @@ class AssetController extends Controller
 
         $validatedData = $request->validate($rules);
 
-        if ($request->file('image')) {
-            if ($asset->image) Storage::delete($asset->image);
-            $validatedData['image'] = $request->file('image')->store('asset-images');
+        // Update Gambar (Hapus lama jika ada baru)
+        $images = ['image', 'image2', 'image3'];
+        foreach ($images as $imgField) {
+            if ($request->file($imgField)) {
+                if ($asset->$imgField) {
+                    Storage::delete($asset->$imgField); // Hapus foto lama
+                }
+                $validatedData[$imgField] = $request->file($imgField)->store('asset-images');
+            }
         }
 
+        // Catat history jika status berubah
         if ($asset->status != $validatedData['status']) {
             AssetHistory::create([
                 'asset_id' => $asset->id,
                 'user_id' => auth()->id(),
                 'action' => 'status_change',
-                'notes' => "Status diubah: {$asset->status} -> {$validatedData['status']}"
+                'notes' => "Status diupdate: {$asset->status} -> {$validatedData['status']}"
             ]);
         }
 
         $asset->update($validatedData);
-        return redirect('/assets')->with('success', 'Aset berhasil diperbarui!');
+        return redirect('/assets')->with('success', 'Data aset berhasil diperbarui!');
     }
 
-    public function destroy(Asset $asset)
-    {
+    public function destroy(Asset $asset) {
         if ($asset->image) Storage::delete($asset->image);
         $asset->delete();
         return redirect('/assets')->with('success', 'Aset dihapus.');
     }
 
-    // --- TRANSAKSI ---
-
     public function requestAsset(Request $request, $id)
     {
         $asset = Asset::findOrFail($id);
+        
+        // Validasi ketersediaan
         if($asset->status != 'available') {
-            return back()->with('loginError', 'Aset tidak tersedia.');
+            return back()->with('loginError', 'Maaf, aset ini sudah tidak tersedia saat ini.');
         }
 
+        // Cek double request
         $existingRequest = AssetRequest::where('user_id', auth()->id())
                             ->where('asset_id', $id)
                             ->where('status', 'pending')
                             ->first();
         
         if($existingRequest) {
-            return back()->with('loginError', 'Permintaan sudah diajukan sebelumnya.');
+            return back()->with('loginError', 'Anda sudah mengajukan permintaan untuk aset ini.');
         }
 
+        // Validasi input dari Modal
+        $request->validate([
+            'return_date' => 'nullable|date|after:today',
+            'reason' => 'required|string|max:255',
+        ]);
+
+        // Simpan Request
         AssetRequest::create([
             'user_id' => auth()->id(),
             'asset_id' => $id,
             'request_date' => now(),
+            'return_date' => $request->return_date, // Simpan tanggal kembali
             'status' => 'pending',
-            'reason' => 'Permintaan via Web'
+            'reason' => $request->reason
         ]);
 
-        return redirect('/my-assets')->with('success', 'Permintaan terkirim!');
+        return redirect('/my-assets')->with('success', 'Permintaan berhasil dikirim! Silakan tunggu persetujuan Admin.');
     }
 
-    public function approveRequest($requestId)
-    {
+    public function approveRequest($requestId) {
         $request = AssetRequest::findOrFail($requestId);
         $request->update(['status' => 'approved']);
-
         $asset = Asset::findOrFail($request->asset_id);
-        $asset->update([
-            'status' => 'deployed',
-            'user_id' => $request->user_id
-        ]);
-
-        AssetHistory::create([
-            'asset_id' => $asset->id,
-            'user_id' => auth()->id(),
-            'action' => 'deployed',
-            'notes' => "Dipinjamkan ke: " . $request->user->name
-        ]);
-
-        AssetRequest::where('asset_id', $asset->id)
-                    ->where('id', '!=', $requestId)
-                    ->where('status', 'pending')
-                    ->update(['status' => 'rejected']);
-
-        return back()->with('success', 'Disetujui.');
+        $asset->update(['status' => 'deployed', 'user_id' => $request->user_id]);
+        AssetHistory::create(['asset_id' => $asset->id, 'user_id' => auth()->id(), 'action' => 'deployed', 'notes' => "Dipinjamkan ke: " . $request->user->name]);
+        AssetRequest::where('asset_id', $asset->id)->where('id', '!=', $requestId)->where('status', 'pending')->update(['status' => 'rejected']);
+        return back()->with('success', 'Permintaan disetujui.');
     }
 
-    public function rejectRequest($requestId)
-    {
+    public function rejectRequest($requestId) {
         $request = AssetRequest::findOrFail($requestId);
         $request->update(['status' => 'rejected']);
-        return back()->with('success', 'Ditolak.');
+        return back()->with('success', 'Permintaan ditolak.');
     }
 
-    public function printReport()
-    {
+    public function printReport() {
         $assets = Asset::with('holder')->orderBy('name')->get();
-        $pdf = Pdf::loadView('pdf.assets_report', [
-            'assets' => $assets,
-            'title' => 'Laporan Aset'
-        ]);
+        $pdf = Pdf::loadView('pdf.assets_report', ['assets' => $assets, 'title' => 'Laporan Aset']);
         $pdf->setPaper('A4', 'portrait');
-        return $pdf->stream('laporan-aset.pdf');
+        return $pdf->stream('laporan-aset-vitech.pdf');
     }
 }
