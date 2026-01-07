@@ -1,41 +1,51 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\AuthController;
 
 /*
 |--------------------------------------------------------------------------
-| Web Routes (Fixed Version)
+| Web Routes
 |--------------------------------------------------------------------------
 */
 
-// 1. ROUTE PUBLIC
+// --- AUTHENTICATION ---
 Route::middleware('guest')->group(function () {
-    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+    Route::get('/login', [AuthController::class, 'login'])->name('login');
     Route::post('/login', [AuthController::class, 'authenticate']);
-    Route::get('/register', [AuthController::class, 'showRegister']);
-    Route::post('/register', [AuthController::class, 'register']);
+    Route::get('/register', [AuthController::class, 'register']); // Opsional
+    Route::post('/register', [AuthController::class, 'store']);   // Opsional
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth');
 
-// 2. ROUTE LOGGED IN (Admin & Karyawan)
+// --- MAIN FEATURES (BUTUH LOGIN) ---
 Route::middleware(['auth'])->group(function () {
     
-    // Dashboard & Profile
-    Route::get('/', [AssetController::class, 'dashboard']);
+    // 1. DASHBOARD (Semua User)
+    Route::get('/', [AssetController::class, 'dashboard'])->name('home');
+
+    // 2. KATALOG ASET (PENTING: Ditaruh DI LUAR grup admin agar Karyawan bisa akses)
+    Route::get('/assets', [AssetController::class, 'index'])->name('assets.index');
+    
+    // 3. FITUR KARYAWAN
     Route::get('/my-assets', [AssetController::class, 'myAssets']);
     Route::post('/assets/{id}/request', [AssetController::class, 'requestAsset']);
 
-    // AREA ADMIN (Wajib di dalam middleware is_admin)
+    // --- AREA KHUSUS ADMIN ---
     Route::middleware(['is_admin'])->group(function () {
         
-        // Manajemen Aset
-        Route::resource('assets', AssetController::class)->except(['show']); // show diganti modal
-        
-        // MANAJEMEN USER (INI YANG WAJIB ADA)
+        // Manajemen Aset (Kecuali Index/Show yang sudah di atas)
+        // Ini menangani: Create, Store, Edit, Update, Destroy
+        Route::get('/assets/create', [AssetController::class, 'create'])->name('assets.create');
+        Route::post('/assets', [AssetController::class, 'store'])->name('assets.store');
+        Route::get('/assets/{asset}/edit', [AssetController::class, 'edit'])->name('assets.edit');
+        Route::put('/assets/{asset}', [AssetController::class, 'update'])->name('assets.update');
+        Route::delete('/assets/{asset}', [AssetController::class, 'destroy'])->name('assets.destroy');
+
+        // Manajemen User
         Route::resource('users', UserController::class);
 
         // Approval & Report

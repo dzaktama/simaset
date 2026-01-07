@@ -9,55 +9,72 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    // 1. TAMPILKAN FORM LOGIN
-    public function showLogin()
+    /**
+     * Tampilkan halaman Login
+     */
+    public function login()
     {
-        return view('auth.login', ['title' => 'Login']);
+        return view('auth.login', [
+            'title' => 'Login'
+        ]);
     }
 
-    // 2. PROSES LOGIN
+    /**
+     * Proses Login
+     */
     public function authenticate(Request $request)
     {
         $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required'],
+            'email' => 'required|email:dns',
+            'password' => 'required'
         ]);
 
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
-            return redirect()->intended('/'); // Sukses -> Masuk Home
+            return redirect()->intended('/'); // Redirect ke dashboard
         }
 
-        // Gagal -> Balik ke login bawa pesan error
-        return back()->with('loginError', 'Login Gagal! Cek email atau password.');
+        return back()->with('loginError', 'Login gagal! Email atau password salah.');
     }
 
-    // 3. TAMPILKAN FORM REGISTER
-    public function showRegister()
+    /**
+     * Tampilkan halaman Register
+     */
+    public function register()
     {
-        return view('auth.register', ['title' => 'Register']);
+        return view('auth.register', [
+            'title' => 'Register'
+        ]);
     }
 
-    // 4. PROSES REGISTER
-    public function register(Request $request)
+    /**
+     * Proses Register User Baru
+     */
+    public function store(Request $request)
     {
         $validatedData = $request->validate([
             'name' => 'required|max:255',
-            'email' => 'required|email|unique:users',
+            'email' => 'required|email:dns|unique:users',
             'password' => 'required|min:5|max:255'
         ]);
 
         // Enkripsi password
         $validatedData['password'] = Hash::make($validatedData['password']);
+        
+        // Set default role (jika tidak diinput, otomatis jadi 'user')
+        $validatedData['role'] = 'user'; 
 
-        // Simpan User
         User::create($validatedData);
 
-        // Langsung arahkan ke login
+        // Opsional: Langsung login setelah register
+        // $request->session()->flash('success', 'Registrasi berhasil! Silakan login.');
+        
         return redirect('/login')->with('success', 'Registrasi berhasil! Silakan login.');
     }
 
-    // 5. PROSES LOGOUT
+    /**
+     * Proses Logout
+     */
     public function logout(Request $request)
     {
         Auth::logout();
