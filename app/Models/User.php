@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
@@ -45,9 +46,14 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
-    // Relasi: User "Punya Banyak" Post
-    public function posts()
+
+    // --- NEW CODE: Relasi ke Asset ---
+    
+    /**
+     * User bisa memegang banyak aset (Laptop, Monitor, Mouse).
+     */
+    public function assets(): HasMany
     {
-        return $this->hasMany(Post::class);
+        return $this->hasMany(Asset::class);
     }
 }
