@@ -38,14 +38,22 @@ Route::middleware(['auth'])->group(function () {
 
 
 // 3. KHUSUS ADMIN
-Route::middleware(['auth', 'admin'])->group(function () { // Middleware 'admin' ini merujuk ke alias di bootstrap/app.php
+Route::middleware(['auth', 'admin'])->group(function () { 
+    // User Management
     Route::resource('/users', UserController::class)->except(['show']);
     
-    // Resource Assets (Kecuali index, karena sudah ada di atas)
+    // Resource Assets (Index dikecualikan karena biasanya ada di luar grup ini/akses publik)
     Route::resource('/assets', AssetController::class)->except(['index']);
     
-    Route::get('/report/assets', [AssetController::class, 'printReport'])->name('report.assets');
+    // --- FITUR LAPORAN (REVISI FIX) ---
+    // Halaman Generator (Tampilan Form)
+    Route::get('/report-generator', [\App\Http\Controllers\AssetController::class, 'reportIndex'])->name('report.index');
     
+    // Action Cetak PDF (Hasil Akhir)
+    Route::get('/report/print', [\App\Http\Controllers\AssetController::class, 'printReport'])->name('report.assets');
+    
+    // (HAPUS BARIS LAMA '/report/assets' DI SINI AGAR TIDAK BENTROK)
+
     // Approval
     Route::post('/requests/{id}/approve', [AssetRequestController::class, 'approve']);
     Route::post('/requests/{id}/reject', [AssetRequestController::class, 'reject']);

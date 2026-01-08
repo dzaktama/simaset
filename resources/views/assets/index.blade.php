@@ -1,39 +1,83 @@
 @extends('layouts.main')
 
 @section('container')
-<div class="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+{{-- 1. HEADER & JUDUL (VERSI BERSIH) --}}
+<div class="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
     <div>
         <h2 class="text-3xl font-bold leading-tight text-gray-900">Katalog Aset IT</h2>
         <p class="mt-2 text-sm text-gray-600">
             @if(auth()->user()->role == 'admin')
-                Kelola daftar inventaris, status peminjaman, dan kondisi aset.
+                Kelola inventaris, pantau stok, dan riwayat aset.
             @else
-                Cari dan ajukan peminjaman aset untuk kebutuhan kerja Anda.
+                Cari dan ajukan peminjaman aset di sini.
             @endif
         </p>
     </div>
     
     @if(auth()->user()->role == 'admin')
-    <div class="flex gap-2">
-        <form action="{{ route('report.assets') }}" method="GET" target="_blank" class="flex gap-1">
-            <select name="status" class="text-sm border-gray-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                <option value="all">Semua Status</option>
-                <option value="available">Available</option>
-                <option value="deployed">Deployed</option>
-                <option value="maintenance">Maintenance</option>
-            </select>
-            <button type="submit" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
-                Cetak
-            </button>
-        </form>
-        <a href="/assets/create" class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700">
-            + Tambah Aset
-        </a>
-    </div>
+    <a href="/assets/create" class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 transition">
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+        Tambah Aset
+    </a>
     @endif
 </div>
 
-{{-- Tabel Aset --}}
+{{-- 2. FILTER BAR (SATU-SATUNYA - PENGGANTI YANG LAMA) --}}
+<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6">
+    <form action="/assets" method="GET" class="flex flex-col md:flex-row gap-4 items-end">
+        {{-- Search --}}
+        <div class="w-full md:w-1/3">
+            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Pencarian</label>
+            <div class="relative">
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama, SN, atau deskripsi..." class="block w-full rounded-lg border-gray-300 pl-10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                </div>
+            </div>
+        </div>
+
+        {{-- Filter Status --}}
+        <div class="w-full md:w-1/4">
+            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
+            <select name="status" class="block w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                <option value="all">Semua Status</option>
+                <option value="available" {{ request('status') == 'available' ? 'selected' : '' }}>Available (Tersedia)</option>
+                <option value="deployed" {{ request('status') == 'deployed' ? 'selected' : '' }}>Deployed (Dipinjam)</option>
+                <option value="maintenance" {{ request('status') == 'maintenance' ? 'selected' : '' }}>Maintenance</option>
+                <option value="broken" {{ request('status') == 'broken' ? 'selected' : '' }}>Broken (Rusak)</option>
+            </select>
+        </div>
+
+        {{-- Sort --}}
+        <div class="w-full md:w-1/4">
+            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Urutkan</label>
+            <select name="sort" class="block w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                <option value="latest" {{ request('sort') == 'latest' ? 'selected' : '' }}>Terbaru</option>
+                <option value="oldest" {{ request('sort') == 'oldest' ? 'selected' : '' }}>Terlama</option>
+                <option value="stock_low" {{ request('sort') == 'stock_low' ? 'selected' : '' }}>Stok Sedikit</option>
+                <option value="stock_high" {{ request('sort') == 'stock_high' ? 'selected' : '' }}>Stok Banyak</option>
+                <option value="name_asc" {{ request('sort') == 'name_asc' ? 'selected' : '' }}>Nama (A-Z)</option>
+            </select>
+        </div>
+
+        {{-- Tombol Filter & Cetak --}}
+        <div class="flex gap-2 w-full md:w-auto">
+            <button type="submit" class="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-900 transition flex items-center gap-2">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+                Filter
+            </button>
+            
+            @if(auth()->user()->role == 'admin')
+            <a href="{{ route('report.assets', ['status' => request('status') ?? 'all']) }}" target="_blank" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition flex items-center gap-2" title="Cetak Sesuai Filter Status">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                Cetak
+            </a>
+            @endif
+        </div>
+    </form>
+</div>
+
+{{-- 3. TABEL ASET --}}
 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
     <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
@@ -49,7 +93,7 @@
             <tbody class="bg-white divide-y divide-gray-200">
                 @forelse($assets as $asset)
                 <tr class="hover:bg-gray-50 transition">
-                    {{-- Kolom Info Aset --}}
+                    {{-- Info --}}
                     <td class="px-6 py-4">
                         <div class="flex items-center">
                             <div class="h-10 w-10 flex-shrink-0 rounded bg-gray-100 border border-gray-200 overflow-hidden relative">
@@ -60,9 +104,7 @@
                                         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                                     </div>
                                 @endif
-                                @if($asset->image2 || $asset->image3)
-                                    <div class="absolute bottom-0 right-0 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded-tl">+Foto</div>
-                                @endif
+                                @if($asset->image2 || $asset->image3) <div class="absolute bottom-0 right-0 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded-tl">+Foto</div> @endif
                             </div>
                             <div class="ml-4">
                                 <div class="font-medium text-gray-900">{{ $asset->name }}</div>
@@ -70,63 +112,48 @@
                             </div>
                         </div>
                     </td>
-                    
-                    {{-- Kolom Stok --}}
+                    {{-- Stok --}}
                     <td class="px-6 py-4 text-center">
                         <span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $asset->quantity > 0 ? 'bg-gray-100 text-gray-800' : 'bg-red-100 text-red-800' }}">
                             {{ $asset->quantity }} Unit
                         </span>
                     </td>
-
-                    {{-- Kolom Kondisi --}}
+                    {{-- Kondisi --}}
                     <td class="px-6 py-4">
                         <span class="text-sm text-gray-700">{{ $asset->condition_notes ?? 'Baik' }}</span>
                     </td>
-
-                    {{-- Kolom Status --}}
+                    {{-- Status --}}
                     <td class="px-6 py-4">
-                        <div class="flex flex-col items-start gap-1">
-                            @if($asset->quantity == 0)
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Habis</span>
-                            @elseif($asset->status == 'available')
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Available</span>
-                            @elseif($asset->status == 'deployed')
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Deployed</span>
+                        @if($asset->quantity == 0) <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Habis</span>
+                        @elseif($asset->status == 'available') <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Available</span>
+                        @elseif($asset->status == 'deployed') <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Deployed</span>
+                        @else <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">{{ ucfirst($asset->status) }}</span>
+                        @endif
+                    </td>
+                    {{-- Aksi --}}
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div class="flex items-center justify-end gap-2">
+                            <button onclick="openDetailModal({{ json_encode($asset) }}, {{ json_encode($asset->holder) }})" class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 px-3 py-1 rounded border border-indigo-200 hover:bg-indigo-100 transition">Detail</button>
+                            
+                            @if(auth()->user()->role == 'admin')
+                                <a href="/assets/{{ $asset->id }}/edit" class="text-yellow-600 hover:text-yellow-900 bg-yellow-50 px-3 py-1 rounded border border-yellow-200 hover:bg-yellow-100 transition">Edit</a>
+                                <form action="/assets/{{ $asset->id }}" method="POST" class="inline-block" onsubmit="return confirm('Yakin mau HAPUS aset ini selamanya?');">
+                                    @method('delete')
+                                    @csrf
+                                    <button type="submit" class="text-red-600 hover:text-red-900 bg-red-50 px-3 py-1 rounded border border-red-200 hover:bg-red-100 transition">Hapus</button>
+                                </form>
                             @else
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">{{ ucfirst($asset->status) }}</span>
+                                @if($asset->quantity > 0 && $asset->status == 'available')
+                                    <button onclick="openLoanModal({{ json_encode($asset) }})" class="text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1 rounded border border-transparent shadow-sm transition">Pinjam</button>
+                                @else
+                                    <button disabled class="text-gray-400 bg-gray-100 px-3 py-1 rounded border border-gray-200 cursor-not-allowed">Pinjam</button>
+                                @endif
                             @endif
                         </div>
                     </td>
-
-                    {{-- Kolom Aksi --}}
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        {{-- Tombol Detail --}}
-                        <button onclick="openDetailModal({{ json_encode($asset) }}, {{ json_encode($asset->holder) }})" class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 px-3 py-1 rounded border border-indigo-200 hover:bg-indigo-100 transition mr-2">
-                            Detail
-                        </button>
-                        
-                        {{-- Logic Tombol Berdasarkan Role --}}
-                        @if(auth()->user()->role == 'admin')
-                            {{-- Admin: Lihat tombol Edit --}}
-                            <a href="/assets/{{ $asset->id }}/edit" class="text-yellow-600 hover:text-yellow-900 bg-yellow-50 px-3 py-1 rounded border border-yellow-200 hover:bg-yellow-100 transition">
-                                Edit
-                            </a>
-                        @else
-                            {{-- Karyawan: Lihat tombol Pinjam (Hanya jika available & stok > 0) --}}
-                            @if($asset->quantity > 0 && $asset->status == 'available')
-                                <button onclick="openLoanModal({{ json_encode($asset) }})" class="text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1 rounded border border-transparent shadow-sm transition">
-                                    Pinjam
-                                </button>
-                            @else
-                                <button disabled class="text-gray-400 bg-gray-100 px-3 py-1 rounded border border-gray-200 cursor-not-allowed">
-                                    Pinjam
-                                </button>
-                            @endif
-                        @endif
-                    </td>
                 </tr>
                 @empty
-                <tr><td colspan="5" class="px-6 py-10 text-center text-gray-500 italic">Belum ada data aset.</td></tr>
+                <tr><td colspan="5" class="px-6 py-10 text-center text-gray-500 italic">Data aset tidak ditemukan.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -134,19 +161,15 @@
     <div class="px-6 py-4 border-t border-gray-200">{{ $assets->links() }}</div>
 </div>
 
-{{-- ================= MODAL DETAIL ASET (CAROUSEL) ================= --}}
-<div id="detailModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+{{-- 4. MODAL DETAIL & PINJAM (YANG SUDAH DIPERBAIKI) --}}
+<div id="detailModal" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true">
     <div class="flex min-h-screen items-center justify-center p-4">
         <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeDetailModal()"></div>
-
         <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-3xl">
             <div class="bg-indigo-600 px-4 py-3 sm:px-6 flex justify-between items-center">
                 <h3 class="text-lg font-bold text-white">Detail Informasi Aset</h3>
-                <button onclick="closeDetailModal()" class="text-indigo-200 hover:text-white transition">
-                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
+                <button onclick="closeDetailModal()" class="text-indigo-200 hover:text-white transition"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
-            
             <div class="bg-white px-4 pt-5 pb-4 sm:p-6">
                 <div class="flex flex-col md:flex-row gap-6 mb-6">
                     <div class="w-full md:w-5/12">
@@ -158,7 +181,6 @@
                         </div>
                         <p class="text-center text-xs text-gray-400 mt-2 italic">*Geser untuk melihat foto lain</p>
                     </div>
-
                     <div class="w-full md:w-7/12 space-y-3">
                         <div class="border-b pb-3">
                             <h2 id="modalName" class="text-2xl font-bold text-gray-900 leading-tight">-</h2>
@@ -168,43 +190,40 @@
                                 <span id="modalQuantity" class="px-2 py-0.5 text-xs font-bold rounded-full bg-gray-100 text-gray-600 border border-gray-300">Stok: -</span>
                             </div>
                         </div>
-                        
                         <div><p class="text-xs text-gray-500 uppercase font-bold">Deskripsi:</p><p id="modalDescription" class="text-sm text-gray-700">-</p></div>
                         <div><p class="text-xs text-gray-500 uppercase font-bold">Kondisi Fisik:</p><div class="bg-gray-50 p-2 rounded border border-gray-200 mt-1"><p id="modalCondition" class="text-sm font-medium text-gray-800">-</p></div></div>
                     </div>
                 </div>
-
                 <div id="loanInfo" class="border-t pt-4">
                     <h4 class="text-sm font-bold text-gray-900 uppercase mb-3">Status Peminjaman</h4>
-                    {{-- Status Container --}}
                     <div id="infoDeployed" class="hidden bg-blue-50 p-4 rounded-lg border border-blue-200">
-                        <div class="flex items-center gap-3">
-                            <div class="h-10 w-10 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-bold"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div>
-                            <div><p class="text-xs text-blue-600 uppercase font-bold">Sedang Dipinjam Oleh:</p><p id="modalHolderName" class="text-sm font-bold text-gray-900">-</p></div>
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-3">
+                                <div class="h-10 w-10 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-bold"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div>
+                                <div><p class="text-xs text-blue-600 uppercase font-bold">Sedang Dipinjam Oleh:</p><p id="modalHolderName" class="text-sm font-bold text-gray-900 text-lg">-</p></div>
+                            </div>
+                            <hr class="border-blue-200">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div><p class="text-xs text-blue-600 uppercase font-bold">Tanggal Pinjam:</p><p id="modalAssignedDate" class="text-sm font-medium text-gray-800">-</p></div>
+                                <div><p class="text-xs text-blue-600 uppercase font-bold">Batas Kembali:</p><p id="modalReturnDate" class="text-sm font-medium text-gray-800">-</p></div>
+                                <div class="col-span-2"><p class="text-xs text-blue-600 uppercase font-bold">Jumlah Dipinjam:</p><p id="modalDeployedQty" class="text-sm font-bold text-gray-900 bg-white px-2 py-1 rounded border inline-block mt-1">-</p></div>
+                            </div>
                         </div>
                     </div>
-                    
-                    {{-- Area Available + Tombol Pinjam --}}
                     <div id="infoAvailable" class="hidden bg-green-50 p-4 rounded-lg border border-green-200">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2">
                                 <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                                 <div><p class="text-green-800 font-bold text-sm">Tersedia di Gudang</p><p class="text-xs text-green-600">Aset ini siap untuk dipinjamkan.</p></div>
                             </div>
-                            
-                            {{-- TOMBOL PINJAM DI DALAM MODAL (HANYA UNTUK KARYAWAN) --}}
                             @if(auth()->user()->role != 'admin')
-                                <button id="modalBtnPinjam" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition shadow-sm">
-                                    Ajukan Pinjam
-                                </button>
+                                <button id="modalBtnPinjam" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition shadow-sm">Ajukan Pinjam</button>
                             @endif
                         </div>
                     </div>
-
                     <div id="infoMaintenance" class="hidden bg-red-50 p-4 rounded-lg border border-red-200 flex items-center justify-center gap-2"><svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg><div><p class="text-red-800 font-bold text-sm">Sedang Perbaikan / Rusak</p><p class="text-xs text-red-600">Aset tidak dapat digunakan saat ini.</p></div></div>
                 </div>
             </div>
-            
             <div class="bg-gray-50 px-4 py-3 sm:px-6 flex justify-end">
                 <button onclick="closeDetailModal()" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:w-auto sm:text-sm">Tutup</button>
             </div>
@@ -212,11 +231,9 @@
     </div>
 </div>
 
-{{-- ================= MODAL FORM PINJAM ================= --}}
-<div id="loanModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+<div id="loanModal" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true">
     <div class="flex min-h-screen items-center justify-center p-4">
         <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeLoanModal()"></div>
-
         <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
             <form action="/requests" method="POST">
                 @csrf
@@ -229,46 +246,24 @@
                             <h3 class="text-lg leading-6 font-medium text-gray-900">Ajukan Peminjaman Aset</h3>
                             <div class="mt-4 space-y-4">
                                 <input type="hidden" name="asset_id" id="loanAssetId">
-                                
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Nama Barang</label>
-                                    <input type="text" id="loanAssetName" disabled class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm sm:text-sm p-2 border text-gray-500">
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Jumlah Unit <span class="text-red-500">*</span></label>
-                                    <div class="flex items-center gap-2">
-                                        <input type="number" name="quantity" id="loanQuantity" min="1" value="1" required class="mt-1 block w-24 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border">
-                                        <span class="text-xs text-gray-500" id="loanMaxStockText"></span>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Rencana Kembali <span class="text-xs text-gray-400">(Opsional)</span></label>
-                                    <input type="date" name="return_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border">
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Keperluan / Alasan <span class="text-red-500">*</span></label>
-                                    <textarea name="reason" rows="3" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" placeholder="Contoh: Untuk keperluan meeting proyek X"></textarea>
-                                </div>
+                                <div><label class="block text-sm font-medium text-gray-700">Nama Barang</label><input type="text" id="loanAssetName" disabled class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm sm:text-sm p-2 border text-gray-500"></div>
+                                <div><label class="block text-sm font-medium text-gray-700">Jumlah Unit <span class="text-red-500">*</span></label><div class="flex items-center gap-2"><input type="number" name="quantity" id="loanQuantity" min="1" value="1" required class="mt-1 block w-24 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"><span class="text-xs text-gray-500" id="loanMaxStockText"></span></div></div>
+                                <div><label class="block text-sm font-medium text-gray-700">Rencana Kembali <span class="text-xs text-gray-400">(Opsional)</span></label><input type="date" name="return_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"></div>
+                                <div><label class="block text-sm font-medium text-gray-700">Keperluan / Alasan <span class="text-red-500">*</span></label><textarea name="reason" rows="3" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" placeholder="Contoh: Untuk keperluan meeting proyek X"></textarea></div>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                    <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
-                        Kirim Pengajuan
-                    </button>
-                    <button type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm" onclick="closeLoanModal()">
-                        Batal
-                    </button>
+                    <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">Kirim Pengajuan</button>
+                    <button type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm" onclick="closeLoanModal()">Batal</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
+{{-- 5. SCRIPTS --}}
 <script>
     function getImg(path) { return path ? `/storage/${path}` : 'https://via.placeholder.com/600x400?text=No+Image'; }
     function formatDateID(dateStr) {
@@ -291,96 +286,67 @@
     function prevSlide() { if(totalSlides > 1) { currentSlide = (currentSlide - 1 + totalSlides) % totalSlides; updateCarousel(); } }
     function goToSlide(i) { currentSlide = i; updateCarousel(); }
 
-    // Variabel Global untuk menyimpan data aset saat ini (agar bisa dipanggil tombol pinjam di modal)
-    let currentAssetData = null;
-
     function openDetailModal(asset, holder) {
-        currentAssetData = asset; // Simpan data aset
-
-        // INFO DASAR
         document.getElementById('modalName').innerText = asset.name;
         document.getElementById('modalSN').innerText = asset.serial_number;
         document.getElementById('modalDescription').innerText = asset.description || '-';
         document.getElementById('modalCondition').innerText = asset.condition_notes || 'Kondisi Baik';
-        document.getElementById('modalQuantity').innerText = 'Stok: ' + (asset.quantity || 1) + ' Unit';
+        document.getElementById('modalQuantity').innerText = 'Total Stok: ' + (asset.quantity || 1) + ' Unit';
 
-        // STATUS
         const statusEl = document.getElementById('modalStatus');
         statusEl.innerText = asset.status.toUpperCase();
         statusEl.className = "px-2 py-0.5 text-xs font-bold rounded-full"; 
         ['infoDeployed', 'infoAvailable', 'infoMaintenance'].forEach(id => document.getElementById(id).classList.add('hidden'));
 
-        // Logic Tampilan Modal Detail
         if (asset.status === 'deployed') {
             statusEl.classList.add('bg-blue-100', 'text-blue-800');
             document.getElementById('infoDeployed').classList.remove('hidden');
             document.getElementById('modalHolderName').innerText = holder ? holder.name : 'Unknown';
+            document.getElementById('modalAssignedDate').innerText = formatDateID(asset.assigned_date);
+            document.getElementById('modalReturnDate').innerText = asset.return_date ? formatDateID(asset.return_date) : 'Tidak Ada Batas';
+            document.getElementById('modalDeployedQty').innerText = asset.quantity + ' Unit';
         } else if (asset.status === 'available') {
             statusEl.classList.add('bg-green-100', 'text-green-800');
             document.getElementById('infoAvailable').classList.remove('hidden');
-            
-            // Konfigurasi Tombol Pinjam di dalam Modal
             const btnPinjam = document.getElementById('modalBtnPinjam');
             if(btnPinjam) {
                 if(asset.quantity > 0) {
-                    btnPinjam.onclick = function() { 
-                        closeDetailModal(); 
-                        openLoanModal(asset); 
-                    };
+                    btnPinjam.onclick = function() { closeDetailModal(); openLoanModal(asset); };
                     btnPinjam.classList.remove('hidden');
-                } else {
-                    btnPinjam.classList.add('hidden'); // Sembunyikan jika stok 0
-                }
+                } else { btnPinjam.classList.add('hidden'); }
             }
-
         } else {
             statusEl.classList.add('bg-red-100', 'text-red-800');
             document.getElementById('infoMaintenance').classList.remove('hidden');
         }
 
-        // CAROUSEL LOGIC (Sama seperti sebelumnya)
         let slidesHtml = '', dotsHtml = '', images = [];
         if (asset.image) images.push(asset.image);
         if (asset.image2) images.push(asset.image2);
         if (asset.image3) images.push(asset.image3);
         if (images.length === 0) images.push(null);
 
-        totalSlides = images.length;
-        currentSlide = 0;
-
+        totalSlides = images.length; currentSlide = 0;
         images.forEach((img, index) => {
             slidesHtml += `<div class="min-w-full h-full flex items-center justify-center bg-gray-200"><img src="${getImg(img)}" class="w-full h-full object-cover"></div>`;
             dotsHtml += `<button onclick="goToSlide(${index})" class="w-2 h-2 rounded-full transition-all duration-300 bg-white/50"></button>`;
         });
-
         document.getElementById('carouselSlides').innerHTML = slidesHtml;
         document.getElementById('carouselIndicators').innerHTML = dotsHtml;
-        
         const navs = [document.getElementById('prevBtn'), document.getElementById('nextBtn'), document.getElementById('carouselIndicators')];
         navs.forEach(el => totalSlides > 1 ? el.classList.remove('hidden') : el.classList.add('hidden'));
-        
         updateCarousel();
         document.getElementById('detailModal').classList.remove('hidden');
     }
-
     function closeDetailModal() { document.getElementById('detailModal').classList.add('hidden'); }
-
-    // --- LOGIC MODAL PINJAM ---
     function openLoanModal(asset) {
         document.getElementById('loanAssetId').value = asset.id;
         document.getElementById('loanAssetName').value = asset.name;
-        
-        // Set Max Quantity
         const qtyInput = document.getElementById('loanQuantity');
-        qtyInput.max = asset.quantity;
-        qtyInput.value = 1;
+        qtyInput.max = asset.quantity; qtyInput.value = 1;
         document.getElementById('loanMaxStockText').innerText = `(Tersedia: ${asset.quantity} unit)`;
-
         document.getElementById('loanModal').classList.remove('hidden');
     }
-
-    function closeLoanModal() {
-        document.getElementById('loanModal').classList.add('hidden');
-    }
+    function closeLoanModal() { document.getElementById('loanModal').classList.add('hidden'); }
 </script>
 @endsection

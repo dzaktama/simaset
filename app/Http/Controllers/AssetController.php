@@ -57,9 +57,10 @@ class AssetController extends Controller
      */
     public function index(Request $request)
     {
-        // Load holder, latestApprovedRequest, dan enable filter
-        $query = Asset::with(['holder', 'latestApprovedRequest'])->latest();
+        // Start Query
+        $query = Asset::with(['holder', 'latestApprovedRequest']);
 
+        // 1. Fitur Search (Nama, SN, Deskripsi)
         if ($request->search) {
             $query->where(function($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->search . '%')
@@ -68,9 +69,22 @@ class AssetController extends Controller
             });
         }
         
-        // Filter Status
+        // 2. Filter Status
         if ($request->has('status') && $request->status != 'all') {
              $query->where('status', $request->status);
+        }
+
+        // 3. Fitur Sorting (Urutkan)
+        if ($request->has('sort')) {
+            switch ($request->sort) {
+                case 'oldest': $query->oldest(); break; // Terlama
+                case 'stock_low': $query->orderBy('quantity', 'asc'); break; // Stok Sedikit
+                case 'stock_high': $query->orderBy('quantity', 'desc'); break; // Stok Banyak
+                case 'name_asc': $query->orderBy('name', 'asc'); break; // Nama A-Z
+                default: $query->latest(); break; // Terbaru (Default)
+            }
+        } else {
+            $query->latest();
         }
 
         return view('assets.index', [
@@ -155,14 +169,15 @@ class AssetController extends Controller
     /**
      * Update Aset (Termasuk Smart Logic Status & Tanggal)
      */
-    public function update(Request $request, Asset $asset)
+   public function update(Request $request, Asset $asset)
     {
+        // validasi input dasar
         $rules = [
             'name' => 'required|max:255',
             'status' => 'required',
             'quantity' => 'required|integer|min:0',
             'user_id' => 'nullable|exists:users,id',
-            'manual_quantity' => 'nullable|integer|min:1', // Input Baru Poin 12
+            'manual_quantity' => 'nullable|integer|min:1',
             'assigned_date' => 'nullable', 
             'return_date' => 'nullable',   
             'purchase_date' => 'nullable|date',
@@ -173,81 +188,14 @@ class AssetController extends Controller
             'image3' => 'image|file|max:2048',
         ];
 
+        // cek kalo serial number diganti baru divalidasi unik
         if($request->serial_number != $asset->serial_number) {
             $rules['serial_number'] = 'required|unique:assets';
         }
 
         $validatedData = $request->validate($rules);
 
-        // --- POIN 12: LOGIK SPLIT ASET (JIKA STOK DIPECAH) ---
-        // Skenario: Admin pilih User DAN input jumlah pinjam < total stok saat ini
-        if ($request->user_id && $request->manual_quantity && $request->manual_quantity < $validatedData['quantity']) {
-            
-            // 1. Kurangi Stok Aset Utama (Induk)
-            $sisaStok = $validatedData['quantity'] - $request->manual_quantity;
-            $validatedData['quantity'] = $sisaStok; // Update data untuk aset induk
-            $validatedData['user_id'] = null; // Aset induk tetap di gudang/available
-            $validatedData['status'] = 'available'; // Pastikan induk tetap available
-
-            // 2. Buat Aset Baru (Pecahan) untuk User
-            $newAsset = $asset->replicate(); // Kloning data aset lama
-            $newAsset->serial_number = $validatedData['serial_number'] . '-deployed-' . rand(100,999); // Unik SN
-            $newAsset->quantity = $request->manual_quantity;
-            $newAsset->user_id = $request->user_id;
-            $newAsset->status = 'deployed';
-            
-            // Format Tanggal untuk Aset Baru
-            if (!empty($request->assigned_date)) {
-                $newAsset->assigned_date = \Carbon\Carbon::parse($request->assigned_date)->format('Y-m-d H:i:s');
-            } else {
-                $newAsset->assigned_date = now();
-            }
-            
-            if (!empty($request->return_date)) {
-                $newAsset->return_date = \Carbon\Carbon::parse($request->return_date)->format('Y-m-d H:i:s');
-            }
-
-            $newAsset->save();
-
-            // Log History untuk Aset Baru
-            AssetHistory::create([
-                'asset_id' => $newAsset->id,
-                'user_id' => auth()->id(),
-                'action' => 'manual_override',
-                'notes' => "Aset dipecah dari induk. Dipinjamkan manual ke user ID: " . $request->user_id
-            ]);
-            
-            // Pesan sukses khusus split
-            $splitMessage = "Aset berhasil dipecah! {$request->manual_quantity} unit dipindahkan ke user, sisa {$sisaStok} unit tetap di gudang.";
-        }
-
-        // --- LOGIC STANDAR (JIKA TIDAK DIPECAH) ---
-        
-        // 1. Format Tanggal
-        if (!empty($validatedData['assigned_date'])) {
-            $validatedData['assigned_date'] = \Carbon\Carbon::parse($validatedData['assigned_date'])->format('Y-m-d H:i:s');
-        }
-        if (!empty($validatedData['return_date'])) {
-            $validatedData['return_date'] = \Carbon\Carbon::parse($validatedData['return_date'])->format('Y-m-d H:i:s');
-        }
-
-        // 2. Smart Logic: Status Otomatis (Hanya jika TIDAK terjadi split di atas)
-        // Kalau tadi sudah split, $validatedData['user_id'] sudah di-null-kan agar induk aman
-        if ($validatedData['user_id'] && $validatedData['status'] == 'available') {
-            $validatedData['status'] = 'deployed';
-        }
-        if (!$validatedData['user_id'] && $validatedData['status'] == 'deployed') {
-            $validatedData['status'] = 'available';
-        }
-        if ($validatedData['status'] == 'deployed' && empty($validatedData['assigned_date'])) {
-            $validatedData['assigned_date'] = now();
-        }
-        if ($validatedData['status'] == 'available') {
-            $validatedData['assigned_date'] = null;
-            $validatedData['return_date'] = null;
-        }
-
-        // 3. Upload Gambar
+        // handle upload gambar
         foreach (['image', 'image2', 'image3'] as $key) {
             if ($request->file($key)) {
                 if ($asset->$key) Storage::disk('public')->delete($asset->$key);
@@ -255,55 +203,177 @@ class AssetController extends Controller
             }
         }
 
-        // 4. Log History (Induk)
+        // format tanggal
+        if (!empty($validatedData['assigned_date'])) {
+            $validatedData['assigned_date'] = \Carbon\Carbon::parse($validatedData['assigned_date'])->format('Y-m-d H:i:s');
+        }
+        if (!empty($validatedData['return_date'])) {
+            $validatedData['return_date'] = \Carbon\Carbon::parse($validatedData['return_date'])->format('Y-m-d H:i:s');
+        }
+
+        // paksa user kosong kalo status available biar ga konflik
+        if ($validatedData['status'] == 'available') {
+            $validatedData['user_id'] = null;
+            $validatedData['assigned_date'] = null;
+            $validatedData['return_date'] = null;
+        }
+
+        // logika split aset (pecah stok)
+        if ($request->user_id && $request->manual_quantity && $request->manual_quantity < $asset->quantity) {
+            
+            $stokAwal = $asset->quantity;
+            $stokDiambil = $request->manual_quantity;
+            $sisaStok = $stokAwal - $stokDiambil;
+
+            // update induk jadi sisa stok
+            $dataInduk = $validatedData;
+            $dataInduk['quantity'] = $sisaStok;
+            $dataInduk['user_id'] = null;       
+            $dataInduk['status'] = 'available'; 
+            $dataInduk['assigned_date'] = null;
+            $dataInduk['return_date'] = null;
+
+            $asset->update($dataInduk);
+
+            // catat history induk
+            AssetHistory::create([
+                'asset_id' => $asset->id,
+                'user_id' => auth()->id(),
+                'action' => 'split_stock',
+                'notes' => "Stok dipecah: {$stokAwal} -> {$sisaStok}. ({$stokDiambil} unit dipisah untuk user lain)"
+            ]);
+
+            // buat aset baru pecahan
+            $newAsset = $asset->replicate(); 
+            
+            // perbaikan error: pake fallback ke sn lama kalo ga ada di validated
+            $baseSN = $validatedData['serial_number'] ?? $asset->serial_number;
+            $newAsset->serial_number = $baseSN . '-S' . rand(100,999); 
+            
+            $newAsset->quantity = $stokDiambil;
+            $newAsset->user_id = $request->user_id; 
+            $newAsset->status = 'deployed';
+            $newAsset->assigned_date = $validatedData['assigned_date'] ?? now();
+            $newAsset->return_date = $validatedData['return_date'] ?? null;
+            
+            $newAsset->image = null; 
+            $newAsset->image2 = null; 
+            $newAsset->image3 = null;
+            
+            $newAsset->save();
+
+            // catat history aset baru
+            AssetHistory::create([
+                'asset_id' => $newAsset->id,
+                'user_id' => auth()->id(),
+                'action' => 'manual_override',
+                'notes' => "Aset hasil pecahan (Split) dari induk. Dipinjamkan ke user ID: " . $request->user_id
+            ]);
+
+            return redirect('/assets')->with('success', "Berhasil! Stok dipecah: {$sisaStok} di Gudang, {$stokDiambil} dipinjam User.");
+        }
+
+        // logika update standar
+        if ($validatedData['status'] != 'available') {
+            if ($validatedData['user_id'] && $validatedData['status'] == 'available') {
+                $validatedData['status'] = 'deployed';
+            }
+            if (!$validatedData['user_id'] && $validatedData['status'] == 'deployed') {
+                $validatedData['status'] = 'available';
+            }
+        }
+        
+        if ($validatedData['status'] == 'deployed' && empty($validatedData['assigned_date'])) {
+            $validatedData['assigned_date'] = now();
+        }
+
         if ($asset->status != $validatedData['status']) {
             AssetHistory::create([
                 'asset_id' => $asset->id,
                 'user_id' => auth()->id(),
                 'action' => 'status_change',
-                'notes' => "Status: {$asset->status} -> {$validatedData['status']}"
+                'notes' => "Status berubah: {$asset->status} -> {$validatedData['status']}"
             ]);
         }
-        
-        // Simpan Perubahan pada Aset Induk (Entah itu dikurangi stoknya atau dipindah full)
+
         $asset->update($validatedData);
 
-        return redirect('/assets')->with('success', $splitMessage ?? 'Data aset berhasil diperbarui!');
+        return redirect('/assets')->with('success', 'Data aset berhasil diperbarui!');
     }
 
     /**
      * Hapus Aset
      */
-    public function destroy(Asset $asset) {
-        if ($asset->image) Storage::delete($asset->image);
-        if ($asset->image2) Storage::delete($asset->image2);
-        if ($asset->image3) Storage::delete($asset->image3);
-        $asset->delete();
-        return redirect('/assets')->with('success', 'Aset dihapus.');
-    }
+    public function destroy(Asset $asset) 
+    {
+        // 1. Cek Keamanan: Jangan hapus kalo lagi dipinjam orang!
+        if ($asset->status == 'deployed' && $asset->user_id != null) {
+            return redirect()->back()->with('error', 'GAGAL HAPUS: Aset sedang dipinjam user. Kembalikan dulu (set Available) baru bisa dihapus.');
+        }
 
+        // 2. Hapus Gambar Fisik di Server biar hemat storage
+        if ($asset->image) Storage::disk('public')->delete($asset->image);
+        if ($asset->image2) Storage::disk('public')->delete($asset->image2);
+        if ($asset->image3) Storage::disk('public')->delete($asset->image3);
+
+        // 3. Hapus Data dari DB
+        $asset->delete();
+
+        return redirect('/assets')->with('success', 'Aset berhasil dihapus selamanya.');
+    }
+    public function reportIndex()
+    {
+        return view('reports.index', [
+            'title' => 'Generator Laporan Aset',
+            'totalAssets' => Asset::count(),
+            'availableAssets' => Asset::where('status', 'available')->count(),
+            'deployedAssets' => Asset::where('status', 'deployed')->count(),
+        ]);
+    }
     /**
      * Cetak Laporan PDF
      */
     public function printReport(Request $request)
-    {
-        $query = Asset::with(['holder', 'latestApprovedRequest'])->orderBy('name');
+{
+    // mulai query dari model asset
+    $query = Asset::query();
 
-        if ($request->has('status') && $request->status != 'all') {
-            $query->where('status', $request->status);
-        }
-
-        $assets = $query->get();
-        $printTime = now()->setTimezone('Asia/Jakarta')->translatedFormat('l, d F Y, H:i:s') . ' WIB';
-
-        $pdf = Pdf::loadView('pdf.assets_report', [
-            'assets' => $assets,
-            'title' => 'Laporan Aset IT - Vitech Asia',
-            'printTime' => $printTime,
-            'filterStatus' => $request->status ?? 'Semua Status'
-        ]);
-
-        $pdf->setPaper('A4', 'landscape');
-        return $pdf->stream('laporan-aset-' . date('Y-m-d-His') . '.pdf');
+    // logika search biar hasil print sesuai ketikan di kolom pencarian
+    // ini ngecek nama aset sama serial number nya
+    if ($request->filled('search')) {
+        $search = $request->search;
+        $query->where(function($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+              ->orWhere('serial_number', 'like', "%{$search}%");
+        });
     }
+
+    // logika filter status misal cuma mau ngeprint yang available aja
+    if ($request->filled('status')) {
+        $query->where('status', $request->status);
+    }
+
+    // logika sorting biar urutan barisnya sama kaya di website
+    if ($request->filled('sort')) {
+        if ($request->sort == 'oldest') {
+            $query->orderBy('created_at', 'asc');
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+    } else {
+        $query->orderBy('created_at', 'desc');
+    }
+
+    // ambil datanya
+    $assets = $query->get();
+
+    // load view pdf nya
+    // ganti 'pages.report.pdf' sesuai lokasi file blade pdf kamu
+    $pdf = Pdf::loadView('pages.report.pdf', [
+        'assets' => $assets,
+        'selectedStatus' => $request->status // kirim ini kalo mau nampilin status apa yang lagi difilter di judul pdf
+    ]);
+
+    return $pdf->stream('Laporan_Aset_IT.pdf');
+}
 }
