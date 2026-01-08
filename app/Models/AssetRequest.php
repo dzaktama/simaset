@@ -14,6 +14,17 @@ class AssetRequest extends Model
     // Agar otomatis ambil data user & asset pas dipanggil
     protected $with = ['user', 'asset'];
 
+    protected $fillable = [
+        'user_id',
+        'asset_id',
+        'quantity', // <--- Tambahkan ini
+        'request_date',
+        'return_date',
+        'reason',
+        'status',
+        'admin_note'
+    ];
+    
     public function user()
     {
         return $this->belongsTo(User::class);

@@ -29,6 +29,10 @@
                         <input type="text" name="serial_number" value="{{ old('serial_number', $asset->serial_number) }}" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm bg-gray-50 text-gray-500 cursor-not-allowed border p-2.5" readonly>
                         <p class="text-xs text-gray-400 mt-1">*Serial number permanen.</p>
                     </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Jumlah Stok</label>
+                        <input type="number" name="quantity" value="{{ old('quantity', $asset->quantity) }}" min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border">
+                    </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700">Status</label>
@@ -45,18 +49,47 @@
                         </div>
                     </div>
                     
-                    {{-- Override Holder --}}
-                    <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                        <label class="block text-sm font-bold text-yellow-800">Pemegang Aset (Holder Override)</label>
-                        <select name="user_id" class="mt-1 block w-full rounded-lg border-yellow-300 shadow-sm focus:border-yellow-500 border p-2.5">
-                            <option value="">-- Tidak Ada (Di Gudang) --</option>
-                            @foreach($users as $usr)
-                                <option value="{{ $usr->id }}" {{ $asset->user_id == $usr->id ? 'selected' : '' }}>
-                                    {{ $usr->name }} ({{ ucfirst($usr->role) }})
-                                </option>
-                            @endforeach
-                        </select>
-                        <p class="text-xs text-yellow-600 mt-1">Mengubah ini akan memindahkan kepemilikan aset secara paksa.</p>
+                    {{-- Override Holder & Tanggal --}}
+                    <div class="bg-yellow-50 p-5 rounded-lg border border-yellow-200 space-y-4">
+                        <div class="flex items-center gap-2 border-b border-yellow-200 pb-2">
+                            <svg class="h-5 w-5 text-yellow-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                            <h3 class="text-sm font-bold text-yellow-800">Kontrol Peminjaman (Manual Override)</h3>
+                        </div>
+
+                        {{-- Pemegang Aset --}}
+                        <div>
+                            <label class="block text-xs font-semibold text-yellow-800 uppercase mb-1">Pemegang Aset Saat Ini</label>
+                            <select name="user_id" class="block w-full rounded-lg border-yellow-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 sm:text-sm p-2.5">
+                                <option value="">-- Tidak Ada (Di Gudang) --</option>
+                                @foreach($users as $usr)
+                                    <option value="{{ $usr->id }}" {{ $asset->user_id == $usr->id ? 'selected' : '' }}>
+                                        {{ $usr->name }} - {{ $usr->department ?? 'General' }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            {{-- Tanggal Mulai --}}
+                            <div>
+                                <label class="block text-xs font-semibold text-yellow-800 uppercase mb-1">Waktu Dipinjam</label>
+                                <input type="datetime-local" name="assigned_date" 
+                                    value="{{ $asset->assigned_date ? \Carbon\Carbon::parse($asset->assigned_date)->format('Y-m-d\TH:i') : '' }}" 
+                                    class="block w-full rounded-lg border-yellow-300 shadow-sm focus:border-yellow-500 text-sm p-2">
+                            </div>
+
+                            {{-- Tanggal Kembali --}}
+                            <div>
+                                <label class="block text-xs font-semibold text-yellow-800 uppercase mb-1">Batas Kembali</label>
+                                <input type="datetime-local" name="return_date" 
+                                    value="{{ $asset->return_date ? \Carbon\Carbon::parse($asset->return_date)->format('Y-m-d\TH:i') : '' }}" 
+                                    class="block w-full rounded-lg border-yellow-300 shadow-sm focus:border-yellow-500 text-sm p-2">
+                            </div>
+                        </div>
+                        
+                        <p class="text-xs text-yellow-600 italic mt-2">
+                            *Tips: Anda dapat mengubah tanggal ini secara manual meskipun barang sedang dipinjam. Kosongkan batas kembali jika peminjaman bersifat permanen.
+                        </p>
                     </div>
                 </div>
 

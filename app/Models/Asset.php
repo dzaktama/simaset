@@ -9,15 +9,57 @@ class Asset extends Model
 {
     use HasFactory;
 
-    protected $guarded = ['id'];
+    // 1. IZINKAN SEMUA KOLOM PENTING (Termasuk Tanggal Baru)
+    protected $fillable = [
+        'name',
+        'serial_number',
+        'quantity',      
+        'status',
+        'description',
+        'condition_notes',
+        'image',
+        'image2',
+        'image3',
+        'purchase_date',
+        'user_id',
+        'assigned_date',
+        'return_date',
+    ];
 
-    // Relasi ke User pemegang saat ini
+    // 2. FORMAT TANGGAL AGAR BISA OLAH JAM/MENIT
+    protected $casts = [
+        'purchase_date' => 'date',
+        'assigned_date' => 'datetime',
+        'return_date' => 'datetime',
+    ];
+
+    // 3. SCOPE FILTER (INI YANG BIKIN ERROR SEBELUMNYA)
+    // Method ini menangani logika pencarian dan filter status di halaman index
+    public function scopeFilter($query, array $filters)
+    {
+        // Filter Pencarian (Search)
+        $query->when($filters['search'] ?? false, function($query, $search) {
+            return $query->where(function($query) use ($search) {
+                 $query->where('name', 'like', '%' . $search . '%')
+                       ->orWhere('serial_number', 'like', '%' . $search . '%')
+                       ->orWhere('description', 'like', '%' . $search . '%');
+             });
+        });
+
+        // Filter Status (Dropdown)
+        $query->when($filters['status'] ?? false, function($query, $status) {
+             if($status == 'all') return $query;
+             return $query->where('status', $status);
+        });
+    }
+
+    // 4. RELASI KE PEMEGANG ASET (USER)
     public function holder()
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    // Relasi untuk mengambil Request Terakhir yang Disetujui (Untuk cek tanggal kembali)
+    // 5. RELASI KE REQUEST TERAKHIR (Untuk Cek History)
     public function latestApprovedRequest()
     {
         return $this->hasOne(AssetRequest::class)->where('status', 'approved')->latest();

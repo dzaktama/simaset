@@ -11,8 +11,11 @@ class UserController extends Controller
     public function index()
     {
         return view('users.index', [
-            'title' => 'Manajemen User',
-            'users' => User::latest()->get()
+            'title' => 'Manajemen Pengguna',
+            // Load relasi 'assets' (yang statusnya deployed) untuk ditampilkan di modal detail
+            'users' => User::with(['assets' => function($query) {
+                $query->where('status', 'deployed');
+            }])->latest()->get()
         ]);
     }
 
@@ -26,8 +29,12 @@ class UserController extends Controller
         $validatedData = $request->validate([
             'name' => 'required|max:255',
             'email' => 'required|email:dns|unique:users',
+            'employee_id' => 'required|unique:users|max:20', // NIP Wajib & Unik
+            'password' => 'required|min:5',
             'role' => 'required|in:admin,user',
-            'password' => 'required|min:5'
+            'phone' => 'nullable|max:15',
+            'department' => 'required|max:100',
+            'position' => 'required|max:100',
         ]);
 
         $validatedData['password'] = Hash::make($validatedData['password']);
@@ -48,11 +55,18 @@ class UserController extends Controller
     {
         $rules = [
             'name' => 'required|max:255',
-            'role' => 'required|in:admin,user'
+            'role' => 'required|in:admin,user',
+            'phone' => 'nullable|max:15',
+            'department' => 'required|max:100',
+            'position' => 'required|max:100',
         ];
 
+        // Cek keunikan email & NIP jika berubah
         if($request->email != $user->email) {
             $rules['email'] = 'required|email:dns|unique:users';
+        }
+        if($request->employee_id != $user->employee_id) {
+            $rules['employee_id'] = 'required|unique:users|max:20';
         }
 
         $validatedData = $request->validate($rules);

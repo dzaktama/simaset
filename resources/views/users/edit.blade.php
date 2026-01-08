@@ -1,45 +1,92 @@
 @extends('layouts.main')
 
 @section('container')
-<div class="mx-auto max-w-2xl">
+<div class="max-w-4xl mx-auto">
     <div class="mb-8 flex items-center justify-between">
-        <h2 class="text-2xl font-bold text-gray-900">Edit User: {{ $user->name }}</h2>
-        <a href="/users" class="text-sm font-medium text-gray-600 hover:text-gray-900">&larr; Batal</a>
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900">Edit Data Pengguna</h2>
+            <p class="text-sm text-gray-500">Perbarui informasi profil dan hak akses pengguna.</p>
+        </div>
+        <a href="/users" class="rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm border border-gray-300 hover:bg-gray-50 transition">
+            &larr; Batal
+        </a>
     </div>
 
-    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+    <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
         <form action="/users/{{ $user->id }}" method="POST" class="p-8">
             @method('put')
             @csrf
             
-            <div class="space-y-6">
-                <div>
-                    <label for="name" class="block text-sm font-medium text-gray-700">Nama Lengkap</label>
-                    <input type="text" name="name" id="name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" value="{{ old('name', $user->name) }}" required>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {{-- KOLOM KIRI: INFO AKUN --}}
+                <div class="space-y-6">
+                    <h3 class="text-lg font-semibold text-gray-900 border-b pb-2">Informasi Akun</h3>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Nama Lengkap <span class="text-red-500">*</span></label>
+                        <input type="text" name="name" required value="{{ old('name', $user->name) }}" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2.5">
+                        @error('name') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Alamat Email <span class="text-red-500">*</span></label>
+                        <input type="email" name="email" required value="{{ old('email', $user->email) }}" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2.5">
+                        @error('email') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Password Baru <span class="text-gray-400 font-normal">(Opsional)</span></label>
+                        <input type="password" name="password" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2.5" placeholder="Isi hanya jika ingin mengganti password">
+                        <p class="text-xs text-gray-500 mt-1">Biarkan kosong jika tidak ingin mengubah password.</p>
+                        @error('password') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Role / Hak Akses <span class="text-red-500">*</span></label>
+                        <select name="role" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2.5">
+                            <option value="user" {{ old('role', $user->role) == 'user' ? 'selected' : '' }}>Karyawan (User)</option>
+                            <option value="admin" {{ old('role', $user->role) == 'admin' ? 'selected' : '' }}>Administrator</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
-                    <input type="email" name="email" id="email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" value="{{ old('email', $user->email) }}" required>
-                </div>
+                {{-- KOLOM KANAN: INFO PEKERJAAN (Baru) --}}
+                <div class="space-y-6">
+                    <h3 class="text-lg font-semibold text-gray-900 border-b pb-2">Detail Pekerjaan</h3>
 
-                <div>
-                    <label for="role" class="block text-sm font-medium text-gray-700">Role</label>
-                    <select name="role" id="role" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        <option value="user" {{ $user->role == 'user' ? 'selected' : '' }}>Karyawan (Staff)</option>
-                        <option value="admin" {{ $user->role == 'admin' ? 'selected' : '' }}>Administrator</option>
-                    </select>
-                </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">NIP / Employee ID <span class="text-red-500">*</span></label>
+                        <input type="text" name="employee_id" required value="{{ old('employee_id', $user->employee_id) }}" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2.5">
+                        @error('employee_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    </div>
 
-                <div class="rounded-md bg-yellow-50 p-4 border border-yellow-100">
-                    <label for="password" class="block text-sm font-semibold text-yellow-800">Ubah Password (Opsional)</label>
-                    <input type="password" name="password" id="password" class="mt-1 block w-full rounded-md border-yellow-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 sm:text-sm placeholder-yellow-700/50" placeholder="Biarkan kosong jika tidak ingin mengubah password">
-                    <p class="mt-1 text-xs text-yellow-700">*Isi hanya jika karyawan lupa password atau ingin reset.</p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Departemen <span class="text-red-500">*</span></label>
+                            <input type="text" name="department" required value="{{ old('department', $user->department) }}" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm border p-2.5">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Jabatan <span class="text-red-500">*</span></label>
+                            <input type="text" name="position" required value="{{ old('position', $user->position) }}" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm border p-2.5">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Nomor HP / WhatsApp</label>
+                        <div class="mt-1 flex rounded-md shadow-sm">
+                            <span class="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">
+                                +62
+                            </span>
+                            <input type="text" name="phone" value="{{ old('phone', $user->phone) }}" class="block w-full min-w-0 flex-1 rounded-none rounded-r-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2.5">
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="mt-8 flex justify-end gap-3 border-t border-gray-100 pt-6">
-                <button type="submit" class="rounded-md bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Simpan Perubahan</button>
+            <div class="mt-8 pt-6 border-t border-gray-200 flex justify-end">
+                <button type="submit" class="inline-flex justify-center rounded-lg border border-transparent bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition">
+                    Simpan Perubahan
+                </button>
             </div>
         </form>
     </div>

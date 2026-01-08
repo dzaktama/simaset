@@ -25,8 +25,24 @@
                         <input type="text" name="name" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2.5" placeholder="Contoh: MacBook Pro M3">
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700">Serial Number <span class="text-red-500">*</span></label>
-                        <input type="text" name="serial_number" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm border p-2.5" placeholder="Nomor Seri Unik">
+                        <label class="block text-sm font-semibold text-gray-700">
+                            Serial Number <span class="text-xs text-gray-400 font-normal">(Auto-Generated)</span>
+                        </label>
+                        <div class="mt-1 flex rounded-md shadow-sm">
+                            <span class="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-100 px-3 text-gray-500 sm:text-sm">
+                                #
+                            </span>
+                            <input type="text" name="serial_number" 
+                                   value="{{ $suggestedSN }}" 
+                                   readonly 
+                                   class="block w-full flex-1 rounded-none rounded-r-md border-gray-300 bg-gray-50 text-gray-500 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm cursor-not-allowed">
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">Nomor seri digenerate otomatis oleh sistem.</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700">Jumlah Stok (Quantity)</label>
+                        <input type="number" name="quantity" value="1" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" placeholder="1">
+                        <p class="mt-1 text-xs text-gray-500">Biarkan 1 untuk aset unik (Laptop/PC). Isi lebih dari 1 untuk barang habis pakai (Mouse/Kabel).</p>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
