@@ -333,47 +333,49 @@ class AssetController extends Controller
     /**
      * Cetak Laporan PDF
      */
-    public function printReport(Request $request)
-{
-    // mulai query dari model asset
-    $query = Asset::query();
+   public function printReport(Request $request)
+    {
+        // query dasar ambil dari model asset
+        $query = Asset::query();
 
-    // logika search biar hasil print sesuai ketikan di kolom pencarian
-    // ini ngecek nama aset sama serial number nya
-    if ($request->filled('search')) {
-        $search = $request->search;
-        $query->where(function($q) use ($search) {
-            $q->where('name', 'like', "%{$search}%")
-              ->orWhere('serial_number', 'like', "%{$search}%");
-        });
-    }
+        // logika search biar hasil print sesuai ketikan user
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('serial_number', 'like', "%{$search}%");
+            });
+        }
 
-    // logika filter status misal cuma mau ngeprint yang available aja
-    if ($request->filled('status')) {
-        $query->where('status', $request->status);
-    }
+        // logika filter status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
 
-    // logika sorting biar urutan barisnya sama kaya di website
-    if ($request->filled('sort')) {
-        if ($request->sort == 'oldest') {
-            $query->orderBy('created_at', 'asc');
+        // logika sorting urutan data
+        if ($request->filled('sort')) {
+            if ($request->sort == 'oldest') {
+                $query->orderBy('created_at', 'asc');
+            } else {
+                $query->orderBy('created_at', 'desc');
+            }
         } else {
             $query->orderBy('created_at', 'desc');
         }
-    } else {
-        $query->orderBy('created_at', 'desc');
+
+        $assets = $query->get();
+
+        // panggil view dari folder resources/views/pdf/assets_report.blade.php
+        // kita juga kirim variable lengkap biar gak error undefined variable di view
+        $pdf = Pdf::loadView('pdf.assets_report', [
+            'title' => 'Laporan Aset IT - Vitech Asia',
+            'printTime' => now()->translatedFormat('l, d F Y H:i'), // format waktu indonesia
+            'filterStatus' => $request->status ?? 'Semua Status',
+            'assets' => $assets,
+            'showImages' => true, // ubah jadi false kalo gamau nampilin foto
+            'adminNotes' => null // kosongi aja defaultnya
+        ]);
+
+        return $pdf->stream('Laporan_Aset_IT.pdf');
     }
-
-    // ambil datanya
-    $assets = $query->get();
-
-    // load view pdf nya
-    // ganti 'pages.report.pdf' sesuai lokasi file blade pdf kamu
-    $pdf = Pdf::loadView('pages.report.pdf', [
-        'assets' => $assets,
-        'selectedStatus' => $request->status // kirim ini kalo mau nampilin status apa yang lagi difilter di judul pdf
-    ]);
-
-    return $pdf->stream('Laporan_Aset_IT.pdf');
-}
 }
