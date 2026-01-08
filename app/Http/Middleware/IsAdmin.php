@@ -10,9 +10,8 @@ class IsAdmin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // Cek User Login & Role
-        if (!auth()->check() || auth()->user()->role !== 'admin') {
-            abort(403, 'AKSES DITOLAK: Halaman ini khusus Admin.');
+        if (auth()->check() && auth()->user()->role !== 'admin') {
+            abort(403); // Atau redirect ke halaman lain
         }
 
         return $next($request);

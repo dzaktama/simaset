@@ -12,6 +12,9 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class AssetController extends Controller
 {
+    /**
+     * Menampilkan Dashboard Utama
+     */
     public function dashboard()
     {
         $user = auth()->user();
@@ -28,17 +31,17 @@ class AssetController extends Controller
                     'pending_requests' => AssetRequest::where('status', 'pending')->count(),
                 ],
                 // Data List untuk Modal Detail
-                'listTotal' => Asset::with('holder')->latest()->get(), // Semua Aset
-                'listAvailable' => Asset::where('status', 'available')->latest()->get(), // Aset Tersedia
-                'listMaintenance' => Asset::whereIn('status', ['maintenance', 'broken'])->with('holder')->latest()->get(), // Aset Rusak
-                'listPending' => AssetRequest::with(['user', 'asset'])->where('status', 'pending')->latest()->get(), // Semua Request Pending
+                'listTotal' => Asset::with('holder')->latest()->get(),
+                'listAvailable' => Asset::where('status', 'available')->latest()->get(),
+                'listMaintenance' => Asset::whereIn('status', ['maintenance', 'broken'])->with('holder')->latest()->get(),
+                'listPending' => AssetRequest::with(['user', 'asset'])->where('status', 'pending')->latest()->get(),
                 
                 // Data untuk Tabel Utama (Limit 5 biar rapi)
                 'recentRequests' => AssetRequest::with(['user', 'asset'])->where('status', 'pending')->latest()->take(5)->get(),
                 'activities' => AssetHistory::with(['user', 'asset'])->latest()->take(6)->get()
             ]);
         } else {
-            // Data untuk Karyawan (Tetap)
+            // Data untuk Karyawan
             return view('home', [
                 'title' => 'Dashboard Karyawan',
                 'activeAssetsCount' => Asset::where('user_id', $user->id)->where('status', 'deployed')->count(),
@@ -49,10 +52,12 @@ class AssetController extends Controller
         }
     }
 
-    // --- UPDATE 1: INDEX (Load data peminjam & tanggal) ---
+    /**
+     * Menampilkan Daftar Semua Aset (Katalog)
+     */
     public function index(Request $request)
     {
-        // Load holder DAN latestApprovedRequest untuk ambil return_date
+        // Load holder, latestApprovedRequest, dan enable filter
         $query = Asset::with(['holder', 'latestApprovedRequest'])->latest();
 
         if ($request->search) {
@@ -62,20 +67,21 @@ class AssetController extends Controller
                   ->orWhere('description', 'like', '%' . $request->search . '%');
             });
         }
-
-        // Hapus filter status agar barang deployed tetap terlihat (untuk dibooking)
-        // Kita hanya sembunyikan barang rusak parah (opsional)
-        // if (auth()->user()->role !== 'admin') {
-        //    $query->where('status', '!=', 'broken'); 
-        // }
+        
+        // Filter Status
+        if ($request->has('status') && $request->status != 'all') {
+             $query->where('status', $request->status);
+        }
 
         return view('assets.index', [
             'title' => 'Katalog Aset IT',
-            // Gunakan with('holder') agar data peminjam terbawa ke view
-            'assets' => Asset::with('holder')->latest()->filter(request(['search', 'status']))->paginate(10)->withQueryString()
+            'assets' => $query->paginate(10)->withQueryString()
         ]);
     }
 
+    /**
+     * Menampilkan Halaman 'Aset Saya' (Karyawan)
+     */
     public function myAssets()
     {
         return view('assets.my_assets', [
@@ -84,38 +90,32 @@ class AssetController extends Controller
         ]);
     }
 
-    // ... (Method create, store, edit, update, destroy tetap sama) ...
+    /**
+     * Form Tambah Aset Baru
+     */
     public function create()
     {
         // LOGIC AUTO-GENERATE SERIAL NUMBER
-        // 1. Ambil aset terakhir yang dibuat
         $lastAsset = Asset::latest('id')->first();
-        
-        // 2. Tentukan nomor urut berikutnya
-        if ($lastAsset) {
-            // Ambil ID terakhir + 1
-            $nextId = $lastAsset->id + 1;
-        } else {
-            // Jika belum ada data, mulai dari 1
-            $nextId = 1;
-        }
-
-        // 3. Format: INV-TAHUNBULAN-NOMORURUT (4 digit)
-        // Contoh: INV-202401-0005
+        $nextId = $lastAsset ? ($lastAsset->id + 1) : 1;
         $generatedSN = 'INV-' . date('Ym') . '-' . str_pad($nextId, 4, '0', STR_PAD_LEFT);
 
         return view('assets.create', [
             'title' => 'Input Aset Baru',
             'users' => User::all(),
-            'suggestedSN' => $generatedSN // Kirim variabel ini ke View
+            'suggestedSN' => $generatedSN
         ]);
     }
+
+    /**
+     * Simpan Aset Baru
+     */
     public function store(Request $request)
     {
         $validatedData = $request->validate([
             'name' => 'required|max:255',
             'serial_number' => 'required|unique:assets',
-            'quantity' => 'required|integer|min:1', // Validasi Baru
+            'quantity' => 'required|integer|min:1',
             'status' => 'required',
             'user_id' => 'nullable|exists:users,id',
             'purchase_date' => 'nullable|date',
@@ -126,7 +126,7 @@ class AssetController extends Controller
             'image3' => 'image|file|max:2048',
         ]);
 
-        // Logic Upload Gambar (Sama seperti sebelumnya)
+        // Upload Gambar
         foreach (['image', 'image2', 'image3'] as $key) {
             if ($request->file($key)) {
                 $validatedData[$key] = $request->file($key)->store('asset-images', 'public');
@@ -144,9 +144,17 @@ class AssetController extends Controller
 
         return redirect('/assets')->with('success', 'Aset berhasil ditambahkan!');
     }
+
+    /**
+     * Form Edit Aset
+     */
     public function edit(Asset $asset) {
         return view('assets.edit', ['title' => 'Edit Data Aset', 'asset' => $asset, 'users' => User::all()]);
     }
+
+    /**
+     * Update Aset (Termasuk Smart Logic Status & Tanggal)
+     */
     public function update(Request $request, Asset $asset)
     {
         $rules = [
@@ -154,8 +162,8 @@ class AssetController extends Controller
             'status' => 'required',
             'quantity' => 'required|integer|min:0',
             'user_id' => 'nullable|exists:users,id',
-            'assigned_date' => 'nullable', // Hapus 'date' agar tidak konflik format
-            'return_date' => 'nullable',   // Hapus 'date' agar tidak konflik format
+            'assigned_date' => 'nullable', 
+            'return_date' => 'nullable',   
             'purchase_date' => 'nullable|date',
             'description' => 'nullable',
             'condition_notes' => 'nullable',
@@ -170,46 +178,30 @@ class AssetController extends Controller
 
         $validatedData = $request->validate($rules);
 
-        // ------------------------------------------------------------------
-        // 1. FORMAT TANGGAL MANUAL (FIX ISSUE DATABASE)
-        // Mengubah "2024-01-01T14:00" menjadi "2024-01-01 14:00:00"
-        // ------------------------------------------------------------------
+        // 1. Format Tanggal
         if (!empty($validatedData['assigned_date'])) {
             $validatedData['assigned_date'] = \Carbon\Carbon::parse($validatedData['assigned_date'])->format('Y-m-d H:i:s');
         }
-        
         if (!empty($validatedData['return_date'])) {
             $validatedData['return_date'] = \Carbon\Carbon::parse($validatedData['return_date'])->format('Y-m-d H:i:s');
         }
 
-        // ------------------------------------------------------------------
-        // 2. SMART LOGIC: STATUS OTOMATIS
-        // ------------------------------------------------------------------
-        
-        // Jika Admin pilih User tapi lupa set Status -> Paksa Deployed
+        // 2. Smart Logic: Status Otomatis
         if ($validatedData['user_id'] && $validatedData['status'] == 'available') {
             $validatedData['status'] = 'deployed';
         }
-
-        // Jika Admin hapus User tapi lupa set Status -> Paksa Available
         if (!$validatedData['user_id'] && $validatedData['status'] == 'deployed') {
             $validatedData['status'] = 'available';
         }
-
-        // Jika Status Deployed tapi Tanggal Pinjam Kosong -> Isi Default Sekarang
         if ($validatedData['status'] == 'deployed' && empty($validatedData['assigned_date'])) {
             $validatedData['assigned_date'] = now();
         }
-
-        // Jika Status Available -> Reset Tanggal
         if ($validatedData['status'] == 'available') {
             $validatedData['assigned_date'] = null;
             $validatedData['return_date'] = null;
         }
 
-        // ------------------------------------------------------------------
-        // 3. UPLOAD GAMBAR & SIMPAN
-        // ------------------------------------------------------------------
+        // 3. Upload Gambar
         foreach (['image', 'image2', 'image3'] as $key) {
             if ($request->file($key)) {
                 if ($asset->$key) Storage::disk('public')->delete($asset->$key);
@@ -217,7 +209,7 @@ class AssetController extends Controller
             }
         }
 
-        // History Status
+        // 4. Log History
         if ($asset->status != $validatedData['status']) {
             AssetHistory::create([
                 'asset_id' => $asset->id,
@@ -226,10 +218,8 @@ class AssetController extends Controller
                 'notes' => "Status: {$asset->status} -> {$validatedData['status']}"
             ]);
         }
-
-        // History Override
         if ($asset->user_id != $validatedData['user_id']) {
-            $newHolder = $validatedData['user_id'] ? \App\Models\User::find($validatedData['user_id'])->name : 'Gudang';
+            $newHolder = $validatedData['user_id'] ? User::find($validatedData['user_id'])->name : 'Gudang';
             AssetHistory::create([
                 'asset_id' => $asset->id,
                 'user_id' => auth()->id(),
@@ -242,6 +232,10 @@ class AssetController extends Controller
 
         return redirect('/assets')->with('success', 'Data aset berhasil diperbarui!');
     }
+
+    /**
+     * Hapus Aset
+     */
     public function destroy(Asset $asset) {
         if ($asset->image) Storage::delete($asset->image);
         if ($asset->image2) Storage::delete($asset->image2);
@@ -250,107 +244,20 @@ class AssetController extends Controller
         return redirect('/assets')->with('success', 'Aset dihapus.');
     }
 
-    // --- UPDATE 2: LOGIC BOOKING (REQUEST ASSET) ---
-    public function requestAsset(Request $request, $id)
-    {
-        $asset = Asset::findOrFail($id);
-        
-        // Block request HANYA jika barang Maintenance atau Rusak
-        if(in_array($asset->status, ['maintenance', 'broken'])) {
-            return back()->with('loginError', 'Aset sedang dalam perbaikan atau rusak.');
-        }
-
-        // Cek duplikat request
-        $existing = AssetRequest::where('user_id', auth()->id())
-                        ->where('asset_id', $id)
-                        ->where('status', 'pending')
-                        ->first();
-        
-        if($existing) return back()->with('loginError', 'Anda sudah mengajukan permintaan/booking untuk aset ini.');
-
-        // Tentukan pesan sukses berdasarkan status
-        $message = ($asset->status == 'available') 
-            ? 'Permintaan peminjaman berhasil dikirim!' 
-            : 'Booking berhasil! Anda masuk antrean peminjaman.';
-
-        AssetRequest::create([
-            'user_id' => auth()->id(),
-            'asset_id' => $id,
-            'request_date' => now(),
-            'status' => 'pending',
-            'reason' => $request->reason ?? 'Permintaan Web',
-            'return_date' => $request->return_date
-        ]);
-
-        return redirect('/my-assets')->with('success', $message);
-    }
-
-    public function approveRequest($requestId)
-    {
-        $req = AssetRequest::findOrFail($requestId);
-        
-        // Update status request
-        $req->update(['status' => 'approved']);
-        
-        // Update status aset DAN TANGGALNYA
-        $asset = Asset::findOrFail($req->asset_id);
-        $asset->update([
-            'status' => 'deployed',
-            'user_id' => $req->user_id,
-            'assigned_date' => now(),           // Set waktu peminjaman sekarang
-            'return_date' => $req->return_date  // Ambil dari request user
-        ]);
-
-        AssetHistory::create([
-            'asset_id' => $asset->id,
-            'user_id' => auth()->id(),
-            'action' => 'deployed',
-            'notes' => "Dipinjamkan ke: " . $req->user->name
-        ]);
-
-        return back()->with('success', 'Permintaan disetujui.');
-    }
-    public function rejectRequest(Request $request, $id)
-    {
-        $assetRequest = AssetRequest::findOrFail($id);
-        
-        // Validasi alasan wajib diisi
-        $request->validate([
-            'admin_note' => 'required|string|max:255'
-        ]);
-
-        $assetRequest->update([
-            'status' => 'rejected',
-            'admin_note' => $request->admin_note
-        ]);
-
-        // Catat di history
-        AssetHistory::create([
-            'asset_id' => $assetRequest->asset_id,
-            'user_id' => auth()->id(),
-            'action' => 'rejected',
-            'notes' => "Ditolak: " . $request->admin_note
-        ]);
-
-        return back()->with('success', 'Permintaan ditolak dengan alasan yang dikirim.');
-    }
+    /**
+     * Cetak Laporan PDF
+     */
     public function printReport(Request $request)
     {
-        // 1. Base Query
         $query = Asset::with(['holder', 'latestApprovedRequest'])->orderBy('name');
 
-        // 2. Logic Filter (Status)
         if ($request->has('status') && $request->status != 'all') {
             $query->where('status', $request->status);
         }
 
-        // 3. Ambil Data
         $assets = $query->get();
-
-        // 4. Timestamp Realtime (WIB)
         $printTime = now()->setTimezone('Asia/Jakarta')->translatedFormat('l, d F Y, H:i:s') . ' WIB';
 
-        // 5. Generate PDF
         $pdf = Pdf::loadView('pdf.assets_report', [
             'assets' => $assets,
             'title' => 'Laporan Aset IT - Vitech Asia',
@@ -358,9 +265,7 @@ class AssetController extends Controller
             'filterStatus' => $request->status ?? 'Semua Status'
         ]);
 
-        // Set ukuran kertas Landscape agar muat banyak kolom
         $pdf->setPaper('A4', 'landscape');
-
         return $pdf->stream('laporan-aset-' . date('Y-m-d-His') . '.pdf');
     }
 }
