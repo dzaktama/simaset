@@ -162,6 +162,7 @@ class AssetController extends Controller
             'status' => 'required',
             'quantity' => 'required|integer|min:0',
             'user_id' => 'nullable|exists:users,id',
+            'manual_quantity' => 'nullable|integer|min:1', // Input Baru Poin 12
             'assigned_date' => 'nullable', 
             'return_date' => 'nullable',   
             'purchase_date' => 'nullable|date',
@@ -178,6 +179,50 @@ class AssetController extends Controller
 
         $validatedData = $request->validate($rules);
 
+        // --- POIN 12: LOGIK SPLIT ASET (JIKA STOK DIPECAH) ---
+        // Skenario: Admin pilih User DAN input jumlah pinjam < total stok saat ini
+        if ($request->user_id && $request->manual_quantity && $request->manual_quantity < $validatedData['quantity']) {
+            
+            // 1. Kurangi Stok Aset Utama (Induk)
+            $sisaStok = $validatedData['quantity'] - $request->manual_quantity;
+            $validatedData['quantity'] = $sisaStok; // Update data untuk aset induk
+            $validatedData['user_id'] = null; // Aset induk tetap di gudang/available
+            $validatedData['status'] = 'available'; // Pastikan induk tetap available
+
+            // 2. Buat Aset Baru (Pecahan) untuk User
+            $newAsset = $asset->replicate(); // Kloning data aset lama
+            $newAsset->serial_number = $validatedData['serial_number'] . '-deployed-' . rand(100,999); // Unik SN
+            $newAsset->quantity = $request->manual_quantity;
+            $newAsset->user_id = $request->user_id;
+            $newAsset->status = 'deployed';
+            
+            // Format Tanggal untuk Aset Baru
+            if (!empty($request->assigned_date)) {
+                $newAsset->assigned_date = \Carbon\Carbon::parse($request->assigned_date)->format('Y-m-d H:i:s');
+            } else {
+                $newAsset->assigned_date = now();
+            }
+            
+            if (!empty($request->return_date)) {
+                $newAsset->return_date = \Carbon\Carbon::parse($request->return_date)->format('Y-m-d H:i:s');
+            }
+
+            $newAsset->save();
+
+            // Log History untuk Aset Baru
+            AssetHistory::create([
+                'asset_id' => $newAsset->id,
+                'user_id' => auth()->id(),
+                'action' => 'manual_override',
+                'notes' => "Aset dipecah dari induk. Dipinjamkan manual ke user ID: " . $request->user_id
+            ]);
+            
+            // Pesan sukses khusus split
+            $splitMessage = "Aset berhasil dipecah! {$request->manual_quantity} unit dipindahkan ke user, sisa {$sisaStok} unit tetap di gudang.";
+        }
+
+        // --- LOGIC STANDAR (JIKA TIDAK DIPECAH) ---
+        
         // 1. Format Tanggal
         if (!empty($validatedData['assigned_date'])) {
             $validatedData['assigned_date'] = \Carbon\Carbon::parse($validatedData['assigned_date'])->format('Y-m-d H:i:s');
@@ -186,7 +231,8 @@ class AssetController extends Controller
             $validatedData['return_date'] = \Carbon\Carbon::parse($validatedData['return_date'])->format('Y-m-d H:i:s');
         }
 
-        // 2. Smart Logic: Status Otomatis
+        // 2. Smart Logic: Status Otomatis (Hanya jika TIDAK terjadi split di atas)
+        // Kalau tadi sudah split, $validatedData['user_id'] sudah di-null-kan agar induk aman
         if ($validatedData['user_id'] && $validatedData['status'] == 'available') {
             $validatedData['status'] = 'deployed';
         }
@@ -209,7 +255,7 @@ class AssetController extends Controller
             }
         }
 
-        // 4. Log History
+        // 4. Log History (Induk)
         if ($asset->status != $validatedData['status']) {
             AssetHistory::create([
                 'asset_id' => $asset->id,
@@ -218,19 +264,11 @@ class AssetController extends Controller
                 'notes' => "Status: {$asset->status} -> {$validatedData['status']}"
             ]);
         }
-        if ($asset->user_id != $validatedData['user_id']) {
-            $newHolder = $validatedData['user_id'] ? User::find($validatedData['user_id'])->name : 'Gudang';
-            AssetHistory::create([
-                'asset_id' => $asset->id,
-                'user_id' => auth()->id(),
-                'action' => 'manual_override',
-                'notes' => "Admin memindahkan aset ke: $newHolder"
-            ]);
-        }
-
+        
+        // Simpan Perubahan pada Aset Induk (Entah itu dikurangi stoknya atau dipindah full)
         $asset->update($validatedData);
 
-        return redirect('/assets')->with('success', 'Data aset berhasil diperbarui!');
+        return redirect('/assets')->with('success', $splitMessage ?? 'Data aset berhasil diperbarui!');
     }
 
     /**

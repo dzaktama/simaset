@@ -12,55 +12,41 @@ use App\Http\Controllers\AssetRequestController;
 |--------------------------------------------------------------------------
 */
 
-// ==========================================================
-// 1. TAMU (BELUM LOGIN)
-// ==========================================================
+// 1. TAMU (Login/Logout)
 Route::middleware('guest')->group(function () {
-    // FIX ERROR: Ubah url '/' menjadi '/login' agar sesuai standar auth Laravel
     Route::get('/login', [AuthController::class, 'login'])->name('login');
     Route::post('/login', [AuthController::class, 'authenticate']);
-    
-    // Redirect root '/' ke '/login' otomatis
-    Route::get('/', function () {
-        return redirect()->route('login');
-    });
+    Route::get('/', function () { return redirect()->route('login'); });
 });
 
-// Logout (Wajib POST)
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 
-// ==========================================================
-// 2. USER LOGIN (ADMIN & KARYAWAN)
-// ==========================================================
+// 2. USER LOGIN (Admin & Karyawan)
 Route::middleware(['auth'])->group(function () {
-    
-    // Dashboard
     Route::get('/dashboard', [AssetController::class, 'dashboard'])->name('dashboard');
-    
-    // Redirect /home ke dashboard
     Route::get('/home', function () { return redirect('/dashboard'); });
 
-    // --- MENU KARYAWAN ---
+    // Menu Karyawan
+    // Index Assets kita taruh sini agar karyawan bisa LIHAT katalog & PINJAM
     Route::get('/assets', [AssetController::class, 'index'])->name('assets.index'); 
     Route::get('/my-assets', [AssetController::class, 'myAssets']);
+    
+    // Logic Request Pinjam (Wajib POST)
     Route::post('/requests', [AssetRequestController::class, 'store']); 
 });
 
 
-// ==========================================================
-// 3. KHUSUS ADMINISTRATOR
-// ==========================================================
-Route::middleware(['auth', 'admin'])->group(function () { 
-    
-    // Manajemen User
+// 3. KHUSUS ADMIN
+Route::middleware(['auth', 'admin'])->group(function () { // Middleware 'admin' ini merujuk ke alias di bootstrap/app.php
     Route::resource('/users', UserController::class)->except(['show']);
-
-    // Manajemen Aset (Kecuali index, karena index dipakai bersama)
+    
+    // Resource Assets (Kecuali index, karena sudah ada di atas)
     Route::resource('/assets', AssetController::class)->except(['index']);
     
-    // Laporan & Approval
     Route::get('/report/assets', [AssetController::class, 'printReport'])->name('report.assets');
+    
+    // Approval
     Route::post('/requests/{id}/approve', [AssetRequestController::class, 'approve']);
     Route::post('/requests/{id}/reject', [AssetRequestController::class, 'reject']);
 });
