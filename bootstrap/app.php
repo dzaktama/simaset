@@ -3,7 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use App\Http\Middleware\IsAdmin; // Pastikan ini di-import
+use App\Http\Middleware\IsAdmin; // <--- Pastikan Baris Ini Ada
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -12,7 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Tambahkan alias middleware di sini
+        // MENDAFTARKAN ALIAS 'admin'
         $middleware->alias([
             'admin' => IsAdmin::class,
         ]);

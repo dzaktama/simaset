@@ -1,10 +1,10 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\LoginController;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AssetController;
-use App\Http\Controllers\AssetRequestController; // <--- Pastikan ini ada
+use App\Http\Controllers\AssetRequestController;
 
 /*
 |--------------------------------------------------------------------------
@@ -12,50 +12,55 @@ use App\Http\Controllers\AssetRequestController; // <--- Pastikan ini ada
 |--------------------------------------------------------------------------
 */
 
-// Halaman Login (Tamu)
+// ==========================================================
+// 1. TAMU (BELUM LOGIN)
+// ==========================================================
 Route::middleware('guest')->group(function () {
-    Route::get('/', [LoginController::class, 'index'])->name('login');
-    Route::post('/login', [LoginController::class, 'authenticate']);
+    // FIX ERROR: Ubah url '/' menjadi '/login' agar sesuai standar auth Laravel
+    Route::get('/login', [AuthController::class, 'login'])->name('login');
+    Route::post('/login', [AuthController::class, 'authenticate']);
+    
+    // Redirect root '/' ke '/login' otomatis
+    Route::get('/', function () {
+        return redirect()->route('login');
+    });
 });
 
-// Logout
-Route::post('/logout', [LoginController::class, 'logout']);
+// Logout (Wajib POST)
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
 
 // ==========================================================
-// GROUP 1: USER LOGIN (ADMIN & KARYAWAN BISA AKSES)
+// 2. USER LOGIN (ADMIN & KARYAWAN)
 // ==========================================================
 Route::middleware(['auth'])->group(function () {
     
-    // Dashboard (Controller mendeteksi role otomatis)
+    // Dashboard
     Route::get('/dashboard', [AssetController::class, 'dashboard'])->name('dashboard');
     
-    // Menu Karyawan: Aset Saya
-    Route::get('/my-assets', [AssetController::class, 'myAssets']);
-
-    // LOGIC REQUEST/BOOKING (KARYAWAN & ADMIN BISA)
-    // PENTING: Route ini harus di sini agar Karyawan tidak kena 403 Forbidden
-    Route::post('/requests', [AssetRequestController::class, 'store']); 
-
-    // Redirect root ke dashboard jika sudah login
+    // Redirect /home ke dashboard
     Route::get('/home', function () { return redirect('/dashboard'); });
+
+    // --- MENU KARYAWAN ---
+    Route::get('/assets', [AssetController::class, 'index'])->name('assets.index'); 
+    Route::get('/my-assets', [AssetController::class, 'myAssets']);
+    Route::post('/requests', [AssetRequestController::class, 'store']); 
 });
 
+
 // ==========================================================
-// GROUP 2: KHUSUS ADMINISTRATOR
+// 3. KHUSUS ADMINISTRATOR
 // ==========================================================
-Route::middleware(['auth', 'admin'])->group(function () { // Middleware 'admin' atau 'is_admin' sesuaikan dengan nama di Kernel.php Anda
+Route::middleware(['auth', 'admin'])->group(function () { 
     
     // Manajemen User
     Route::resource('/users', UserController::class)->except(['show']);
 
-    // Manajemen Aset (CRUD)
-    Route::resource('/assets', AssetController::class);
+    // Manajemen Aset (Kecuali index, karena index dipakai bersama)
+    Route::resource('/assets', AssetController::class)->except(['index']);
     
-    // Laporan PDF
+    // Laporan & Approval
     Route::get('/report/assets', [AssetController::class, 'printReport'])->name('report.assets');
-
-    // LOGIC APPROVAL (KHUSUS ADMIN)
-    // Hanya admin yang boleh setujui/tolak
     Route::post('/requests/{id}/approve', [AssetRequestController::class, 'approve']);
     Route::post('/requests/{id}/reject', [AssetRequestController::class, 'reject']);
 });
