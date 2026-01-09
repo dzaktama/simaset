@@ -12,7 +12,7 @@
             </p>
         </div>
         
-        {{-- [REVISI POIN 2] Area Tanggal & Jam Digital --}}
+        {{-- Area Tanggal & Jam Digital --}}
         <div class="flex flex-col md:flex-row gap-3">
             {{-- Tanggal --}}
             <div class="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm border border-gray-200">
@@ -22,7 +22,7 @@
                 <span>{{ now()->isoFormat('dddd, D MMMM Y') }}</span>
             </div>
 
-            {{-- Jam Digital (New) --}}
+            {{-- Jam Digital --}}
             <div class="flex items-center gap-2 rounded-lg bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 shadow-sm border border-indigo-100 min-w-[140px] justify-center">
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -180,8 +180,7 @@
             </div>
         </div>
 
-        {{-- TABEL VERIFIKASI PENGEMBALIAN (BARU) --}}
-        {{-- TABEL VERIFIKASI PENGEMBALIAN (REVISI: DETAIL & KEPUTUSAN ADMIN) --}}
+        {{-- TABEL VERIFIKASI PENGEMBALIAN (REVISI FIX ERROR: QUANTITY NULL) --}}
         @php
             $pendingReturns = \App\Models\AssetReturn::with(['user', 'asset', 'assetRequest'])->where('status', 'pending')->get();
         @endphp
@@ -217,8 +216,9 @@
                             </td>
                             <td class="px-6 py-4">
                                 <div class="text-sm font-medium text-indigo-600">{{ $ret->asset->name }}</div>
+                                {{-- [FIX ERROR] Gunakan Null Coalescing (??) agar tidak crash jika relasi hilang --}}
                                 <div class="text-xs font-mono text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded inline-block mt-1">
-                                    {{ $ret->assetRequest->quantity }} Unit
+                                    {{ $ret->assetRequest->quantity ?? 1 }} Unit
                                 </div>
                             </td>
                             <td class="px-6 py-4">

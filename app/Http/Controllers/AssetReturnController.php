@@ -56,49 +56,54 @@ class AssetReturnController extends Controller
      */
     public function verify(Request $request, $id)
     {
-        // Validasi Keputusan Admin
-        $request->validate([
-            'final_condition' => 'required|in:available,maintenance,broken'
-        ]);
+        $return = AssetReturn::findOrFail($id);
+        $asset = Asset::findOrFail($return->asset_id);
+        
+        // [FIX ERROR] Safety Check Quantity
+        // Ambil jumlah dari request asal. Jika datanya hilang (null), default ke 1.
+        $qtyToReturn = 1;
+        if ($return->assetRequest) {
+            $qtyToReturn = $return->assetRequest->quantity;
+        }
 
-        $returnItem = AssetReturn::with(['assetRequest', 'asset', 'user'])->findOrFail($id);
-        $asset = $returnItem->asset;
-        $originalRequest = $returnItem->assetRequest;
-
-        // 1. Cek Validasi Status
-        if ($returnItem->status != 'pending') {
+        // Cek status agar tidak diproses ganda
+        if ($return->status != 'pending') {
             return back()->with('error', 'Data ini sudah diproses sebelumnya.');
         }
 
-        // 2. [LOGIC FIXED] Kembalikan Stok Sesuai Jumlah Pinjam
-        $qtyReturned = $originalRequest->quantity; 
-        $asset->increment('quantity', $qtyReturned);
+        // 1. Logika Stok & Kondisi
+        if ($return->condition == 'good') {
+            // Jika kondisi bagus, stok gudang bertambah
+            $asset->increment('quantity', $qtyToReturn);
+            $asset->update(['status' => 'available']);
+        } else {
+            // Jika rusak/maintenance, stok gudang (available) JANGAN ditambah.
+            // Status aset diubah sesuai kondisi (broken/maintenance).
+            $asset->update(['status' => $return->condition]); 
+        }
 
-        // 3. Update Status Aset Berdasarkan Keputusan Admin (Bukan User)
-        $asset->update([
-            'status' => $request->final_condition, // Admin yang menentukan status akhir
-            'user_id' => null, // Lepas kepemilikan
-            'assigned_date' => null,
-            'return_date' => null,
-            'condition_notes' => "Ex-Pengembalian: " . ($returnItem->notes ?? '-') // Catat history kondisi
-        ]);
-
-        // 4. Tutup Tiket
-        $returnItem->update([
+        // 2. Finalisasi Status Pengembalian
+        $return->update([
             'status' => 'approved',
             'admin_id' => auth()->id()
         ]);
-        
-        $originalRequest->update(['status' => 'returned']);
 
-        // 5. Catat History Lengkap
+        // 3. Tutup Tiket Peminjaman (Jika datanya masih ada)
+        if ($return->assetRequest) {
+            $return->assetRequest->update([
+                'status' => 'returned',
+                'return_date' => now()
+            ]);
+        }
+
+        // 4. Catat History
         AssetHistory::create([
             'asset_id' => $asset->id,
-            'user_id' => auth()->id(), // Admin
+            'user_id' => auth()->id(),
             'action' => 'returned',
-            'notes' => "Diterima Admin. Kondisi Akhir: {$request->final_condition}. User Note: {$returnItem->notes}. Qty Kembali: {$qtyReturned}"
+            'notes' => "Aset dikembalikan oleh {$return->user->name}. Kondisi: {$return->condition}. Verifikasi oleh Admin."
         ]);
 
-        return back()->with('success', 'Aset berhasil diverifikasi dan stok telah dikembalikan.');
+        return back()->with('success', 'Pengembalian diverifikasi. Stok aset diperbarui.');
     }
 }
