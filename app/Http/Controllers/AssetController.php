@@ -20,28 +20,31 @@ class AssetController extends Controller
         $user = auth()->user();
 
         if ($user->role === 'admin') {
-            // Data untuk Admin (Stats + Lists untuk Modal)
+            // Ambil data untuk modal
+            $assets = Asset::with('holder')->latest();
+
             return view('home', [
                 'title' => 'Dashboard Admin',
                 'stats' => [
                     'total' => Asset::count(),
                     'available' => Asset::where('status', 'available')->count(),
-                    'deployed' => Asset::where('status', 'deployed')->count(),
+                    'deployed' => Asset::where('status', 'deployed')->count(), // Ini yang kita pakai untuk card ke-3
                     'maintenance' => Asset::whereIn('status', ['maintenance', 'broken'])->count(),
-                    'pending_requests' => AssetRequest::where('status', 'pending')->count(),
+                    'pending_requests' => AssetRequest::where('status', 'pending')->count(), // Tetap disimpan untuk notif
                 ],
-                // Data List untuk Modal Detail
+                // Data List untuk Modal
                 'listTotal' => Asset::with('holder')->latest()->get(),
                 'listAvailable' => Asset::where('status', 'available')->latest()->get(),
+                'listDeployed' => Asset::where('status', 'deployed')->with('holder')->latest()->get(), // List Barang Dipinjam
                 'listMaintenance' => Asset::whereIn('status', ['maintenance', 'broken'])->with('holder')->latest()->get(),
-                'listPending' => AssetRequest::with(['user', 'asset'])->where('status', 'pending')->latest()->get(),
                 
-                // Data untuk Tabel Utama (Limit 5 biar rapi)
+                // Data Dashboard Lainnya
+                'listPending' => AssetRequest::with(['user', 'asset'])->where('status', 'pending')->latest()->get(),
                 'recentRequests' => AssetRequest::with(['user', 'asset'])->where('status', 'pending')->latest()->take(5)->get(),
                 'activities' => AssetHistory::with(['user', 'asset'])->latest()->take(6)->get()
             ]);
         } else {
-            // Data untuk Karyawan
+            // Dashboard User (Tetap sama)
             return view('home', [
                 'title' => 'Dashboard Karyawan',
                 'activeAssetsCount' => Asset::where('user_id', $user->id)->where('status', 'deployed')->count(),
