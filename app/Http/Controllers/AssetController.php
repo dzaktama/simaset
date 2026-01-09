@@ -340,15 +340,6 @@ class AssetController extends Controller
         ]);
     }
     /**
-     * Cetak Laporan PDF
-     */
-   /**
-     * Cetak Laporan PDF
-     */
-    /**
-     * Cetak Laporan PDF (FIXED: Menangkap Input Generator)
-     */
-    /**
      * Cetak Laporan PDF (FIXED: Search, Filter, & Sort Terintegrasi)
      */
     public function printReport(Request $request)

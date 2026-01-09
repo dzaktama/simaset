@@ -1,7 +1,7 @@
 @extends('layouts.main')
 
 @section('container')
-{{-- 1. HEADER & JUDUL (VERSI BERSIH) --}}
+{{-- 1. HEADER & JUDUL --}}
 <div class="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
     <div>
         <h2 class="text-3xl font-bold leading-tight text-gray-900">Katalog Aset IT</h2>
@@ -22,7 +22,7 @@
     @endif
 </div>
 
-{{-- 2. FILTER BAR (SATU-SATUNYA - PENGGANTI YANG LAMA) --}}
+{{-- 2. FILTER BAR --}}
 <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6">
     <form action="/assets" method="GET" class="flex flex-col md:flex-row gap-4 items-end">
         {{-- Search --}}
@@ -60,7 +60,7 @@
             </select>
         </div>
 
-        {{-- Tombol Filter & Cetak --}}
+        {{-- Tombol --}}
         <div class="flex gap-2 w-full md:w-auto">
             <button type="submit" class="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-900 transition flex items-center gap-2">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
@@ -143,10 +143,11 @@
                                     <button type="submit" class="text-red-600 hover:text-red-900 bg-red-50 px-3 py-1 rounded border border-red-200 hover:bg-red-100 transition">Hapus</button>
                                 </form>
                             @else
+                                {{-- Tombol Pinjam User (Hanya disable jika tidak available, tapi tetap muncul) --}}
                                 @if($asset->quantity > 0 && $asset->status == 'available')
                                     <button onclick="openLoanModal({{ json_encode($asset) }})" class="text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1 rounded border border-transparent shadow-sm transition">Pinjam</button>
                                 @else
-                                    <button disabled class="text-gray-400 bg-gray-100 px-3 py-1 rounded border border-gray-200 cursor-not-allowed">Pinjam</button>
+                                    <button disabled class="text-gray-400 bg-gray-100 px-3 py-1 rounded border border-gray-200 cursor-not-allowed" title="Aset sedang tidak tersedia">Pinjam</button>
                                 @endif
                             @endif
                         </div>
@@ -161,7 +162,7 @@
     <div class="px-6 py-4 border-t border-gray-200">{{ $assets->links() }}</div>
 </div>
 
-{{-- 4. MODAL DETAIL & PINJAM (YANG SUDAH DIPERBAIKI) --}}
+{{-- 4. MODAL DETAIL INFORMASI ASET (REVISI LENGKAP & FIX BOOKING) --}}
 <div id="detailModal" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true">
     <div class="flex min-h-screen items-center justify-center p-4">
         <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeDetailModal()"></div>
@@ -172,6 +173,7 @@
             </div>
             <div class="bg-white px-4 pt-5 pb-4 sm:p-6">
                 <div class="flex flex-col md:flex-row gap-6 mb-6">
+                    {{-- Carousel Gambar --}}
                     <div class="w-full md:w-5/12">
                         <div class="relative w-full h-64 bg-gray-100 rounded-lg overflow-hidden border shadow-sm group">
                             <div id="carouselSlides" class="flex transition-transform duration-500 ease-out h-full w-full"></div>
@@ -181,6 +183,8 @@
                         </div>
                         <p class="text-center text-xs text-gray-400 mt-2 italic">*Geser untuk melihat foto lain</p>
                     </div>
+                    
+                    {{-- Info Text Detail --}}
                     <div class="w-full md:w-7/12 space-y-3">
                         <div class="border-b pb-3">
                             <h2 id="modalName" class="text-2xl font-bold text-gray-900 leading-tight">-</h2>
@@ -190,40 +194,28 @@
                                 <span id="modalQuantity" class="px-2 py-0.5 text-xs font-bold rounded-full bg-gray-100 text-gray-600 border border-gray-300">Stok: -</span>
                             </div>
                         </div>
-                        <div><p class="text-xs text-gray-500 uppercase font-bold">Deskripsi:</p><p id="modalDescription" class="text-sm text-gray-700">-</p></div>
-                        <div><p class="text-xs text-gray-500 uppercase font-bold">Kondisi Fisik:</p><div class="bg-gray-50 p-2 rounded border border-gray-200 mt-1"><p id="modalCondition" class="text-sm font-medium text-gray-800">-</p></div></div>
+                        
+                        {{-- Fitur Pendukung: Spesifikasi Lebih Lengkap --}}
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div><p class="text-xs text-gray-500 uppercase font-bold">Kondisi</p><p id="modalCondition" class="font-medium text-gray-800">-</p></div>
+                            <div><p class="text-xs text-gray-500 uppercase font-bold">Tanggal Input</p><p id="modalCreatedAt" class="font-medium text-gray-800">-</p></div>
+                        </div>
+                        
+                        <div><p class="text-xs text-gray-500 uppercase font-bold">Deskripsi & Spesifikasi</p><p id="modalDescription" class="text-sm text-gray-700 bg-gray-50 p-2 rounded border border-gray-100 mt-1">-</p></div>
                     </div>
                 </div>
+
+                {{-- Status Peminjaman / Action Bar --}}
                 <div id="loanInfo" class="border-t pt-4">
-                    <h4 class="text-sm font-bold text-gray-900 uppercase mb-3">Status Peminjaman</h4>
-                    <div id="infoDeployed" class="hidden bg-blue-50 p-4 rounded-lg border border-blue-200">
-                        <div class="space-y-3">
-                            <div class="flex items-center gap-3">
-                                <div class="h-10 w-10 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-bold"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div>
-                                <div><p class="text-xs text-blue-600 uppercase font-bold">Sedang Dipinjam Oleh:</p><p id="modalHolderName" class="text-sm font-bold text-gray-900 text-lg">-</p></div>
-                            </div>
-                            <hr class="border-blue-200">
-                            <div class="grid grid-cols-2 gap-4">
-                                <div><p class="text-xs text-blue-600 uppercase font-bold">Tanggal Pinjam:</p><p id="modalAssignedDate" class="text-sm font-medium text-gray-800">-</p></div>
-                                <div><p class="text-xs text-blue-600 uppercase font-bold">Batas Kembali:</p><p id="modalReturnDate" class="text-sm font-medium text-gray-800">-</p></div>
-                                <div class="col-span-2"><p class="text-xs text-blue-600 uppercase font-bold">Jumlah Dipinjam:</p><p id="modalDeployedQty" class="text-sm font-bold text-gray-900 bg-white px-2 py-1 rounded border inline-block mt-1">-</p></div>
-                            </div>
-                        </div>
+                    <h4 class="text-sm font-bold text-gray-900 uppercase mb-3">Status & Booking</h4>
+                    
+                    {{-- [REVISI]: Container Status Unified --}}
+                    <div id="statusContainer" class="p-4 rounded-lg border">
+                        {{-- Konten dinamis via JS --}}
                     </div>
-                    <div id="infoAvailable" class="hidden bg-green-50 p-4 rounded-lg border border-green-200">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2">
-                                <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                                <div><p class="text-green-800 font-bold text-sm">Tersedia di Gudang</p><p class="text-xs text-green-600">Aset ini siap untuk dipinjamkan.</p></div>
-                            </div>
-                            @if(auth()->user()->role != 'admin')
-                                <button id="modalBtnPinjam" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition shadow-sm">Ajukan Pinjam</button>
-                            @endif
-                        </div>
-                    </div>
-                    <div id="infoMaintenance" class="hidden bg-red-50 p-4 rounded-lg border border-red-200 flex items-center justify-center gap-2"><svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg><div><p class="text-red-800 font-bold text-sm">Sedang Perbaikan / Rusak</p><p class="text-xs text-red-600">Aset tidak dapat digunakan saat ini.</p></div></div>
                 </div>
             </div>
+            
             <div class="bg-gray-50 px-4 py-3 sm:px-6 flex justify-end">
                 <button onclick="closeDetailModal()" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:w-auto sm:text-sm">Tutup</button>
             </div>
@@ -231,11 +223,10 @@
     </div>
 </div>
 
-{{-- ================= MODAL FORM PINJAM (REVISI POIN 4: TIMESTAMP) ================= --}}
-<div id="loanModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+{{-- MODAL FORM PINJAM (Sama seperti sebelumnya) --}}
+<div id="loanModal" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true">
     <div class="flex min-h-screen items-center justify-center p-4">
         <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeLoanModal()"></div>
-
         <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
             <form action="/requests" method="POST">
                 @csrf
@@ -248,67 +239,37 @@
                             <h3 class="text-lg leading-6 font-medium text-gray-900">Ajukan Peminjaman Aset</h3>
                             <div class="mt-4 space-y-4">
                                 <input type="hidden" name="asset_id" id="loanAssetId">
-                                
-                                {{-- Nama Barang --}}
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Nama Barang</label>
-                                    <input type="text" id="loanAssetName" disabled class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm sm:text-sm p-2 border text-gray-500">
-                                </div>
-
-                                {{-- Jumlah --}}
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Jumlah Unit <span class="text-red-500">*</span></label>
-                                    <div class="flex items-center gap-2">
-                                        <input type="number" name="quantity" id="loanQuantity" min="1" value="1" required class="mt-1 block w-24 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border">
-                                        <span class="text-xs text-gray-500" id="loanMaxStockText"></span>
-                                    </div>
-                                </div>
-
-                                {{-- [REVISI POIN 4] Rencana Kembali + Jam --}}
+                                <div><label class="block text-sm font-medium text-gray-700">Nama Barang</label><input type="text" id="loanAssetName" disabled class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm sm:text-sm p-2 border text-gray-500"></div>
+                                <div><label class="block text-sm font-medium text-gray-700">Jumlah Unit <span class="text-red-500">*</span></label><div class="flex items-center gap-2"><input type="number" name="quantity" id="loanQuantity" min="1" value="1" required class="mt-1 block w-24 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"><span class="text-xs text-gray-500" id="loanMaxStockText"></span></div></div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Rencana Pengembalian <span class="text-xs text-gray-400">(Opsional)</span></label>
                                     <div class="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <label class="text-[10px] text-gray-500 uppercase font-bold">Tanggal</label>
-                                            <input type="date" name="return_date" class="mt-0.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border">
-                                        </div>
-                                        <div>
-                                            <label class="text-[10px] text-gray-500 uppercase font-bold">Jam (WIB)</label>
-                                            <input type="time" name="return_time" class="mt-0.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border">
-                                        </div>
+                                        <div><label class="text-[10px] text-gray-500 uppercase font-bold">Tanggal</label><input type="date" name="return_date" class="mt-0.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"></div>
+                                        <div><label class="text-[10px] text-gray-500 uppercase font-bold">Jam (WIB)</label><input type="time" name="return_time" class="mt-0.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"></div>
                                     </div>
-                                    <p class="text-[10px] text-gray-400 mt-1">*Biarkan kosong jika peminjaman jangka panjang / belum tahu kapan kembali.</p>
+                                    <p class="text-[10px] text-gray-400 mt-1">*Biarkan kosong jika peminjaman jangka panjang.</p>
                                 </div>
-
-                                {{-- Alasan --}}
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Keperluan / Alasan <span class="text-red-500">*</span></label>
-                                    <textarea name="reason" rows="3" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" placeholder="Contoh: Untuk keperluan meeting proyek X"></textarea>
-                                </div>
+                                <div><label class="block text-sm font-medium text-gray-700">Keperluan / Alasan <span class="text-red-500">*</span></label><textarea name="reason" rows="3" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" placeholder="Contoh: Untuk keperluan meeting proyek X"></textarea></div>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                    <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
-                        Kirim Pengajuan
-                    </button>
-                    <button type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm" onclick="closeLoanModal()">
-                        Batal
-                    </button>
+                    <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">Kirim Pengajuan</button>
+                    <button type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm" onclick="closeLoanModal()">Batal</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-{{-- 5. SCRIPTS --}}
 <script>
     function getImg(path) { return path ? `/storage/${path}` : 'https://via.placeholder.com/600x400?text=No+Image'; }
     function formatDateID(dateStr) {
         if(!dateStr) return '-';
         const d = new Date(dateStr);
-        return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) + ' ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        // [REVISI]: Menambah Jam & Detik agar lengkap
+        return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) + ' ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
     }
 
     let currentSlide = 0, totalSlides = 0;
@@ -326,39 +287,81 @@
     function goToSlide(i) { currentSlide = i; updateCarousel(); }
 
     function openDetailModal(asset, holder) {
+        // 1. Populate Info Dasar
         document.getElementById('modalName').innerText = asset.name;
         document.getElementById('modalSN').innerText = asset.serial_number;
         document.getElementById('modalDescription').innerText = asset.description || '-';
         document.getElementById('modalCondition').innerText = asset.condition_notes || 'Kondisi Baik';
         document.getElementById('modalQuantity').innerText = 'Total Stok: ' + (asset.quantity || 1) + ' Unit';
+        
+        // Populate Created At (Fitur Pendukung)
+        const createdDate = new Date(asset.created_at);
+        document.getElementById('modalCreatedAt').innerText = createdDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 
         const statusEl = document.getElementById('modalStatus');
         statusEl.innerText = asset.status.toUpperCase();
         statusEl.className = "px-2 py-0.5 text-xs font-bold rounded-full"; 
-        ['infoDeployed', 'infoAvailable', 'infoMaintenance'].forEach(id => document.getElementById(id).classList.add('hidden'));
+        
+        const container = document.getElementById('statusContainer');
+        container.className = "p-4 rounded-lg border"; // Reset class
+        container.innerHTML = ''; // Reset content
 
+        // 2. Logic Status & Booking (REVISI BESAR DI SINI)
         if (asset.status === 'deployed') {
             statusEl.classList.add('bg-blue-100', 'text-blue-800');
-            document.getElementById('infoDeployed').classList.remove('hidden');
-            document.getElementById('modalHolderName').innerText = holder ? holder.name : 'Unknown';
-            document.getElementById('modalAssignedDate').innerText = formatDateID(asset.assigned_date);
-            document.getElementById('modalReturnDate').innerText = asset.return_date ? formatDateID(asset.return_date) : 'Tidak Ada Batas';
-            document.getElementById('modalDeployedQty').innerText = asset.quantity + ' Unit';
+            container.classList.add('bg-blue-50', 'border-blue-200');
+            
+            // [REVISI] Detail Peminjaman Lengkap dengan Waktu
+            const assignedTime = asset.assigned_date ? formatDateID(asset.assigned_date) : '-';
+            const returnTime = asset.return_date ? formatDateID(asset.return_date) : 'Tidak ada batas waktu';
+            
+            container.innerHTML = `
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="h-10 w-10 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-bold"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div>
+                    <div><p class="text-xs text-blue-600 uppercase font-bold">Sedang Dipinjam Oleh:</p><p class="text-sm font-bold text-gray-900 text-lg">${holder ? holder.name : 'Unknown'}</p></div>
+                </div>
+                <hr class="border-blue-200 mb-3">
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div><p class="text-xs text-blue-600 uppercase font-bold">Waktu Pinjam:</p><p class="text-sm font-medium text-gray-800">${assignedTime}</p></div>
+                    <div><p class="text-xs text-blue-600 uppercase font-bold">Batas Kembali:</p><p class="text-sm font-medium text-gray-800">${returnTime}</p></div>
+                    <div class="col-span-2"><p class="text-xs text-blue-600 uppercase font-bold">Jumlah:</p><p class="text-sm font-bold text-gray-900 bg-white px-2 py-1 rounded border inline-block mt-1">${asset.quantity} Unit</p></div>
+                </div>
+                <div class="bg-blue-100 p-3 rounded text-center">
+                    <p class="text-xs text-blue-700 font-bold mb-1">Status: SEDANG DIPAKAI</p>
+                    <button disabled class="w-full bg-gray-300 text-gray-500 py-2 px-4 rounded cursor-not-allowed text-sm font-bold">Pinjam (Tidak Tersedia)</button>
+                </div>
+            `;
+
         } else if (asset.status === 'available') {
             statusEl.classList.add('bg-green-100', 'text-green-800');
-            document.getElementById('infoAvailable').classList.remove('hidden');
-            const btnPinjam = document.getElementById('modalBtnPinjam');
-            if(btnPinjam) {
-                if(asset.quantity > 0) {
-                    btnPinjam.onclick = function() { closeDetailModal(); openLoanModal(asset); };
-                    btnPinjam.classList.remove('hidden');
-                } else { btnPinjam.classList.add('hidden'); }
-            }
+            container.classList.add('bg-green-50', 'border-green-200');
+            
+            container.innerHTML = `
+                <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div class="flex items-center gap-2">
+                        <svg class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                        <div><p class="text-green-800 font-bold text-sm">Tersedia di Gudang</p><p class="text-xs text-green-600">Siap untuk dipinjamkan.</p></div>
+                    </div>
+                    ${ authRole != 'admin' && asset.quantity > 0 ? 
+                        `<button onclick="closeDetailModal(); openLoanModal(currentAssetData)" class="w-full md:w-auto bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition shadow-sm flex items-center justify-center gap-2"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg> Ajukan Pinjam</button>` 
+                        : '' 
+                    }
+                </div>
+            `;
+
         } else {
             statusEl.classList.add('bg-red-100', 'text-red-800');
-            document.getElementById('infoMaintenance').classList.remove('hidden');
+            container.classList.add('bg-red-50', 'border-red-200');
+            container.innerHTML = `
+                <div class="flex items-center justify-center gap-2 py-4">
+                    <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    <div><p class="text-red-800 font-bold text-sm">Maintenance / Rusak</p><p class="text-xs text-red-600">Tidak dapat digunakan.</p></div>
+                </div>
+                <button disabled class="w-full mt-2 bg-gray-300 text-gray-500 py-2 px-4 rounded cursor-not-allowed text-sm font-bold">Pinjam (Tidak Tersedia)</button>
+            `;
         }
 
+        // Carousel Logic (Sama)
         let slidesHtml = '', dotsHtml = '', images = [];
         if (asset.image) images.push(asset.image);
         if (asset.image2) images.push(asset.image2);
@@ -375,9 +378,24 @@
         const navs = [document.getElementById('prevBtn'), document.getElementById('nextBtn'), document.getElementById('carouselIndicators')];
         navs.forEach(el => totalSlides > 1 ? el.classList.remove('hidden') : el.classList.add('hidden'));
         updateCarousel();
+        
         document.getElementById('detailModal').classList.remove('hidden');
     }
+
     function closeDetailModal() { document.getElementById('detailModal').classList.add('hidden'); }
+
+    // Variable global sementara agar tombol pinjam di modal detail bisa akses data aset
+    let currentAssetData = null;
+    // Helper variable auth role (dilempar dari blade ke JS)
+    const authRole = "{{ auth()->user()->role }}";
+
+    // Override openDetailModal untuk set currentAssetData
+    const originalOpenDetailModal = openDetailModal;
+    openDetailModal = function(asset, holder) {
+        currentAssetData = asset;
+        originalOpenDetailModal(asset, holder);
+    }
+
     function openLoanModal(asset) {
         document.getElementById('loanAssetId').value = asset.id;
         document.getElementById('loanAssetName').value = asset.name;
