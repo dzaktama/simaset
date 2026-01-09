@@ -37,72 +37,76 @@
         {{-- ======================= DASHBOARD ADMIN ======================= --}}
         
         {{-- STATS GRID --}}
-        {{-- STATS GRID --}}
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
             {{-- 1. Total Aset --}}
-            <div onclick="openStatsModal('modalTotalAssets')" class="bg-white overflow-hidden rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-indigo-300 transition cursor-pointer group relative">
+            <div onclick="openModal('modalTotalAssets')" class="bg-white overflow-hidden rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition cursor-pointer group relative">
                 <div class="p-5">
                     <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-4">
-                            <div class="bg-indigo-50 rounded-lg p-3 group-hover:bg-indigo-600 transition duration-300">
-                                <svg class="h-6 w-6 text-indigo-600 group-hover:text-white transition" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 bg-indigo-500 rounded-md p-3 group-hover:bg-indigo-600 transition">
+                                <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                             </div>
-                            <div>
-                                <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Total Aset</p>
-                                <p class="text-2xl font-bold text-gray-900">{{ $stats['total'] }} <span class="text-xs font-normal text-gray-400">Unit</span></p>
+                            <div class="ml-5">
+                                <dt class="text-sm font-medium text-gray-500 truncate">Total Aset</dt>
+                                <dd class="text-2xl font-semibold text-gray-900">{{ $stats['total'] }}</dd>
                             </div>
                         </div>
+                        <div class="text-gray-300 group-hover:text-indigo-500 transition"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></div>
                     </div>
                 </div>
             </div>
-
+            
             {{-- 2. Aset Tersedia --}}
-            <div onclick="openStatsModal('modalAvailableAssets')" class="bg-white overflow-hidden rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-green-300 transition cursor-pointer group relative">
+            <div onclick="openModal('modalAvailableAssets')" class="bg-white overflow-hidden rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition cursor-pointer group relative">
                 <div class="p-5">
                     <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-4">
-                            <div class="bg-green-50 rounded-lg p-3 group-hover:bg-green-600 transition duration-300">
-                                <svg class="h-6 w-6 text-green-600 group-hover:text-white transition" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 bg-green-500 rounded-md p-3 group-hover:bg-green-600 transition">
+                                <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                             </div>
-                            <div>
-                                <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Tersedia</p>
-                                <p class="text-2xl font-bold text-gray-900">{{ $stats['available'] }} <span class="text-xs font-normal text-gray-400">Unit</span></p>
+                            <div class="ml-5">
+                                <dt class="text-sm font-medium text-gray-500 truncate">Tersedia</dt>
+                                <dd class="text-2xl font-semibold text-gray-900">{{ $stats['available'] }}</dd>
                             </div>
                         </div>
+                        <div class="text-gray-300 group-hover:text-green-500 transition"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></div>
                     </div>
                 </div>
             </div>
 
-            {{-- 3. Barang Dipinjam (Deployed) --}}
-            <div onclick="openStatsModal('modalDeployedAssets')" class="bg-white overflow-hidden rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition cursor-pointer group relative">
+            {{-- 3. [REVISI] SEDANG DIPINJAM (DEPLOYED) - Menggantikan Card Request --}}
+            <div onclick="openModal('modalDeployedAssets')" class="bg-white overflow-hidden rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition cursor-pointer group relative">
                 <div class="p-5">
                     <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-4">
-                            <div class="bg-blue-50 rounded-lg p-3 group-hover:bg-blue-600 transition duration-300">
-                                <svg class="h-6 w-6 text-blue-600 group-hover:text-white transition" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 bg-blue-500 rounded-md p-3 group-hover:bg-blue-600 transition">
+                                {{-- Icon User / Dipinjam --}}
+                                <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                             </div>
-                            <div>
-                                <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Dipinjam (Deployed)</p>
-                                <p class="text-2xl font-bold text-gray-900">{{ $stats['deployed'] }} <span class="text-xs font-normal text-gray-400">Unit</span></p>
+                            <div class="ml-5">
+                                <dt class="text-sm font-medium text-gray-500 truncate">Sedang Dipinjam</dt>
+                                <dd class="text-2xl font-semibold text-gray-900">{{ $stats['deployed'] }}</dd>
                             </div>
                         </div>
+                        <div class="text-gray-300 group-hover:text-blue-500 transition"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></div>
                     </div>
                 </div>
             </div>
 
             {{-- 4. Service / Rusak --}}
-            <div onclick="openStatsModal('modalMaintenanceAssets')" class="bg-white overflow-hidden rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-red-300 transition cursor-pointer group relative">
+            <div onclick="openModal('modalMaintenanceAssets')" class="bg-white overflow-hidden rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition cursor-pointer group relative">
                 <div class="p-5">
                     <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-4">
-                            <div class="bg-red-50 rounded-lg p-3 group-hover:bg-red-600 transition duration-300">
-                                <svg class="h-6 w-6 text-red-600 group-hover:text-white transition" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 bg-red-500 rounded-md p-3 group-hover:bg-red-600 transition">
+                                <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                             </div>
-                            <div>
-                                <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Service / Rusak</p>
-                                <p class="text-2xl font-bold text-gray-900">{{ $stats['maintenance'] }} <span class="text-xs font-normal text-gray-400">Unit</span></p>
+                            <div class="ml-5">
+                                <dt class="text-sm font-medium text-gray-500 truncate">Service / Rusak</dt>
+                                <dd class="text-2xl font-semibold text-gray-900">{{ $stats['maintenance'] }}</dd>
                             </div>
                         </div>
+                        <div class="text-gray-300 group-hover:text-red-500 transition"><svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></div>
                     </div>
                 </div>
             </div>
@@ -180,7 +184,7 @@
             </div>
         </div>
 
-        {{-- TABEL VERIFIKASI PENGEMBALIAN (REVISI FIX ERROR: QUANTITY NULL) --}}
+        {{-- TABEL VERIFIKASI PENGEMBALIAN --}}
         @php
             $pendingReturns = \App\Models\AssetReturn::with(['user', 'asset', 'assetRequest'])->where('status', 'pending')->get();
         @endphp
@@ -216,7 +220,6 @@
                             </td>
                             <td class="px-6 py-4">
                                 <div class="text-sm font-medium text-indigo-600">{{ $ret->asset->name }}</div>
-                                {{-- [FIX ERROR] Gunakan Null Coalescing (??) agar tidak crash jika relasi hilang --}}
                                 <div class="text-xs font-mono text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded inline-block mt-1">
                                     {{ $ret->assetRequest->quantity ?? 1 }} Unit
                                 </div>
@@ -228,7 +231,6 @@
                                 <div class="text-xs text-gray-600 mt-1 italic truncate max-w-[200px]">"{{ $ret->notes ?? '-' }}"</div>
                             </td>
                             <td class="px-6 py-4 text-right">
-                                {{-- Tombol Trigger Modal --}}
                                 <button onclick="openVerifyModal({{ json_encode($ret) }}, {{ json_encode($ret->asset) }}, {{ json_encode($ret->user) }})" 
                                         class="inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-md transition transform hover:-translate-y-0.5">
                                     <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -341,7 +343,7 @@
             function openVerifyModal(retData, assetData, userData) {
                 // Populate Data
                 document.getElementById('verifyUserName').innerText = userData.name;
-                document.getElementById('verifyDate').innerText = retData.return_date; // Bisa diformat lagi pakai JS Date kalau mau
+                document.getElementById('verifyDate').innerText = retData.return_date; 
                 document.getElementById('verifyAssetName').innerText = assetData.name;
                 document.getElementById('verifyAssetSN').innerText = assetData.serial_number;
                 document.getElementById('verifyUserNotes').innerText = retData.notes || 'Tidak ada catatan user.';
@@ -367,55 +369,72 @@
             }
         </script>
 
-        {{-- ======================= AKTIVITAS TERBARU ======================= --}}
+        {{-- ======================= AKTIVITAS TERBARU (TRANSPARANSI FULL) ======================= --}}
+        
+        {{-- LOG AKTIVITAS (SEMUA) --}}
+        {{-- [REVISI] Menghapus limit agar menampilkan semua history --}}
+        @php
+            $allActivities = \App\Models\AssetHistory::with(['user', 'asset'])->latest()->get();
+        @endphp
 
-        {{-- LOG AKTIVITAS --}}
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
-            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 rounded-t-xl">
-                <h3 class="text-lg font-bold text-gray-900">Log Aktivitas Terbaru</h3>
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 rounded-t-xl flex justify-between items-center">
+                <h3 class="text-lg font-bold text-gray-900">Log Aktivitas Lengkap</h3>
+                <span class="text-xs text-gray-500">Semua riwayat aktivitas sistem</span>
             </div>
-            <ul role="list" class="divide-y divide-gray-200">
-                @forelse($activities as $log)
-                <li class="px-6 py-4 hover:bg-gray-50 transition">
-                    <div class="flex space-x-3">
-                        <div class="flex-shrink-0">
-                            <div class="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs font-bold">
-                                {{ substr($log->user->name ?? 'S', 0, 1) }}
+            
+            {{-- Scrollable Container jika terlalu panjang --}}
+            <div class="overflow-y-auto custom-scrollbar max-h-[500px]">
+                <ul role="list" class="divide-y divide-gray-200">
+                    @forelse($allActivities as $log)
+                    <li class="px-6 py-4 hover:bg-gray-50 transition">
+                        <div class="flex space-x-3">
+                            <div class="flex-shrink-0">
+                                <div class="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs font-bold uppercase">
+                                    {{ substr($log->user->name ?? 'S', 0, 1) }}
+                                </div>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm font-medium text-gray-900">{{ $log->user->name ?? 'Sistem' }}</p>
+                                <p class="text-xs text-gray-600">
+                                    <span class="uppercase font-bold text-indigo-600">{{ str_replace('_', ' ', $log->action) }}</span> 
+                                    <span class="font-medium text-gray-900">{{ $log->asset->name ?? 'Unknown Asset' }}</span>
+                                    @if($log->notes)
+                                        <span class="text-gray-500 italic"> - {{ $log->notes }}</span>
+                                    @endif
+                                </p>
+                            </div>
+                            <div class="flex-shrink-0 text-right">
+                                <div class="text-xs text-gray-500 font-bold">
+                                    {{ \Carbon\Carbon::parse($log->created_at)->setTimezone('Asia/Jakarta')->format('H:i') }} WIB
+                                </div>
+                                <div class="text-[10px] text-gray-400">
+                                    {{ \Carbon\Carbon::parse($log->created_at)->translatedFormat('d M Y') }}
+                                </div>
                             </div>
                         </div>
-                        <div class="min-w-0 flex-1">
-                            <p class="text-sm font-medium text-gray-900">{{ $log->user->name ?? 'Sistem' }}</p>
-                            <p class="text-xs text-gray-600">
-                                <span class="uppercase font-bold text-indigo-600">{{ $log->action }}</span> 
-                                <span class="font-medium text-gray-900">{{ $log->asset->name }}</span>
-                                @if($log->notes)
-                                    <span class="text-gray-500 italic"> - {{ $log->notes }}</span>
-                                @endif
-                            </p>
-                        </div>
-                        <div class="flex-shrink-0 text-right">
-                            <div class="text-xs text-gray-500 font-bold">
-                                {{ \Carbon\Carbon::parse($log->created_at)->setTimezone('Asia/Jakarta')->format('H:i') }} WIB
-                            </div>
-                            <div class="text-[10px] text-gray-400">
-                                {{ \Carbon\Carbon::parse($log->created_at)->translatedFormat('d M Y') }}
-                            </div>
-                        </div>
-                    </div>
-                </li>
-                @empty
-                <li class="px-6 py-4 text-center text-gray-500 italic">Belum ada aktivitas.</li>
-                @endforelse
-            </ul>
+                    </li>
+                    @empty
+                    <li class="px-6 py-4 text-center text-gray-500 italic">Belum ada aktivitas.</li>
+                    @endforelse
+                </ul>
+            </div>
         </div>
 
         {{-- ========= MODALS INFORMASI STATISTIK ========= --}}
         @include('partials.stats_modal', ['id' => 'modalTotalAssets', 'title' => 'Daftar Seluruh Aset', 'items' => $listTotal])
         @include('partials.stats_modal', ['id' => 'modalAvailableAssets', 'title' => 'Aset Tersedia', 'items' => $listAvailable])
+        
+        {{-- [REVISI] Modal untuk Deployed Assets --}}
+        @php
+            $deployedList = \App\Models\Asset::with('holder')->where('status', 'deployed')->latest()->get();
+        @endphp
+        @include('partials.stats_modal', ['id' => 'modalDeployedAssets', 'title' => 'Aset Sedang Dipinjam', 'items' => $deployedList])
+        
         @include('partials.stats_modal', ['id' => 'modalPendingRequests', 'title' => 'Daftar Request', 'items' => $listPending])
         @include('partials.stats_modal', ['id' => 'modalMaintenanceAssets', 'title' => 'Aset Rusak', 'items' => $listMaintenance])
 
-        {{-- MODAL KHUSUS PENDING REQUEST --}}
+        {{-- MODAL KHUSUS PENDING REQUEST (Untuk tombol lihat detail di widget) --}}
         <div id="modalPendingRequests" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
             <div class="flex min-h-screen items-center justify-center p-4">
                 <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeModal('modalPendingRequests')"></div>
@@ -431,7 +450,7 @@
                             @else
                                 <table class="min-w-full divide-y divide-gray-200">
                                     <thead class="bg-gray-50">
-                                        <tr><th class="px-4 py-2 text-left text-xs font-bold text-gray-500">Peminjam</th><th class="px-4 py-2 text-left text-xs font-bold text-gray-500">Barang</th><th class="px-4 py-2 text-left text-xs font-bold text-gray-500">Alasan</th><th class="px-4 py-2 text-left text-xs font-bold text-gray-500">Waktu</th></tr>
+                                        <tr><th class="px-4 py-2 text-left text-xs font-bold text-gray-500">Peminjam</th><th class="px-4 py-2 text-left text-xs font-bold text-gray-500">Barang</th><th class="px-4 py-2 text-left text-xs font-bold text-gray-500">Alasan</th><th class="px-4 py-2 text-left text-xs font-bold text-gray-500">Waktu</th><th class="px-4 py-2 text-right">Aksi</th></tr>
                                     </thead>
                                     <tbody class="bg-white divide-y divide-gray-200">
                                         @foreach($listPending as $req)
@@ -440,6 +459,11 @@
                                             <td class="px-4 py-2 text-sm font-semibold text-indigo-600">{{ $req->asset->name }}</td>
                                             <td class="px-4 py-2 text-sm italic">"{{ Str::limit($req->reason, 50) }}"</td>
                                             <td class="px-4 py-2 text-sm text-gray-500">{{ $req->created_at->translatedFormat('d M Y, H:i') }}</td>
+                                            <td class="px-4 py-2 text-right">
+                                                <form action="/requests/{{ $req->id }}/approve" method="POST" class="inline-block" onsubmit="return confirm('Terima?')">
+                                                    @csrf <button class="text-green-600 hover:underline text-xs font-bold">Terima</button>
+                                                </form>
+                                            </td>
                                         </tr>
                                         @endforeach
                                     </tbody>
@@ -713,151 +737,3 @@
         updateClock(); // Jalankan sekali saat load agar tidak kosong
     </script>
 @endsection
-{{-- ========= MODALS LIST CARD ========= --}}
-    @include('partials.stats_modal', ['id' => 'modalTotalAssets', 'title' => 'Semua Aset', 'items' => $listTotal])
-    @include('partials.stats_modal', ['id' => 'modalAvailableAssets', 'title' => 'Aset Tersedia (Gudang)', 'items' => $listAvailable])
-    @include('partials.stats_modal', ['id' => 'modalDeployedAssets', 'title' => 'Aset Sedang Dipinjam', 'items' => $listDeployed])
-    @include('partials.stats_modal', ['id' => 'modalMaintenanceAssets', 'title' => 'Aset Perbaikan / Rusak', 'items' => $listMaintenance])
-
-    {{-- ========= MODAL DETAIL ITEM (REUSE CODE DARI KATALOG) ========= --}}
-    <div id="detailItemModal" class="fixed inset-0 z-[60] hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeDetailItemModal()"></div>
-
-            <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
-                {{-- Header --}}
-                <div class="bg-indigo-600 px-4 py-3 sm:px-6 flex justify-between items-center">
-                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        Detail Informasi Aset
-                    </h3>
-                    <button onclick="closeDetailItemModal()" class="text-indigo-200 hover:text-white transition">
-                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
-                </div>
-                
-                {{-- Content --}}
-                <div class="bg-white px-4 pt-5 pb-4 sm:p-6">
-                    <div class="flex flex-col md:flex-row gap-6">
-                        {{-- Gambar --}}
-                        <div class="w-full md:w-5/12">
-                            <div class="aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200 flex items-center justify-center relative group">
-                                <img id="detailImg" src="" class="w-full h-full object-cover hidden">
-                                <div id="detailImgPlaceholder" class="text-gray-400 flex flex-col items-center">
-                                    <svg class="h-12 w-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                    <span class="text-xs">No Image</span>
-                                </div>
-                            </div>
-                            <div class="mt-4 text-center">
-                                <span id="detailStatusBadge" class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-gray-100 text-gray-800">
-                                    -
-                                </span>
-                            </div>
-                        </div>
-
-                        {{-- Info Text --}}
-                        <div class="w-full md:w-7/12 space-y-4">
-                            <div>
-                                <h2 id="detailName" class="text-xl font-bold text-gray-900 leading-tight">-</h2>
-                                <p id="detailSN" class="text-sm text-gray-500 font-mono mt-1 bg-gray-50 px-2 py-0.5 rounded inline-block">-</p>
-                            </div>
-                            
-                            <div class="border-t border-gray-100 pt-4 space-y-3">
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <p class="text-[10px] uppercase font-bold text-gray-400">Kondisi</p>
-                                        <p id="detailCondition" class="text-sm font-medium text-gray-900">-</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-[10px] uppercase font-bold text-gray-400">Pengguna</p>
-                                        <p id="detailUser" class="text-sm font-medium text-gray-900">-</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-[10px] uppercase font-bold text-gray-400">Tgl Pinjam</p>
-                                        <p id="detailDate" class="text-sm font-medium text-gray-900">-</p>
-                                    </div>
-                                    <div>
-                                        <p class="text-[10px] uppercase font-bold text-gray-400">Tgl Kembali</p>
-                                        <p id="detailReturn" class="text-sm font-medium text-gray-900">-</p>
-                                    </div>
-                                </div>
-                                
-                                <div>
-                                    <p class="text-[10px] uppercase font-bold text-gray-400 mb-1">Deskripsi</p>
-                                    <div id="detailDesc" class="text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-100 min-h-[60px] max-h-[100px] overflow-y-auto">
-                                        -
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                {{-- Footer --}}
-                <div class="bg-gray-50 px-4 py-3 sm:px-6 flex justify-end">
-                    <button type="button" onclick="closeDetailItemModal()" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:w-auto sm:text-sm">
-                        Tutup
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Fungsi Buka Modal List (Card)
-        function openStatsModal(id) {
-            document.getElementById(id).classList.remove('hidden');
-        }
-        function closeStatsModal(id) {
-            document.getElementById(id).classList.add('hidden');
-        }
-
-        // Fungsi Buka Modal Detail Item (Sama kayak Katalog)
-        function openDetailItem(asset, holderName) {
-            // Isi Data
-            document.getElementById('detailName').innerText = asset.name;
-            document.getElementById('detailSN').innerText = asset.serial_number;
-            document.getElementById('detailCondition').innerText = asset.condition_notes || 'Baik';
-            document.getElementById('detailDesc').innerText = asset.description || '-';
-            
-            // Status & User
-            const statusEl = document.getElementById('detailStatusBadge');
-            statusEl.innerText = asset.status;
-            statusEl.className = "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ";
-            
-            if(asset.status === 'available') {
-                statusEl.classList.add('bg-green-100', 'text-green-800');
-                document.getElementById('detailUser').innerText = '- (Gudang)';
-            } else if(asset.status === 'deployed') {
-                statusEl.classList.add('bg-blue-100', 'text-blue-800');
-                document.getElementById('detailUser').innerText = holderName || 'Unknown User';
-            } else {
-                statusEl.classList.add('bg-red-100', 'text-red-800');
-                document.getElementById('detailUser').innerText = '-';
-            }
-
-            // Gambar
-            const imgEl = document.getElementById('detailImg');
-            const phEl = document.getElementById('detailImgPlaceholder');
-            if(asset.image) {
-                imgEl.src = '/storage/' + asset.image;
-                imgEl.classList.remove('hidden');
-                phEl.classList.add('hidden');
-            } else {
-                imgEl.classList.add('hidden');
-                phEl.classList.remove('hidden');
-            }
-
-            // Tanggal
-            const dateOpts = { day: 'numeric', month: 'short', year: 'numeric' };
-            document.getElementById('detailDate').innerText = asset.assigned_date ? new Date(asset.assigned_date).toLocaleDateString('id-ID', dateOpts) : '-';
-            document.getElementById('detailReturn').innerText = asset.return_date ? new Date(asset.return_date).toLocaleDateString('id-ID', dateOpts) : '-';
-
-            // Buka Modal Detail (di atas Modal List)
-            document.getElementById('detailItemModal').classList.remove('hidden');
-        }
-
-        function closeDetailItemModal() {
-            document.getElementById('detailItemModal').classList.add('hidden');
-        }
-    </script>
