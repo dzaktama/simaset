@@ -181,44 +181,59 @@
         </div>
 
         {{-- TABEL VERIFIKASI PENGEMBALIAN (BARU) --}}
+        {{-- TABEL VERIFIKASI PENGEMBALIAN (REVISI: DETAIL & KEPUTUSAN ADMIN) --}}
         @php
-            $pendingReturns = \App\Models\AssetReturn::with(['user', 'asset'])->where('status', 'pending')->get();
+            $pendingReturns = \App\Models\AssetReturn::with(['user', 'asset', 'assetRequest'])->where('status', 'pending')->get();
         @endphp
 
         @if($pendingReturns->isNotEmpty())
-        <div class="bg-white rounded-xl shadow-sm border border-blue-200 mb-8">
-            <div class="px-6 py-4 border-b border-blue-200 flex justify-between items-center bg-blue-50 rounded-t-xl">
-                <h3 class="text-lg font-bold text-blue-900">Verifikasi Pengembalian Aset</h3>
-                <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">{{ $pendingReturns->count() }} Menunggu</span>
+        <div class="bg-white rounded-xl shadow-sm border border-blue-200 mb-8 overflow-hidden">
+            <div class="px-6 py-4 border-b border-blue-200 flex justify-between items-center bg-blue-50">
+                <div class="flex items-center gap-2">
+                    <div class="bg-blue-600 p-1.5 rounded-md">
+                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-blue-900">Verifikasi Pengembalian Aset</h3>
+                </div>
+                <span class="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm animate-pulse">{{ $pendingReturns->count() }} Menunggu</span>
             </div>
+            
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-blue-50">
+                    <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">User</th>
-                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Barang</th>
-                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Kondisi & Catatan</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">User Peminjam</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Barang & Qty</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Laporan User</th>
                             <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         @foreach($pendingReturns as $ret)
-                        <tr>
-                            <td class="px-6 py-4 font-medium">{{ $ret->user->name }}</td>
-                            <td class="px-6 py-4">{{ $ret->asset->name }}</td>
+                        <tr class="hover:bg-blue-50/30 transition">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="font-bold text-gray-900">{{ $ret->user->name }}</div>
+                                <div class="text-xs text-gray-500">{{ $ret->return_date }}</div>
+                            </td>
                             <td class="px-6 py-4">
-                                <span class="px-2 text-xs font-bold rounded {{ $ret->condition == 'good' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                    {{ ucfirst($ret->condition) }}
+                                <div class="text-sm font-medium text-indigo-600">{{ $ret->asset->name }}</div>
+                                <div class="text-xs font-mono text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded inline-block mt-1">
+                                    {{ $ret->assetRequest->quantity }} Unit
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full {{ $ret->condition == 'good' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                    {{ $ret->condition == 'good' ? 'Kondisi Baik' : 'Ada Kerusakan' }}
                                 </span>
-                                <div class="text-xs text-gray-500 mt-1">{{ $ret->notes ?? '-' }}</div>
+                                <div class="text-xs text-gray-600 mt-1 italic truncate max-w-[200px]">"{{ $ret->notes ?? '-' }}"</div>
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <form action="{{ route('returns.verify', $ret->id) }}" method="POST" onsubmit="return confirm('Verifikasi pengembalian ini? Stok akan diperbarui.')">
-                                    @csrf
-                                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-bold shadow">
-                                        Terima & Masukkan Stok
-                                    </button>
-                                </form>
+                                {{-- Tombol Trigger Modal --}}
+                                <button onclick="openVerifyModal({{ json_encode($ret) }}, {{ json_encode($ret->asset) }}, {{ json_encode($ret->user) }})" 
+                                        class="inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-md transition transform hover:-translate-y-0.5">
+                                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    Proses
+                                </button>
                             </td>
                         </tr>
                         @endforeach
@@ -227,6 +242,130 @@
             </div>
         </div>
         @endif
+
+        {{-- MODAL VERIFIKASI PENGEMBALIAN (Pop-Up Detail) --}}
+        <div id="verifyModal" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true">
+            <div class="flex min-h-screen items-center justify-center p-4">
+                <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm" onclick="closeVerifyModal()"></div>
+                
+                <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border-t-4 border-blue-600">
+                    <form id="verifyForm" method="POST">
+                        @csrf
+                        <div class="bg-white px-6 pt-6 pb-4">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3 class="text-lg font-bold text-gray-900">Verifikasi Pengembalian</h3>
+                                    <p class="text-sm text-gray-500">Cek fisik barang sebelum menyetujui.</p>
+                                </div>
+                                <div class="bg-blue-50 p-2 rounded-full text-blue-600">
+                                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                                </div>
+                            </div>
+
+                            {{-- Informasi Detail --}}
+                            <div class="space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p class="text-[10px] text-gray-500 uppercase font-bold">Peminjam</p>
+                                        <p class="text-sm font-semibold text-gray-900" id="verifyUserName">-</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] text-gray-500 uppercase font-bold">Tanggal Kembali</p>
+                                        <p class="text-sm font-semibold text-gray-900" id="verifyDate">-</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="border-t border-gray-200 pt-3">
+                                    <p class="text-[10px] text-gray-500 uppercase font-bold">Barang</p>
+                                    <div class="flex justify-between items-center">
+                                        <p class="text-sm font-bold text-indigo-700" id="verifyAssetName">-</p>
+                                        <span class="text-xs bg-gray-200 px-2 py-0.5 rounded font-mono" id="verifyAssetSN">-</span>
+                                    </div>
+                                </div>
+
+                                <div class="border-t border-gray-200 pt-3">
+                                    <p class="text-[10px] text-gray-500 uppercase font-bold mb-1">Laporan Kondisi User</p>
+                                    <div class="flex items-start gap-2">
+                                        <span class="px-2 py-0.5 text-xs font-bold rounded border" id="verifyUserConditionBadge">-</span>
+                                        <p class="text-xs text-gray-600 italic bg-white p-1.5 rounded border border-gray-200 w-full" id="verifyUserNotes">-</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Keputusan Admin --}}
+                            <div class="mt-6">
+                                <label class="block text-sm font-bold text-gray-800 mb-2">Keputusan Admin (Kondisi Fisik)</label>
+                                <div class="grid grid-cols-1 gap-2">
+                                    <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-green-50 transition border-green-200">
+                                        <input type="radio" name="final_condition" value="available" class="h-4 w-4 text-green-600 focus:ring-green-500" checked>
+                                        <div class="ml-3">
+                                            <span class="block text-sm font-medium text-gray-900">Barang Oke / Layak</span>
+                                            <span class="block text-xs text-gray-500">Stok akan kembali ke gudang (Available).</span>
+                                        </div>
+                                    </label>
+                                    
+                                    <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-yellow-50 transition border-yellow-200">
+                                        <input type="radio" name="final_condition" value="maintenance" class="h-4 w-4 text-yellow-600 focus:ring-yellow-500">
+                                        <div class="ml-3">
+                                            <span class="block text-sm font-medium text-gray-900">Perlu Perbaikan</span>
+                                            <span class="block text-xs text-gray-500">Status aset menjadi Maintenance.</span>
+                                        </div>
+                                    </label>
+
+                                    <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-red-50 transition border-red-200">
+                                        <input type="radio" name="final_condition" value="broken" class="h-4 w-4 text-red-600 focus:ring-red-500">
+                                        <div class="ml-3">
+                                            <span class="block text-sm font-medium text-gray-900">Rusak Berat</span>
+                                            <span class="block text-xs text-gray-500">Status aset menjadi Broken (Tidak bisa dipinjam).</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 px-6 py-4 flex flex-row-reverse gap-2">
+                            <button type="submit" class="w-full sm:w-auto inline-flex justify-center rounded-lg border border-transparent px-4 py-2 bg-blue-600 text-sm font-bold text-white shadow-sm hover:bg-blue-700 focus:outline-none transition">
+                                Konfirmasi Terima
+                            </button>
+                            <button type="button" class="w-full sm:w-auto inline-flex justify-center rounded-lg border border-gray-300 px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none transition" onclick="closeVerifyModal()">
+                                Batal
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // Script Modal Verifikasi
+            function openVerifyModal(retData, assetData, userData) {
+                // Populate Data
+                document.getElementById('verifyUserName').innerText = userData.name;
+                document.getElementById('verifyDate').innerText = retData.return_date; // Bisa diformat lagi pakai JS Date kalau mau
+                document.getElementById('verifyAssetName').innerText = assetData.name;
+                document.getElementById('verifyAssetSN').innerText = assetData.serial_number;
+                document.getElementById('verifyUserNotes').innerText = retData.notes || 'Tidak ada catatan user.';
+                
+                // Badge Kondisi User
+                const badge = document.getElementById('verifyUserConditionBadge');
+                if (retData.condition === 'good') {
+                    badge.innerText = 'USER: BAIK';
+                    badge.className = 'px-2 py-0.5 text-xs font-bold uppercase rounded-full border bg-green-100 text-green-800 border-green-200';
+                } else {
+                    badge.innerText = 'USER: RUSAK/BERMASALAH';
+                    badge.className = 'px-2 py-0.5 text-xs font-bold uppercase rounded-full border bg-red-100 text-red-800 border-red-200';
+                }
+
+                // Set Action URL Form
+                document.getElementById('verifyForm').action = `/returns/${retData.id}/verify`;
+
+                document.getElementById('verifyModal').classList.remove('hidden');
+            }
+
+            function closeVerifyModal() {
+                document.getElementById('verifyModal').classList.add('hidden');
+            }
+        </script>
 
         {{-- ======================= AKTIVITAS TERBARU ======================= --}}
 
