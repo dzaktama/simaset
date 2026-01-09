@@ -180,6 +180,56 @@
             </div>
         </div>
 
+        {{-- TABEL VERIFIKASI PENGEMBALIAN (BARU) --}}
+        @php
+            $pendingReturns = \App\Models\AssetReturn::with(['user', 'asset'])->where('status', 'pending')->get();
+        @endphp
+
+        @if($pendingReturns->isNotEmpty())
+        <div class="bg-white rounded-xl shadow-sm border border-blue-200 mb-8">
+            <div class="px-6 py-4 border-b border-blue-200 flex justify-between items-center bg-blue-50 rounded-t-xl">
+                <h3 class="text-lg font-bold text-blue-900">Verifikasi Pengembalian Aset</h3>
+                <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">{{ $pendingReturns->count() }} Menunggu</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-blue-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">User</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Barang</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Kondisi & Catatan</th>
+                            <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @foreach($pendingReturns as $ret)
+                        <tr>
+                            <td class="px-6 py-4 font-medium">{{ $ret->user->name }}</td>
+                            <td class="px-6 py-4">{{ $ret->asset->name }}</td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 text-xs font-bold rounded {{ $ret->condition == 'good' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                    {{ ucfirst($ret->condition) }}
+                                </span>
+                                <div class="text-xs text-gray-500 mt-1">{{ $ret->notes ?? '-' }}</div>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <form action="{{ route('returns.verify', $ret->id) }}" method="POST" onsubmit="return confirm('Verifikasi pengembalian ini? Stok akan diperbarui.')">
+                                    @csrf
+                                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-bold shadow">
+                                        Terima & Masukkan Stok
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        @endif
+
+        {{-- ======================= AKTIVITAS TERBARU ======================= --}}
+
         {{-- LOG AKTIVITAS --}}
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
             <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 rounded-t-xl">

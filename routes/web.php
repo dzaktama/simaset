@@ -5,7 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\AssetRequestController;
-
+use App\Http\Controllers\AssetReturnController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -54,4 +54,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     // Approval Request
     Route::post('/requests/{id}/approve', [AssetRequestController::class, 'approve']);
     Route::post('/requests/{id}/reject', [AssetRequestController::class, 'reject']);
+
+    Route::post('/returns', [AssetReturnController::class, 'store'])->name('returns.store');
+    Route::post('/returns/{id}/verify', [AssetReturnController::class, 'verify'])->name('returns.verify'); // Khusus Admin
 });

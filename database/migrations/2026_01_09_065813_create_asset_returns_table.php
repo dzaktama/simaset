@@ -10,13 +10,21 @@ return new class extends Migration
     {
         Schema::create('asset_returns', function (Blueprint $table) {
             $table->id();
+            // Link ke Request Peminjaman Asli (Biar tau history-nya)
+            $table->foreignId('asset_request_id')->constrained()->cascadeOnDelete();
+            
+            // Link ke User & Aset (Redudansi tapi mempercepat query)
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('asset_id')->constrained()->cascadeOnDelete();
-            $table->date('return_date'); // Tanggal user mengajukan kembali
-            $table->string('condition')->default('baik'); // baik, rusak, perlu_service
-            $table->text('reason')->nullable(); // Alasan pengembalian
-            $table->string('status')->default('pending'); // pending, approved, rejected
-            $table->text('admin_note')->nullable(); // Catatan admin saat approve/reject
+            
+            $table->dateTime('return_date'); // Tanggal user klik kembalikan
+            $table->string('condition'); // 'good', 'broken', 'maintenance'
+            $table->text('notes')->nullable(); // Catatan user (misal: "Lecet dikit bang")
+            $table->string('status')->default('pending'); // pending (tunggu admin), approved (selesai), rejected
+            
+            // Admin yang memverifikasi (Nullable, diisi saat admin klik terima)
+            $table->unsignedBigInteger('admin_id')->nullable();
+            
             $table->timestamps();
         });
     }

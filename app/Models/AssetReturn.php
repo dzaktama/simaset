@@ -11,15 +11,27 @@ class AssetReturn extends Model
 
     protected $guarded = ['id'];
 
-    // Relasi ke User
+    // Relasi ke Request Asal
+    public function assetRequest()
+    {
+        return $this->belongsTo(AssetRequest::class);
+    }
+
+    // Relasi ke Aset
+    public function asset()
+    {
+        return $this->belongsTo(Asset::class);
+    }
+
+    // Relasi ke User Peminjam
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    // Relasi ke Asset
-    public function asset()
+    // Relasi ke Admin Verifikator
+    public function admin()
     {
-        return $this->belongsTo(Asset::class);
+        return $this->belongsTo(User::class, 'admin_id');
     }
 }
