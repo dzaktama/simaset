@@ -1,63 +1,60 @@
 <!DOCTYPE html>
-<html lang="id" class="h-full bg-gray-100">
+<html lang="id" class="h-full bg-gray-50">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title ?? 'SIMASET Vitech Asia' }}</title>
+    
+    {{-- Scripts & Styles --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+    
     <style>
         body { font-family: 'Inter', sans-serif; }
+        /* Custom Scrollbar untuk Sidebar */
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #1f2937; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #6b7280; }
     </style>
 </head>
-<body class="h-full">
+<body class="h-full antialiased">
 
-    <div class="min-h-full">
+    <div class="min-h-screen relative flex">
         
+        {{-- Sidebar Include --}}
         @include('partials.sidebar')
 
-        <div class="flex flex-col flex-1 md:pl-64 z-0 relative">
+        {{-- Main Content Wrapper --}}
+        {{-- md:pl-64 PENTING: Memberi ruang untuk sidebar fixed di desktop --}}
+        <div class="flex-1 flex flex-col min-w-0 md:pl-64 transition-all duration-300">
             
+            {{-- Topbar Include --}}
             @include('partials.topbar')
 
-            <main class="flex-1 pb-8">
-                <div class="mt-8">
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-                        
-                        @if(session()->has('success'))
-                            <div class="mb-6 rounded-md bg-green-50 p-4 border-l-4 border-green-400 shadow-sm">
-                                <div class="flex">
-                                    <div class="flex-shrink-0">
-                                        <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                        </svg>
-                                    </div>
-                                    <div class="ml-3">
-                                        <p class="text-sm font-medium text-green-800">{{ session('success') }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
+            {{-- Konten Utama --}}
+            <main class="flex-1 py-8">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                    
+                    {{-- Flash Messages --}}
+                    @if(session()->has('success'))
+                        <div class="mb-6 rounded-lg bg-green-50 p-4 border-l-4 border-green-500 shadow-sm flex items-start animate-fade-in-down">
+                            <svg class="h-5 w-5 text-green-500 mt-0.5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <div><h3 class="text-sm font-bold text-green-800">Berhasil</h3><p class="text-sm text-green-700 mt-1">{{ session('success') }}</p></div>
+                        </div>
+                    @endif
 
-                        @if(session()->has('loginError'))
-                            <div class="mb-6 rounded-md bg-red-50 p-4 border-l-4 border-red-400 shadow-sm">
-                                <div class="flex">
-                                    <div class="flex-shrink-0">
-                                        <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                                        </svg>
-                                    </div>
-                                    <div class="ml-3">
-                                        <p class="text-sm font-medium text-red-800">{{ session('loginError') }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
+                    @if(session()->has('loginError'))
+                        <div class="mb-6 rounded-lg bg-red-50 p-4 border-l-4 border-red-500 shadow-sm flex items-start animate-fade-in-down">
+                            <svg class="h-5 w-5 text-red-500 mt-0.5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <div><h3 class="text-sm font-bold text-red-800">Error</h3><p class="text-sm text-red-700 mt-1">{{ session('loginError') }}</p></div>
+                        </div>
+                    @endif
 
-                        @yield('container')
-                        
-                    </div>
+                    {{-- Isi Halaman --}}
+                    @yield('container')
+                    
                 </div>
             </main>
         </div>

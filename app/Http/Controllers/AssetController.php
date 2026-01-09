@@ -339,17 +339,22 @@ class AssetController extends Controller
     /**
      * Cetak Laporan PDF (FIXED: Menangkap Input Generator)
      */
+    /**
+     * Cetak Laporan PDF (FIXED: Search, Filter, & Sort Terintegrasi)
+     */
     public function printReport(Request $request)
     {
-        // 1. Query Dasar
-        $query = Asset::with(['holder', 'latestApprovedRequest']); // Eager load biar kenceng
+        // 1. Inisialisasi Query dengan Relasi
+        $query = Asset::with(['holder', 'latestApprovedRequest']);
 
-        // 2. Filter Search
+        // 2. LOGIKA PENCARIAN (Search) - KUNCI PERBAIKAN ANDA DISINI
+        // Menangkap input 'search' dari URL query string
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('serial_number', 'like', "%{$search}%");
+            $keyword = $request->search;
+            $query->where(function($q) use ($keyword) {
+                $q->where('name', 'like', "%{$keyword}%")
+                  ->orWhere('serial_number', 'like', "%{$keyword}%")
+                  ->orWhere('description', 'like', "%{$keyword}%");
             });
         }
 
@@ -358,44 +363,54 @@ class AssetController extends Controller
             $query->where('status', $request->status);
         }
 
-        // 4. Sorting
+        // 4. Sorting (Urutan)
         if ($request->filled('sort')) {
-            if ($request->sort == 'oldest') {
-                $query->oldest();
-            } else if ($request->sort == 'stock_low') {
-                $query->orderBy('quantity', 'asc');
-            } else if ($request->sort == 'stock_high') {
-                $query->orderBy('quantity', 'desc');
-            } else if ($request->sort == 'name_asc') {
-                $query->orderBy('name', 'asc');
-            } else {
-                $query->latest();
+            switch ($request->sort) {
+                case 'oldest':
+                    $query->oldest();
+                    break;
+                case 'stock_low':
+                    $query->orderBy('quantity', 'asc');
+                    break;
+                case 'stock_high':
+                    $query->orderBy('quantity', 'desc');
+                    break;
+                case 'name_asc':
+                    $query->orderBy('name', 'asc');
+                    break;
+                case 'newest':
+                default:
+                    $query->latest();
+                    break;
             }
         } else {
             $query->latest();
         }
 
+        // Eksekusi Query
         $assets = $query->get();
 
-        // 5. Tangkap Opsi dari Generator (Disini Bug sebelumnya)
-        $orientation = $request->orientation ?? 'landscape'; // Default landscape kalau null
-        $showImages = $request->has('show_images'); // True jika dicentang, False jika tidak
-        $adminNotes = $request->admin_notes; // Ambil teks catatan
+        // 5. Konfigurasi Tampilan Laporan
+        $orientation = $request->orientation ?? 'landscape';
+        $showImages = $request->has('show_images'); // Checkbox logic
+        $adminNotes = $request->admin_notes;
+        $customTitle = $request->custom_title ?? 'Laporan Aset IT - Vitech Asia';
 
         // 6. Generate PDF
         $pdf = Pdf::loadView('pdf.assets_report', [
-            'title' => $request->custom_title ?? 'Laporan Aset IT - Vitech Asia',
+            'title' => $customTitle,
             'printTime' => now()->translatedFormat('l, d F Y H:i') . ' WIB',
             'filterStatus' => $request->status ?? 'Semua Status',
+            'filterSearch' => $request->search, // Kirim kata kunci pencarian ke view untuk info
             'assets' => $assets,
-            'showImages' => $showImages, // Sekarang dinamis!
-            'adminNotes' => $adminNotes, // Sekarang dinamis!
+            'showImages' => $showImages,
+            'adminNotes' => $adminNotes,
             'orientation' => $orientation
         ]);
 
-        // Set Kertas Sesuai Pilihan Admin
         $pdf->setPaper('a4', $orientation);
 
+        // Stream (Preview di Browser)
         return $pdf->stream('Laporan_Aset_' . date('Ymd_His') . '.pdf');
     }
 }

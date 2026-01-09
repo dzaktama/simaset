@@ -1,80 +1,133 @@
 @extends('layouts.main')
 
-@section('content')
-<div class="container-fluid px-4">
-    <h1 class="mt-4">Generator Laporan Aset</h1>
-    <ol class="breadcrumb mb-4">
-        <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
-        <li class="breadcrumb-item active">Laporan</li>
-    </ol>
+@section('container')
+<div class="h-[calc(100vh-140px)] flex flex-col md:flex-row gap-6">
+    
+    {{-- PANEL KIRI: KONTROL FILTER & OPSI --}}
+    <div class="w-full md:w-1/3 flex flex-col">
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200 flex-1 flex flex-col overflow-hidden">
+            
+            {{-- Header Panel --}}
+            <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
+                <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
+                    Konfigurasi Laporan
+                </h2>
+                <p class="text-xs text-gray-500 mt-1">Atur filter dan tampilan sebelum mencetak.</p>
+            </div>
 
-    <div class="row">
-        <div class="col-lg-4 mb-4">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-header bg-primary text-white">
-                    <i class="fas fa-sliders-h me-1"></i> Kustomisasi Laporan
-                </div>
-                <div class="card-body">
-                    <form id="reportForm">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold small">Kata Kunci (Search)</label>
-                            <input type="text" id="inputSearch" class="form-control" placeholder="Contoh: Cisco, Laptop, atau SN...">
-                            <div class="form-text text-muted small">Cari berdasarkan Nama Aset atau Serial Number.</div>
+            {{-- Form Scrollable --}}
+            <div class="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-5">
+                <form id="reportForm">
+                    
+                    {{-- 1. FILTER DATA --}}
+                    <div class="space-y-3">
+                        <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Filter Data</label>
+                        
+                        {{-- Search --}}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Kata Kunci Pencarian</label>
+                            <input type="text" id="search" name="search" placeholder="Nama, SN, atau Deskripsi..." 
+                                   class="w-full rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                   onchange="refreshPreview()"> </div>
+
+                        {{-- Status & Sort --}}
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                <select id="status" name="status" onchange="refreshPreview()" class="w-full rounded-lg border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="all">Semua Status</option>
+                                    <option value="available">Available</option>
+                                    <option value="deployed">Deployed</option>
+                                    <option value="maintenance">Maintenance</option>
+                                    <option value="broken">Broken</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Urutkan</label>
+                                <select id="sort" name="sort" onchange="refreshPreview()" class="w-full rounded-lg border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="newest">Terbaru</option>
+                                    <option value="oldest">Terlama</option>
+                                    <option value="stock_low">Stok Sedikit</option>
+                                    <option value="stock_high">Stok Banyak</option>
+                                    <option value="name_asc">Nama (A-Z)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="border-gray-100">
+
+                    {{-- 2. TAMPILAN LAPORAN --}}
+                    <div class="space-y-3">
+                        <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Opsi Tampilan</label>
+                        
+                        {{-- Judul --}}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Judul Dokumen</label>
+                            <input type="text" name="custom_title" value="Laporan Aset IT - Vitech Asia" 
+                                   onchange="refreshPreview()"
+                                   class="w-full rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-bold small">Status Aset</label>
-                            <select id="inputStatus" class="form-select">
-                                <option value="all">Semua Status</option>
-                                <option value="available">Available (Tersedia)</option>
-                                <option value="deployed">Deployed (Dipakai)</option>
-                                <option value="maintenance">Maintenance (Perbaikan)</option>
-                                <option value="broken">Broken (Rusak)</option>
-                            </select>
+                        {{-- Orientasi & Foto --}}
+                        <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Orientasi</label>
+                                <select name="orientation" onchange="refreshPreview()" class="rounded border-gray-300 text-xs py-1">
+                                    <option value="landscape">Landscape (Melebar)</option>
+                                    <option value="portrait">Portrait (Tegak)</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center h-full pt-4">
+                                <label class="inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" name="show_images" value="1" checked onchange="refreshPreview()" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                                    <span class="ml-2 text-sm text-gray-700">Tampilkan Foto</span>
+                                </label>
+                            </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-bold small">Urutkan Data</label>
-                            <select id="inputSort" class="form-select">
-                                <option value="newest">Terbaru Ditambahkan</option>
-                                <option value="oldest">Terlama</option>
-                                <option value="stock_high">Stok Terbanyak</option>
-                                <option value="stock_low">Stok Sedikit</option>
-                            </select>
+                        {{-- Catatan --}}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Catatan Kaki (Admin)</label>
+                            <textarea name="admin_notes" rows="2" onchange="refreshPreview()"
+                                      placeholder="Tambahkan catatan untuk penerima laporan..." 
+                                      class="w-full rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm"></textarea>
                         </div>
+                    </div>
+                </form>
+            </div>
 
-                        <hr>
-
-                        <div class="alert alert-light border small">
-                            <strong>Info Data Saat Ini:</strong><br>
-                            Total Aset: {{ $totalAssets ?? '-' }} Unit<br>
-                            Tersedia: <span class="text-success">{{ $availableAssets ?? '-' }}</span> | 
-                            Dipakai: <span class="text-primary">{{ $deployedAssets ?? '-' }}</span>
-                        </div>
-
-                        <div class="d-grid gap-2">
-                            <button type="button" class="btn btn-dark" onclick="refreshPreview()">
-                                <i class="fas fa-sync-alt me-1"></i> Terapkan & Preview
-                            </button>
-                            <button type="button" class="btn btn-danger" onclick="downloadPDF()">
-                                <i class="fas fa-file-pdf me-1"></i> Download / Cetak PDF
-                            </button>
-                        </div>
-                    </form>
-                </div>
+            {{-- Footer Actions --}}
+            <div class="p-4 bg-gray-50 border-t border-gray-200 space-y-2">
+                <button type="button" onclick="refreshPreview()" class="w-full flex justify-center items-center gap-2 bg-white border border-gray-300 text-gray-700 py-2 rounded-lg text-sm font-bold hover:bg-gray-100 transition">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                    Refresh Preview
+                </button>
+                <button type="button" onclick="printPDF()" class="w-full flex justify-center items-center gap-2 bg-indigo-600 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-indigo-700 shadow-md transition transform hover:-translate-y-0.5">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                    Cetak / Download PDF
+                </button>
             </div>
         </div>
+    </div>
 
-        <div class="col-lg-8 mb-4">
-            <div class="card shadow-sm border-0 h-100">
-                <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                    <span><i class="fas fa-eye me-1"></i> Live Preview</span>
-                    <span class="badge bg-secondary" id="previewStatus">Menunggu Filter...</span>
-                </div>
-                <div class="card-body p-0" style="height: 600px; background-color: #525659;">
-                    <iframe id="pdfPreviewFrame" src="" width="100%" height="100%" style="border: none;">
-                        <p class="text-white text-center p-5">Browser Anda tidak mendukung preview PDF.</p>
-                    </iframe>
+    {{-- PANEL KANAN: LIVE PREVIEW (IFRAME) --}}
+    <div class="w-full md:w-2/3 h-full">
+        <div class="bg-gray-800 rounded-xl shadow-lg border border-gray-700 h-full flex flex-col overflow-hidden">
+            <div class="px-4 py-2 bg-gray-900 border-b border-gray-700 flex justify-between items-center">
+                <span class="text-xs font-mono text-gray-400">PDF Preview Mode</span>
+                <span id="loading-badge" class="hidden px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-500/20 text-yellow-500 animate-pulse">MEMUAT...</span>
+            </div>
+            <div class="flex-1 relative bg-gray-500/10">
+                <iframe id="pdf-frame" class="w-full h-full border-0" src=""></iframe>
+                
+                {{-- Placeholder saat loading pertama kali --}}
+                <div id="placeholder" class="absolute inset-0 flex items-center justify-center text-gray-500">
+                    <div class="text-center">
+                        <svg class="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        <p class="text-sm">Menyiapkan Pratinjau...</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -82,41 +135,41 @@
 </div>
 
 <script>
-    // Fungsi membangun URL berdasarkan input form
-    function getReportUrl() {
-        const search = document.getElementById('inputSearch').value;
-        const status = document.getElementById('inputStatus').value;
-        const sort = document.getElementById('inputSort').value;
+    // URL dasar dari Route Laravel
+    const baseUrl = "{{ route('report.assets') }}";
 
-        // Panggil route 'report.print' dengan parameter query string
-        return `{{ route('report.print') }}?search=${encodeURIComponent(search)}&status=${status}&sort=${sort}`;
+    function getQueryString() {
+        const form = document.getElementById('reportForm');
+        const formData = new FormData(form);
+        return new URLSearchParams(formData).toString();
     }
 
-    // Fungsi Refresh Preview di Iframe
     function refreshPreview() {
-        const url = getReportUrl();
-        const iframe = document.getElementById('pdfPreviewFrame');
-        const statusBadge = document.getElementById('previewStatus');
+        const iframe = document.getElementById('pdf-frame');
+        const loading = document.getElementById('loading-badge');
+        const placeholder = document.getElementById('placeholder');
         
-        statusBadge.innerText = "Memuat...";
-        statusBadge.className = "badge bg-warning text-dark";
-
-        iframe.src = url;
+        // Tampilkan loading
+        loading.classList.remove('hidden');
+        
+        // Set URL iframe dengan parameter terbaru
+        const finalUrl = `${baseUrl}?${getQueryString()}`;
+        iframe.src = finalUrl;
 
         iframe.onload = function() {
-            statusBadge.innerText = "Siap Dicetak";
-            statusBadge.className = "badge bg-success";
+            loading.classList.add('hidden');
+            placeholder.classList.add('hidden');
         };
     }
 
-    // Fungsi Tombol Download (Buka di Tab Baru)
-    function downloadPDF() {
-        const url = getReportUrl();
-        window.open(url, '_blank');
+    function printPDF() {
+        // Buka URL yang sama di tab baru untuk trigger print native browser
+        const finalUrl = `${baseUrl}?${getQueryString()}`;
+        window.open(finalUrl, '_blank');
     }
 
-    // Load preview pertama kali saat halaman dibuka
-    document.addEventListener("DOMContentLoaded", function() {
+    // Load preview saat halaman dibuka
+    document.addEventListener('DOMContentLoaded', () => {
         refreshPreview();
     });
 </script>
