@@ -336,12 +336,15 @@ class AssetController extends Controller
    /**
      * Cetak Laporan PDF
      */
+    /**
+     * Cetak Laporan PDF (FIXED: Menangkap Input Generator)
+     */
     public function printReport(Request $request)
     {
-        // 1. Query Data
-        $query = Asset::with('holder');
+        // 1. Query Dasar
+        $query = Asset::with(['holder', 'latestApprovedRequest']); // Eager load biar kenceng
 
-        // Logika Search
+        // 2. Filter Search
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -350,18 +353,23 @@ class AssetController extends Controller
             });
         }
 
-        // Logika Filter Status
-        if ($request->filled('status') && $request->status !== 'all') {
+        // 3. Filter Status
+        if ($request->filled('status') && $request->status != 'all') {
             $query->where('status', $request->status);
         }
 
-        // Logika Sorting
+        // 4. Sorting
         if ($request->filled('sort')) {
-            switch ($request->sort) {
-                case 'oldest': $query->oldest(); break;
-                case 'stock_low': $query->orderBy('quantity', 'asc'); break;
-                case 'stock_high': $query->orderBy('quantity', 'desc'); break;
-                default: $query->latest(); break;
+            if ($request->sort == 'oldest') {
+                $query->oldest();
+            } else if ($request->sort == 'stock_low') {
+                $query->orderBy('quantity', 'asc');
+            } else if ($request->sort == 'stock_high') {
+                $query->orderBy('quantity', 'desc');
+            } else if ($request->sort == 'name_asc') {
+                $query->orderBy('name', 'asc');
+            } else {
+                $query->latest();
             }
         } else {
             $query->latest();
@@ -369,26 +377,25 @@ class AssetController extends Controller
 
         $assets = $query->get();
 
-        // Siapkan Text Filter Header
-        $filterKeterangan = [];
-        if($request->filled('status') && $request->status !== 'all') $filterKeterangan[] = "Status: " . ucfirst($request->status);
-        if($request->filled('search')) $filterKeterangan[] = "Pencarian: '" . $request->search . "'";
-        $filterString = empty($filterKeterangan) ? 'Semua Data' : implode(' | ', $filterKeterangan);
+        // 5. Tangkap Opsi dari Generator (Disini Bug sebelumnya)
+        $orientation = $request->orientation ?? 'landscape'; // Default landscape kalau null
+        $showImages = $request->has('show_images'); // True jika dicentang, False jika tidak
+        $adminNotes = $request->admin_notes; // Ambil teks catatan
 
-        // FIX BUG JAM: Set Timezone ke Asia/Jakarta secara eksplisit
-        $waktuCetak = now()->setTimezone('Asia/Jakarta')->translatedFormat('d F Y, H:i') . ' WIB';
-
+        // 6. Generate PDF
         $pdf = Pdf::loadView('pdf.assets_report', [
-            'title' => 'Laporan Aset IT - Vitech Asia',
-            'printTime' => $waktuCetak, // Variabel waktu yang sudah dibenerin
-            'filterStatus' => $filterString,
+            'title' => $request->custom_title ?? 'Laporan Aset IT - Vitech Asia',
+            'printTime' => now()->translatedFormat('l, d F Y H:i') . ' WIB',
+            'filterStatus' => $request->status ?? 'Semua Status',
             'assets' => $assets,
-            'showImages' => true,
-            'adminNotes' => null
+            'showImages' => $showImages, // Sekarang dinamis!
+            'adminNotes' => $adminNotes, // Sekarang dinamis!
+            'orientation' => $orientation
         ]);
 
-        $pdf->setPaper('a4', 'landscape');
+        // Set Kertas Sesuai Pilihan Admin
+        $pdf->setPaper('a4', $orientation);
 
-        return $pdf->stream('Laporan_Aset_IT.pdf');
+        return $pdf->stream('Laporan_Aset_' . date('Ymd_His') . '.pdf');
     }
 }

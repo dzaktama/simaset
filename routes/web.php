@@ -42,19 +42,16 @@ Route::middleware(['auth', 'admin'])->group(function () {
     // User Management
     Route::resource('/users', UserController::class)->except(['show']);
     
-    // Resource Assets (Index dikecualikan karena biasanya ada di luar grup ini/akses publik)
+    // Resource Assets
     Route::resource('/assets', AssetController::class)->except(['index']);
     
-    // --- FITUR LAPORAN (REVISI FIX) ---
-    // Halaman Generator (Tampilan Form)
-    Route::get('/report-generator', [\App\Http\Controllers\AssetController::class, 'reportIndex'])->name('report.index');
+    // --- FITUR LAPORAN ---
+    // Halaman Generator (Form)
+    Route::get('/report-generator', [AssetController::class, 'reportIndex'])->name('report.index');
+    // Action Cetak PDF (Hasil)
+    Route::get('/report/print', [AssetController::class, 'printReport'])->name('report.assets');
     
-    // Action Cetak PDF (Hasil Akhir)
-    Route::get('/report/print', [\App\Http\Controllers\AssetController::class, 'printReport'])->name('report.assets');
-    
-    // (HAPUS BARIS LAMA '/report/assets' DI SINI AGAR TIDAK BENTROK)
-
-    // Approval
+    // Approval Request
     Route::post('/requests/{id}/approve', [AssetRequestController::class, 'approve']);
     Route::post('/requests/{id}/reject', [AssetRequestController::class, 'reject']);
 });
