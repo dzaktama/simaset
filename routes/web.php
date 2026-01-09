@@ -5,7 +5,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\AssetRequestController;
-use App\Http\Controllers\AssetReturnController;
+use App\Http\Controllers\AssetReturnController; // Pastikan Controller ini di-import
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -28,12 +29,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/home', function () { return redirect('/dashboard'); });
 
     // Menu Karyawan
-    // Index Assets kita taruh sini agar karyawan bisa LIHAT katalog & PINJAM
     Route::get('/assets', [AssetController::class, 'index'])->name('assets.index'); 
     Route::get('/my-assets', [AssetController::class, 'myAssets']);
     
-    // Logic Request Pinjam (Wajib POST)
+    // Logic Request Pinjam
     Route::post('/requests', [AssetRequestController::class, 'store']); 
+
+    // [FIX] Logic Pengembalian Aset (Returns)
+    // Rute ini sebelumnya hilang, makanya error saat diklik
+    Route::post('/returns', [AssetReturnController::class, 'store'])->name('returns.store');
 });
 
 
@@ -46,15 +50,13 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::resource('/assets', AssetController::class)->except(['index']);
     
     // --- FITUR LAPORAN ---
-    // Halaman Generator (Form)
     Route::get('/report-generator', [AssetController::class, 'reportIndex'])->name('report.index');
-    // Action Cetak PDF (Hasil)
     Route::get('/report/print', [AssetController::class, 'printReport'])->name('report.assets');
     
-    // Approval Request
+    // Approval Request Pinjam
     Route::post('/requests/{id}/approve', [AssetRequestController::class, 'approve']);
     Route::post('/requests/{id}/reject', [AssetRequestController::class, 'reject']);
 
-    Route::post('/returns', [AssetReturnController::class, 'store'])->name('returns.store');
-    Route::post('/returns/{id}/verify', [AssetReturnController::class, 'verify'])->name('returns.verify'); // Khusus Admin
+    // [FIX] Approval Pengembalian Aset (Verify Return)
+    Route::post('/returns/{id}/verify', [AssetReturnController::class, 'verify'])->name('returns.verify');
 });

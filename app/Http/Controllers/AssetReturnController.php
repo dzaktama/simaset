@@ -7,47 +7,60 @@ use App\Models\AssetRequest;
 use App\Models\AssetReturn;
 use App\Models\AssetHistory;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class AssetReturnController extends Controller
 {
     /**
-     * [USER] Form Pengajuan Pengembalian
+     * [USER] Mengajukan Pengembalian Aset
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        // 1. Validasi Input Dasar
+        // Kita ubah validasi 'asset_id' jadi 'asset_request_id' sesuai form
+        $request->validate([
             'asset_request_id' => 'required|exists:asset_requests,id',
             'condition' => 'required|in:good,broken,maintenance',
             'notes' => 'nullable|string|max:255',
-            'return_date' => 'required|date'
+            'return_date' => 'required|date', 
         ]);
 
-        $assetRequest = AssetRequest::findOrFail($validated['asset_request_id']);
+        // 2. Ambil Data Peminjaman Aslinya
+        $assetRequest = AssetRequest::findOrFail($request->asset_request_id);
+        
+        // 3. LOGIC CHECK: Cegah Tanggal Balik Sebelum Tanggal Pinjam
+        // Ambil tanggal pinjam (request_date atau assigned_date)
+        $tglPinjam = Carbon::parse($assetRequest->created_at)->startOfDay(); 
+        $tglBalik = Carbon::parse($request->return_date)->startOfDay();
 
-        // Cek Double Return (Anti-Bug)
-        if ($assetRequest->status == 'returned' || $assetRequest->status == 'pending_return') {
-            return back()->with('error', 'Aset ini sudah dikembalikan atau sedang menunggu verifikasi.');
+        if ($tglBalik->lt($tglPinjam)) {
+            return back()->with('error', 'Error: Tanggal pengembalian tidak boleh lebih lampau dari tanggal peminjaman (' . $tglPinjam->format('d M Y') . ').');
         }
 
-        // Simpan Data Pengembalian
+        // 4. Cek Double Return (Anti-Spam)
+        if ($assetRequest->status == 'returned' || $assetRequest->status == 'pending_return') {
+            return back()->with('error', 'Aset ini sudah dalam proses pengembalian.');
+        }
+
+        // 5. Simpan Data Pengembalian
         AssetReturn::create([
             'asset_request_id' => $assetRequest->id,
             'user_id' => auth()->id(),
-            'asset_id' => $assetRequest->asset_id,
-            'return_date' => $validated['return_date'] . ' ' . now()->format('H:i:s'), // Gabung jam server
-            'condition' => $validated['condition'],
-            'notes' => $validated['notes'],
+            'asset_id' => $assetRequest->asset_id, // Ambil ID Aset dari relasi request
+            'return_date' => $request->return_date . ' ' . now()->format('H:i:s'), // Gabung jam server
+            'condition' => $request->condition,
+            'notes' => $request->notes,
             'status' => 'pending'
         ]);
 
-        // Update Status Request Jadi "Pending Return" (Biar gak bisa dipinjam/dibalikin lagi)
+        // Update status di request asal agar tombol "Kembalikan" hilang/berubah
         $assetRequest->update(['status' => 'pending_return']);
 
-        return back()->with('success', 'Pengembalian diajukan! Harap serahkan barang ke Admin untuk verifikasi.');
+        return back()->with('success', 'Pengajuan pengembalian berhasil! Harap serahkan fisik barang ke Admin.');
     }
 
     /**
-     * [ADMIN] Verifikasi Pengembalian (Stok Bertambah Disini)
+     * [ADMIN] Verifikasi & Terima Barang
      */
     public function verify(Request $request, $id)
     {
@@ -56,30 +69,30 @@ class AssetReturnController extends Controller
         $assetReq = AssetRequest::findOrFail($return->asset_request_id);
 
         if ($return->status != 'pending') {
-            return back()->with('error', 'Data ini sudah diproses sebelumnya.');
+            return back()->with('error', 'Data ini sudah diproses.');
         }
 
-        // 1. Logika Stok & Kondisi
+        // 1. Update Stok & Status Aset Utama
         if ($return->condition == 'good') {
-            // Jika bagus, stok nambah & status available
-            $asset->increment('quantity', $assetReq->quantity); // Kembalikan sejumlah yg dipinjam
+            $asset->increment('quantity', $assetReq->quantity); // Balikin stok
+            // Cek logic status: Jika stok > 0, set available (kecuali ada logic lain)
             $asset->update(['status' => 'available']);
         } else {
-            // Jika rusak, stok TIDAK nambah ke 'available', tapi status aset jadi maintenance/broken
-            // Opsional: Anda bisa buat kolom 'broken_stock' di tabel assets jika mau tracking detail
+            // Jika rusak, status aset jadi rusak/maintenance
             $asset->update(['status' => $return->condition]); 
+            // Opsional: Stok tetap di-increment tapi statusnya rusak, atau dipisah ke gudang rusak
         }
 
-        // 2. Finalisasi Status
+        // 2. Finalisasi Status Return
         $return->update([
             'status' => 'approved',
-            'admin_id' => auth()->id()
+            'admin_id' => auth()->id() // Admin yang memverifikasi
         ]);
 
         // 3. Tutup Tiket Peminjaman
         $assetReq->update([
             'status' => 'returned',
-            'return_date' => now() // Tanggal real pengembalian
+            'return_date' => now()
         ]);
 
         // 4. Catat History
@@ -87,9 +100,9 @@ class AssetReturnController extends Controller
             'asset_id' => $asset->id,
             'user_id' => auth()->id(),
             'action' => 'returned',
-            'notes' => "Aset dikembalikan oleh {$return->user->name}. Kondisi: {$return->condition}. Verifikasi oleh Admin."
+            'notes' => "Pengembalian diverifikasi Admin. Kondisi: {$return->condition}."
         ]);
 
-        return back()->with('success', 'Pengembalian diverifikasi. Stok aset diperbarui.');
+        return back()->with('success', 'Aset berhasil diterima dan stok diperbarui.');
     }
 }
