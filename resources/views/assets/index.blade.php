@@ -231,9 +231,11 @@
     </div>
 </div>
 
-<div id="loanModal" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true">
+{{-- ================= MODAL FORM PINJAM (REVISI POIN 4: TIMESTAMP) ================= --}}
+<div id="loanModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
     <div class="flex min-h-screen items-center justify-center p-4">
         <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeLoanModal()"></div>
+
         <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
             <form action="/requests" method="POST">
                 @csrf
@@ -246,17 +248,54 @@
                             <h3 class="text-lg leading-6 font-medium text-gray-900">Ajukan Peminjaman Aset</h3>
                             <div class="mt-4 space-y-4">
                                 <input type="hidden" name="asset_id" id="loanAssetId">
-                                <div><label class="block text-sm font-medium text-gray-700">Nama Barang</label><input type="text" id="loanAssetName" disabled class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm sm:text-sm p-2 border text-gray-500"></div>
-                                <div><label class="block text-sm font-medium text-gray-700">Jumlah Unit <span class="text-red-500">*</span></label><div class="flex items-center gap-2"><input type="number" name="quantity" id="loanQuantity" min="1" value="1" required class="mt-1 block w-24 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"><span class="text-xs text-gray-500" id="loanMaxStockText"></span></div></div>
-                                <div><label class="block text-sm font-medium text-gray-700">Rencana Kembali <span class="text-xs text-gray-400">(Opsional)</span></label><input type="date" name="return_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"></div>
-                                <div><label class="block text-sm font-medium text-gray-700">Keperluan / Alasan <span class="text-red-500">*</span></label><textarea name="reason" rows="3" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" placeholder="Contoh: Untuk keperluan meeting proyek X"></textarea></div>
+                                
+                                {{-- Nama Barang --}}
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Nama Barang</label>
+                                    <input type="text" id="loanAssetName" disabled class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm sm:text-sm p-2 border text-gray-500">
+                                </div>
+
+                                {{-- Jumlah --}}
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Jumlah Unit <span class="text-red-500">*</span></label>
+                                    <div class="flex items-center gap-2">
+                                        <input type="number" name="quantity" id="loanQuantity" min="1" value="1" required class="mt-1 block w-24 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border">
+                                        <span class="text-xs text-gray-500" id="loanMaxStockText"></span>
+                                    </div>
+                                </div>
+
+                                {{-- [REVISI POIN 4] Rencana Kembali + Jam --}}
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Rencana Pengembalian <span class="text-xs text-gray-400">(Opsional)</span></label>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="text-[10px] text-gray-500 uppercase font-bold">Tanggal</label>
+                                            <input type="date" name="return_date" class="mt-0.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border">
+                                        </div>
+                                        <div>
+                                            <label class="text-[10px] text-gray-500 uppercase font-bold">Jam (WIB)</label>
+                                            <input type="time" name="return_time" class="mt-0.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border">
+                                        </div>
+                                    </div>
+                                    <p class="text-[10px] text-gray-400 mt-1">*Biarkan kosong jika peminjaman jangka panjang / belum tahu kapan kembali.</p>
+                                </div>
+
+                                {{-- Alasan --}}
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Keperluan / Alasan <span class="text-red-500">*</span></label>
+                                    <textarea name="reason" rows="3" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" placeholder="Contoh: Untuk keperluan meeting proyek X"></textarea>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                    <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">Kirim Pengajuan</button>
-                    <button type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm" onclick="closeLoanModal()">Batal</button>
+                    <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                        Kirim Pengajuan
+                    </button>
+                    <button type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm" onclick="closeLoanModal()">
+                        Batal
+                    </button>
                 </div>
             </form>
         </div>

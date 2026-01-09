@@ -11,11 +11,25 @@
                 Selamat datang, <span class="font-semibold text-indigo-600">{{ auth()->user()->name }}</span>.
             </p>
         </div>
-        <div class="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm border border-gray-200">
-            <svg class="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-            </svg>
-            <span>{{ now()->isoFormat('dddd, D MMMM Y') }}</span>
+        
+        {{-- [REVISI POIN 2] Area Tanggal & Jam Digital --}}
+        <div class="flex flex-col md:flex-row gap-3">
+            {{-- Tanggal --}}
+            <div class="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm border border-gray-200">
+                <svg class="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <span>{{ now()->isoFormat('dddd, D MMMM Y') }}</span>
+            </div>
+
+            {{-- Jam Digital (New) --}}
+            <div class="flex items-center gap-2 rounded-lg bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-700 shadow-sm border border-indigo-100 min-w-[140px] justify-center">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span id="live-clock" class="font-mono text-lg tracking-wide">{{ now()->format('H:i:s') }}</span>
+                <span class="text-xs font-bold ml-1">WIB</span>
+            </div>
         </div>
     </div>
 
@@ -396,32 +410,44 @@
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         @forelse($myRequests as $req)
-                        <tr>
+                        <tr class="hover:bg-gray-50 transition">
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="font-medium text-gray-900">{{ $req->asset->name }}</div>
-                                <div class="text-xs text-gray-500">{{ $req->reason }}</div>
+                                <div class="text-xs text-gray-500 truncate max-w-[200px]" title="{{ $req->reason }}">
+                                    {{ $req->reason }}
+                                </div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ \Carbon\Carbon::parse($req->request_date)->format('d M Y') }}
+                            
+                            {{-- [REVISI POIN 3] Tambah Timestamp Lengkap --}}
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">
+                                    {{ \Carbon\Carbon::parse($req->created_at)->translatedFormat('d M Y') }}
+                                </div>
+                                <div class="text-xs text-gray-500 font-mono mt-0.5">
+                                    {{-- Format H:i:s sesuai request --}}
+                                    {{ \Carbon\Carbon::parse($req->created_at)->setTimezone('Asia/Jakarta')->format('H:i:s') }} WIB
+                                </div>
                             </td>
+
                             <td class="px-6 py-4 whitespace-nowrap">
                                 @php
                                     $colors = [
                                         'pending' => 'bg-yellow-100 text-yellow-800',
                                         'approved' => 'bg-green-100 text-green-800',
                                         'rejected' => 'bg-red-100 text-red-800',
+                                        'returned' => 'bg-gray-100 text-gray-800',
                                     ];
                                     $labels = [
                                         'pending' => 'Menunggu',
                                         'approved' => 'Disetujui',
                                         'rejected' => 'Ditolak',
+                                        'returned' => 'Dikembalikan',
                                     ];
                                 @endphp
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $colors[$req->status] ?? 'bg-gray-100' }}">
                                     {{ $labels[$req->status] ?? ucfirst($req->status) }}
                                 </span>
 
-                                {{-- MENAMPILKAN ALASAN PENOLAKAN DARI ADMIN --}}
                                 @if($req->status == 'rejected' && $req->admin_note)
                                     <div class="mt-2 text-xs text-red-600 bg-red-50 p-2 rounded border border-red-100 max-w-xs whitespace-normal">
                                         <strong>Alasan:</strong> {{ $req->admin_note }}
@@ -475,5 +501,26 @@
             document.getElementById('rejectModal').classList.remove('hidden');
         }
         function closeRejectModal() { document.getElementById('rejectModal').classList.add('hidden'); }
+
+        // [REVISI POIN 2] SCRIPT JAM DIGITAL (HH:MM:SS)
+        function updateClock() {
+            const now = new Date();
+            // Gunakan locale id-ID untuk format Indonesia
+            const timeString = now.toLocaleTimeString('id-ID', { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit',
+                hour12: false 
+            }).replace(/\./g, ':'); // Pastikan pemisah titik dua (standar ISO/Digital)
+
+            const clockEl = document.getElementById('live-clock');
+            if(clockEl) {
+                clockEl.innerText = timeString;
+            }
+        }
+        
+        // Jalankan clock setiap 1 detik
+        setInterval(updateClock, 1000);
+        updateClock(); // Jalankan sekali saat load agar tidak kosong
     </script>
 @endsection

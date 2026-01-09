@@ -124,39 +124,48 @@ class AssetController extends Controller
     /**
      * Simpan Aset Baru
      */
+    /**
+     * [KARYAWAN] Mengajukan Peminjaman (FIXED: Timestamp Support)
+     */
     public function store(Request $request)
     {
+        // 1. Validasi Input (Tambah validasi return_time)
         $validatedData = $request->validate([
-            'name' => 'required|max:255',
-            'serial_number' => 'required|unique:assets',
-            'quantity' => 'required|integer|min:1',
-            'status' => 'required',
-            'user_id' => 'nullable|exists:users,id',
-            'purchase_date' => 'nullable|date',
-            'description' => 'nullable',
-            'condition_notes' => 'nullable',
-            'image' => 'image|file|max:2048',
-            'image2' => 'image|file|max:2048',
-            'image3' => 'image|file|max:2048',
+            'asset_id' => 'required|exists:assets,id',
+            'quantity' => 'required|integer|min:1', 
+            'return_date' => 'nullable|date|after_or_equal:today',
+            // Jika tanggal diisi, jam sebaiknya diisi juga (optional, tapi disarankan)
+            'return_time' => 'nullable', 
+            'reason' => 'required|string|max:255',
         ]);
 
-        // Upload Gambar
-        foreach (['image', 'image2', 'image3'] as $key) {
-            if ($request->file($key)) {
-                $validatedData[$key] = $request->file($key)->store('asset-images', 'public');
-            }
+        // 2. Cek Stok (Pencegahan Awal)
+        $asset = Asset::findOrFail($request->asset_id);
+        
+        if ($request->quantity > $asset->quantity) {
+            return back()->with('error', "Gagal! Stok tidak mencukupi. Tersisa {$asset->quantity} unit.");
         }
 
-        $asset = Asset::create($validatedData);
+        // 3. Logic Penggabungan Tanggal + Jam
+        $fullReturnDate = null;
+        if (!empty($validatedData['return_date'])) {
+            $time = $validatedData['return_time'] ?? '17:00:00'; // Default jam 5 sore jika jam kosong
+            // Format Timestamp lengkap: Y-m-d H:i:s
+            $fullReturnDate = $validatedData['return_date'] . ' ' . $time;
+        }
 
-        AssetHistory::create([
-            'asset_id' => $asset->id,
+        // 4. Simpan Request
+        AssetRequest::create([
             'user_id' => auth()->id(),
-            'action' => 'created',
-            'notes' => 'Aset baru ditambahkan. Stok awal: ' . $validatedData['quantity']
+            'asset_id' => $validatedData['asset_id'],
+            'quantity' => $validatedData['quantity'],
+            'request_date' => now(), // Waktu request otomatis timestamp sekarang
+            'return_date' => $fullReturnDate, // Simpan format lengkap datetime
+            'reason' => $validatedData['reason'],
+            'status' => 'pending'
         ]);
 
-        return redirect('/assets')->with('success', 'Aset berhasil ditambahkan!');
+        return back()->with('success', 'Permintaan berhasil dikirim! Menunggu persetujuan Admin.');
     }
 
     /**
@@ -399,7 +408,7 @@ class AssetController extends Controller
         // 6. Generate PDF
         $pdf = Pdf::loadView('pdf.assets_report', [
             'title' => $customTitle,
-            'printTime' => now()->translatedFormat('l, d F Y H:i') . ' WIB',
+            'printTime' => now()->timezone('Asia/Jakarta')->translatedFormat('l, d F Y H:i') . ' WIB',
             'filterStatus' => $request->status ?? 'Semua Status',
             'filterSearch' => $request->search, // Kirim kata kunci pencarian ke view untuk info
             'assets' => $assets,
