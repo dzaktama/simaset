@@ -101,8 +101,7 @@
                                         @endphp
                                         
                                         @if($lastReq)
-                                            <button onclick="openReturnModal({{ $lastReq->id }}, '{{ $asset->name }}', '{{ $asset->serial_number }}', '{{ $imgUrl }}')" 
-                                                    class="text-white bg-indigo-600 hover:bg-indigo-700 border border-transparent px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition transform active:scale-95">
+                                            <button onclick="openReturnModal({{ $lastReq->id }}, '{{ $asset->name }}', '{{ $asset->serial_number }}', '{{ $imgUrl }}', '{{ $asset->assigned_date }}')" ...>
                                                 Kembalikan
                                             </button>
                                         @else
@@ -311,24 +310,21 @@
     }
 
     // --- LOGIC RETURN ASET ---
-    function openReturnModal(reqId, assetName, assetSN, assetImgUrl) {
+    function openReturnModal(reqId, assetName, assetSN, assetImgUrl, assignedDateRaw) { // Tambah parameter assignedDateRaw
         document.getElementById('returnReqId').value = reqId;
         document.getElementById('returnAssetName').innerText = assetName;
         document.getElementById('returnAssetSN').innerText = assetSN;
         
-        // Handle Thumbnail
-        const imgEl = document.getElementById('returnAssetImg');
-        const iconEl = document.getElementById('returnAssetIcon');
-        
-        if (assetImgUrl && assetImgUrl !== 'null' && assetImgUrl !== '') {
-            imgEl.src = assetImgUrl;
-            imgEl.classList.remove('hidden');
-            iconEl.classList.add('hidden');
-        } else {
-            imgEl.classList.add('hidden');
-            iconEl.classList.remove('hidden');
+        // [FIX LOGIC] Set Minimal Tanggal Pengembalian = Tanggal Pinjam
+        // assignedDateRaw harus format YYYY-MM-DD
+        const dateInput = document.getElementsByName('return_date')[0];
+        if(assignedDateRaw) {
+            // Ambil bagian tanggal saja (YYYY-MM-DD)
+            const minDate = new Date(assignedDateRaw).toISOString().split('T')[0];
+            dateInput.min = minDate; 
         }
-
+        
+        // ... (Kode gambar/icon tetap sama) ...
         document.getElementById('returnModal').classList.remove('hidden');
     }
     
