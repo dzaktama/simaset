@@ -333,12 +333,15 @@ class AssetController extends Controller
     /**
      * Cetak Laporan PDF
      */
-   public function printReport(Request $request)
+   /**
+     * Cetak Laporan PDF
+     */
+    public function printReport(Request $request)
     {
-        // query dasar ambil dari model asset
-        $query = Asset::query();
+        // 1. Query Data
+        $query = Asset::with('holder');
 
-        // logika search biar hasil print sesuai ketikan user
+        // Logika Search
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -347,34 +350,44 @@ class AssetController extends Controller
             });
         }
 
-        // logika filter status
-        if ($request->filled('status')) {
+        // Logika Filter Status
+        if ($request->filled('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
         }
 
-        // logika sorting urutan data
+        // Logika Sorting
         if ($request->filled('sort')) {
-            if ($request->sort == 'oldest') {
-                $query->orderBy('created_at', 'asc');
-            } else {
-                $query->orderBy('created_at', 'desc');
+            switch ($request->sort) {
+                case 'oldest': $query->oldest(); break;
+                case 'stock_low': $query->orderBy('quantity', 'asc'); break;
+                case 'stock_high': $query->orderBy('quantity', 'desc'); break;
+                default: $query->latest(); break;
             }
         } else {
-            $query->orderBy('created_at', 'desc');
+            $query->latest();
         }
 
         $assets = $query->get();
 
-        // panggil view dari folder resources/views/pdf/assets_report.blade.php
-        // kita juga kirim variable lengkap biar gak error undefined variable di view
+        // Siapkan Text Filter Header
+        $filterKeterangan = [];
+        if($request->filled('status') && $request->status !== 'all') $filterKeterangan[] = "Status: " . ucfirst($request->status);
+        if($request->filled('search')) $filterKeterangan[] = "Pencarian: '" . $request->search . "'";
+        $filterString = empty($filterKeterangan) ? 'Semua Data' : implode(' | ', $filterKeterangan);
+
+        // FIX BUG JAM: Set Timezone ke Asia/Jakarta secara eksplisit
+        $waktuCetak = now()->setTimezone('Asia/Jakarta')->translatedFormat('d F Y, H:i') . ' WIB';
+
         $pdf = Pdf::loadView('pdf.assets_report', [
             'title' => 'Laporan Aset IT - Vitech Asia',
-            'printTime' => now()->translatedFormat('l, d F Y H:i'), // format waktu indonesia
-            'filterStatus' => $request->status ?? 'Semua Status',
+            'printTime' => $waktuCetak, // Variabel waktu yang sudah dibenerin
+            'filterStatus' => $filterString,
             'assets' => $assets,
-            'showImages' => true, // ubah jadi false kalo gamau nampilin foto
-            'adminNotes' => null // kosongi aja defaultnya
+            'showImages' => true,
+            'adminNotes' => null
         ]);
+
+        $pdf->setPaper('a4', 'landscape');
 
         return $pdf->stream('Laporan_Aset_IT.pdf');
     }

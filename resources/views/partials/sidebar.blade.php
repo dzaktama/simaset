@@ -37,13 +37,20 @@
         Manajemen User
     </a>
 
-    {{-- Link Laporan --}}
-    <a href="{{ route('report.assets') }}" target="_blank" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors">
-        <svg class="mr-3 flex-shrink-0 h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-        Cetak Laporan
+  <hr class="sidebar-divider">
+
+<div class="sidebar-heading">
+    Laporan & Arsip
+</div>
+
+<li class="nav-item {{ Request::routeIs('report.*') ? 'active' : '' }}">
+    <a class="nav-link" href="{{ route('report.index') }}">
+        <i class="fas fa-fw fa-file-pdf"></i>
+        <span>Generator Laporan</span>
     </a>
+</li>
+
+<hr class="sidebar-divider d-none d-md-block">
 @endif
 
                 @if(auth()->user()->role !== 'admin')
