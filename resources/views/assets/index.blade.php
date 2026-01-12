@@ -47,9 +47,6 @@
         </div>
         <div class="flex gap-2 w-full md:w-auto">
             <button type="submit" class="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-900 transition">Filter</button>
-            @if(auth()->user()->role == 'admin')
-            <a href="{{ route('report.assets', ['status' => request('status') ?? 'all']) }}" target="_blank" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition">Cetak</a>
-            @endif
         </div>
     </form>
 </div>
