@@ -416,4 +416,95 @@ class AssetController extends Controller
         // Stream (Preview di Browser)
         return $pdf->stream('Laporan_Aset_' . date('Ymd_His') . '.pdf');
     }
+    /**
+     * [ADMIN] Menampilkan Halaman Laporan
+     */
+    public function report(Request $request)
+    {
+        // Ambil data untuk laporan
+        $assets = \App\Models\Asset::with('holder')->get(); // Semua aset
+        $requests = \App\Models\AssetRequest::with(['user', 'asset'])->latest()->get(); // Semua request
+        
+        // Hitung ringkasan
+        $summary = [
+            'total_assets' => $assets->count(),
+            'available' => $assets->where('status', 'available')->count(),
+            'deployed' => $assets->where('status', 'deployed')->count(),
+            'maintenance' => $assets->whereIn('status', ['maintenance', 'broken'])->count(),
+            'total_requests' => $requests->count(),
+            'pending_requests' => $requests->where('status', 'pending')->count(),
+        ];
+
+        return view('reports.index', [
+            'title' => 'Laporan & Audit Aset',
+            'assets' => $assets,
+            'requests' => $requests,
+            'summary' => $summary
+        ]);
+    }
+
+    /**
+     * [ADMIN] Export Laporan ke PDF (Versi Cetak Browser)
+     */
+    /**
+     * [ADMIN] Export Laporan ke Tampilan Cetak (Support PDF/Print Browser)
+     */
+    /**
+     * [ADMIN] Cetak Laporan (Mode Browser Native)
+     */
+    public function exportPdf(Request $request)
+    {
+        // 1. Ambil Parameter Filter
+        $status = $request->query('status', 'all');
+        $sort = $request->query('sort', 'newest');
+        $search = $request->query('search');
+        $orientation = $request->query('orientation', 'portrait'); // Default Portrait
+
+        // 2. Query Data
+        $query = \App\Models\Asset::with('holder');
+
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('serial_number', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        // Sorting
+        if ($sort == 'oldest') $query->oldest();
+        elseif ($sort == 'stock_low') $query->orderBy('quantity', 'asc');
+        elseif ($sort == 'stock_high') $query->orderBy('quantity', 'desc');
+        elseif ($sort == 'name_asc') $query->orderBy('name', 'asc');
+        else $query->latest();
+
+        $assets = $query->get();
+
+        // 3. Kirim Data ke View
+        $data = [
+            'assets' => $assets,
+            
+            // Waktu & Tanggal
+            'date' => now()->translatedFormat('d F Y'),
+            'printTime' => now()->format('H:i'),
+            'title' => 'Laporan Aset IT - ' . now()->format('Y-m-d'),
+            
+            // Filter Info
+            'filterStatus' => ucfirst($status), 
+            'filterSort' => ucfirst(str_replace('_', ' ', $sort)),
+            'filterSearch' => $search,
+            
+            // Opsi Tampilan
+            'customTitle' => $request->query('custom_title', 'Laporan Aset IT'),
+            'adminNotes' => $request->query('admin_notes', '-'),
+            'showImages' => $request->query('show_images', 1),
+            'orientation' => $orientation
+        ];
+
+        return view('pdf.assets_report', $data);
+    }
 }

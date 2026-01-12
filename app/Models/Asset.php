@@ -32,8 +32,12 @@ class Asset extends Model
         'assigned_date' => 'datetime',
         'return_date' => 'datetime',
     ];
-
-    // 3. SCOPE FILTER (INI YANG BIKIN ERROR SEBELUMNYA)
+// Relasi untuk mengambil request yang sedang aktif (status 'approved' / deployed)
+    public function activeRequest()
+    {
+        return $this->hasOne(AssetRequest::class)->where('status', 'approved')->latest();
+    }
+    // 3. SCOPE FILTER 
     // Method ini menangani logika pencarian dan filter status di halaman index
     public function scopeFilter($query, array $filters)
     {

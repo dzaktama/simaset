@@ -19,28 +19,64 @@ class AssetRequestController extends Controller
             'asset_id' => 'required|exists:assets,id',
             'quantity' => 'required|integer|min:1', 
             'return_date' => 'nullable|date|after_or_equal:today',
+            'return_time' => 'nullable', 
             'reason' => 'required|string|max:255',
+            'is_booking' => 'nullable|boolean', // Flag baru untuk nandain ini booking
         ]);
 
-        // 2. Cek Stok (Pencegahan Awal)
-        $asset = Asset::findOrFail($request->asset_id);
-        
-        if ($request->quantity > $asset->quantity) {
-            return back()->with('error', "Gagal! Stok tidak mencukupi. Tersisa {$asset->quantity} unit.");
+        $asset = \App\Models\Asset::findOrFail($request->asset_id);
+        $user = auth()->user();
+
+        // 2. Cek apakah User sudah punya request PENDING/APPROVED untuk barang ini? (Cegah Spam)
+        $existingReq = \App\Models\AssetRequest::where('user_id', $user->id)
+                        ->where('asset_id', $asset->id)
+                        ->whereIn('status', ['pending', 'approved'])
+                        ->exists();
+
+        if ($existingReq) {
+            return back()->with('error', 'Anda sudah memiliki permintaan aktif atau antrian untuk aset ini.');
         }
 
-        // 3. Simpan Request
-        AssetRequest::create([
-            'user_id' => auth()->id(),
+        // 3. Logika Booking vs Pinjam Biasa
+        if ($request->is_booking == 1) {
+            // --- LOGIKA BOOKING ---
+            // Pastikan barang emang lagi dipinjam, bukan rusak
+            if ($asset->status != 'deployed') {
+                return back()->with('error', 'Booking hanya bisa dilakukan jika aset sedang dipinjam orang lain.');
+            }
+            // (Disini kita SKIP pengecekan stok quantity > 0)
+            
+        } else {
+            // --- LOGIKA PINJAM BIASA ---
+            if ($asset->quantity < $request->quantity) {
+                return back()->with('error', "Gagal! Stok tidak mencukupi. Tersisa {$asset->quantity} unit.");
+            }
+            if ($asset->status != 'available') {
+                return back()->with('error', "Gagal! Aset sedang tidak tersedia (Status: {$asset->status}).");
+            }
+        }
+
+        // 4. Format Tanggal
+        $fullReturnDate = null;
+        if (!empty($validatedData['return_date'])) {
+            $time = $validatedData['return_time'] ?? '17:00:00'; 
+            $fullReturnDate = $validatedData['return_date'] . ' ' . $time;
+        }
+
+        // 5. Simpan Request
+        \App\Models\AssetRequest::create([
+            'user_id' => $user->id,
             'asset_id' => $validatedData['asset_id'],
             'quantity' => $validatedData['quantity'],
             'request_date' => now(),
-            'return_date' => $validatedData['return_date'] ?? null,
+            'return_date' => $fullReturnDate,
             'reason' => $validatedData['reason'],
-            'status' => 'pending'
+            'status' => 'pending' // Masuk antrian admin
         ]);
 
-        return back()->with('success', 'Permintaan berhasil dikirim! Menunggu persetujuan Admin.');
+        $msg = $request->is_booking ? 'Berhasil Booking! Menunggu aset dikembalikan & persetujuan Admin.' : 'Permintaan berhasil dikirim! Menunggu persetujuan Admin.';
+
+        return back()->with('success', $msg);
     }
 
     /**

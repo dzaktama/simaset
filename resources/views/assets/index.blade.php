@@ -97,6 +97,9 @@
                             @else
                                 @if($asset->quantity > 0 && $asset->status == 'available')
                                     <button onclick="openLoanModal({{ json_encode($asset) }})" class="text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1 rounded border border-transparent shadow-sm transition">Pinjam</button>
+                                @elseif($asset->status == 'deployed')
+                                    {{-- Tombol Booking di List --}}
+                                    <button onclick="openDetailModal({{ json_encode($asset) }}, {{ json_encode($asset->holder) }})" class="text-white bg-yellow-500 hover:bg-yellow-600 px-3 py-1 rounded border border-transparent shadow-sm transition">Booking</button>
                                 @else
                                     <button disabled class="text-gray-400 bg-gray-100 px-3 py-1 rounded border border-gray-200 cursor-not-allowed">Pinjam</button>
                                 @endif
@@ -151,27 +154,46 @@
                 {{-- Status Container --}}
                 <div id="statusContainer" class="border-t pt-4"></div>
             </div>
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 flex justify-end">
-                <button onclick="closeDetailModal()" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:w-auto sm:text-sm">Tutup</button>
+            
+            {{-- [REVISI] FOOTER MODAL DENGAN LOGIKA TOMBOL --}}
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
+                {{-- Tombol Booking (Muncul saat Deployed) --}}
+                <button id="btnBooking" type="button" onclick="openBookingForm()" class="hidden w-full inline-flex justify-center items-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-yellow-600 text-base font-medium text-white hover:bg-yellow-700 sm:w-auto sm:text-sm transition">
+                    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    Booking Antrian
+                </button>
+
+                {{-- Tombol Pinjam (Muncul saat Available) --}}
+                <button id="btnPinjam" type="button" onclick="closeDetailModal(); openLoanModal(currentAssetData)" class="hidden w-full inline-flex justify-center items-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 sm:w-auto sm:text-sm transition">
+                    <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                    Ajukan Peminjaman
+                </button>
+                
+                <button onclick="closeDetailModal()" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:w-auto sm:text-sm">
+                    Tutup
+                </button>
             </div>
         </div>
     </div>
 </div>
 
-{{-- 5. MODAL FORM PINJAM (REVISI: LEBIH DETAIL & INFORMATIF) --}}
+{{-- 5. MODAL FORM PINJAM / BOOKING --}}
 <div id="loanModal" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true">
     <div class="flex min-h-screen items-center justify-center p-4">
         <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeLoanModal()"></div>
         <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
             <form action="/requests" method="POST">
                 @csrf
+                {{-- [REVISI] Input Hidden untuk Booking --}}
+                <input type="hidden" name="is_booking" id="isBookingInput" value="0">
+
                 <div class="bg-white px-4 pt-5 pb-4 sm:p-6">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-bold text-gray-900">Form Pengajuan Peminjaman</h3>
+                        <h3 class="text-lg font-bold text-gray-900">Form Pengajuan</h3>
                         <button type="button" onclick="closeLoanModal()" class="text-gray-400 hover:text-gray-500">&times;</button>
                     </div>
 
-                    {{-- [REVISI] KARTU RINGKASAN ASET DI FORM --}}
+                    {{-- KARTU RINGKASAN ASET DI FORM --}}
                     <div class="flex items-start gap-4 p-3 bg-indigo-50 border border-indigo-100 rounded-lg mb-6">
                         <div class="h-16 w-16 flex-shrink-0 bg-white rounded-md border border-indigo-200 overflow-hidden flex items-center justify-center">
                             <img id="loanAssetImg" src="" class="h-full w-full object-cover hidden">
@@ -246,14 +268,14 @@
         // Populate Basic
         document.getElementById('modalName').innerText = asset.name;
         document.getElementById('modalSN').innerText = asset.serial_number;
-        document.getElementById('modalDescription').innerText = asset.description || '-';
+        document.getElementById('modalDescription').innerHTML = asset.description || '-'; // Reset deskripsi
         document.getElementById('modalCondition').innerText = asset.condition_notes || 'Kondisi Baik';
         document.getElementById('modalQuantity').innerText = 'Stok: ' + asset.quantity + ' Unit';
         
         const cDate = new Date(asset.created_at);
         document.getElementById('modalCreatedAt').innerText = cDate.toLocaleDateString('id-ID', {day:'numeric',month:'short',year:'numeric'});
 
-        // Populate Status & Buttons
+        // Populate Status Badge & Info Container
         const st = document.getElementById('modalStatus');
         st.innerText = asset.status.toUpperCase();
         st.className = "px-2 py-0.5 text-xs font-bold rounded-full";
@@ -261,12 +283,28 @@
         const cont = document.getElementById('statusContainer');
         cont.innerHTML = ''; cont.className="border-t pt-4";
 
+        // Logic Tombol Footer
+        const btnPinjam = document.getElementById('btnPinjam');
+        const btnBooking = document.getElementById('btnBooking');
+        if(btnPinjam) btnPinjam.classList.add('hidden');
+        if(btnBooking) btnBooking.classList.add('hidden');
+
         if(asset.status === 'deployed') {
             st.classList.add('bg-blue-100', 'text-blue-800');
             const assignTime = asset.assigned_date ? formatDateID(asset.assigned_date) : '-';
-            // [REVISI POIN 6] Ubah teks "Tidak ada batas" jadi lebih proper
             const retTime = asset.return_date ? formatDateID(asset.return_date) : 'Jangka Panjang / Permanen';
             
+            // Tampilkan Tombol Booking
+            if(authRole !== 'admin') {
+                if(btnBooking) btnBooking.classList.remove('hidden');
+            }
+
+            // Info Tambahan Estimasi di Deskripsi
+            if(asset.active_request && asset.active_request.return_date) {
+                 const estDate = formatDateID(asset.active_request.return_date);
+                 document.getElementById('modalDescription').innerHTML += `<br><br><span class="text-yellow-600 font-bold bg-yellow-50 px-2 py-1 rounded">[INFO BOOKING]</span> Estimasi Kembali: <b>${estDate}</b>`;
+            }
+
             cont.innerHTML = `
                 <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
                     <div class="flex items-center gap-3 mb-3">
@@ -281,13 +319,18 @@
             `;
         } else if(asset.status === 'available') {
             st.classList.add('bg-green-100', 'text-green-800');
+            
+            // Tampilkan Tombol Pinjam
+            if(authRole !== 'admin' && asset.quantity > 0) {
+                if(btnPinjam) btnPinjam.classList.remove('hidden');
+            }
+
             cont.innerHTML = `
                 <div class="flex items-center justify-between bg-green-50 p-4 rounded-lg border border-green-100">
                     <div class="flex items-center gap-3">
                         <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         <div><p class="text-green-800 font-bold text-sm">Tersedia</p><p class="text-xs text-green-600">Siap dipinjamkan.</p></div>
                     </div>
-                    ${authRole!='admin' && asset.quantity>0 ? `<button onclick="closeDetailModal(); openLoanModal(currentAssetData)" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700 shadow-sm">Ajukan Pinjam</button>` : ''}
                 </div>
             `;
         } else {
@@ -295,7 +338,7 @@
             cont.innerHTML = `<div class="bg-red-50 p-4 rounded text-center border border-red-100"><p class="text-red-800 font-bold text-sm">Sedang Maintenance</p><p class="text-xs text-red-600">Aset tidak dapat digunakan.</p></div>`;
         }
 
-        // Carousel Images
+        // Carousel Images Logic
         let imgs=[]; if(asset.image) imgs.push(asset.image); if(asset.image2) imgs.push(asset.image2); if(asset.image3) imgs.push(asset.image3); if(imgs.length==0) imgs.push(null);
         
         let slides='', dots='';
@@ -315,10 +358,23 @@
     }
     function closeDetailModal(){ document.getElementById('detailModal').classList.add('hidden'); }
 
+    // Fungsi Buka Form Pinjam Standar
     function openLoanModal(asset) {
+        prepareForm(asset, "0", "Form Pengajuan Peminjaman", "Kirim Pengajuan", "bg-indigo-600", "hover:bg-indigo-700");
+    }
+
+    // Fungsi Buka Form Booking
+    function openBookingForm() {
+        closeDetailModal();
+        prepareForm(currentAssetData, "1", "Booking Antrian Aset", "Booking Sekarang", "bg-yellow-600", "hover:bg-yellow-700");
+    }
+
+    // Helper untuk menyiapkan Form (DRY Code)
+    function prepareForm(asset, isBooking, title, btnText, btnClassAdd, btnHoverAdd) {
         document.getElementById('loanAssetId').value = asset.id;
+        document.getElementById('isBookingInput').value = isBooking;
         
-        // [REVISI] Populate Kartu Ringkasan Aset
+        // Populate Kartu Ringkasan Aset
         document.getElementById('loanAssetNameDisplay').innerText = asset.name;
         document.getElementById('loanAssetSNDisplay').innerText = asset.serial_number;
         document.getElementById('loanAssetConditionDisplay').innerText = "Kondisi: " + (asset.condition_notes || 'Baik');
@@ -336,12 +392,23 @@
         }
 
         const qtyInput = document.getElementById('loanQuantity');
-        qtyInput.max = asset.quantity;
+        // Kalau booking, max qty diabaikan (bypass logic di backend), tapi di frontend tetap tampilkan info stok 0
+        qtyInput.max = isBooking === "1" ? 99 : asset.quantity; 
         qtyInput.value = 1;
         document.getElementById('loanMaxStockText').innerText = `(Tersedia: ${asset.quantity} unit)`;
 
+        // Ubah Judul & Tombol
+        document.querySelector('#loanModal h3').innerText = title;
+        const btn = document.querySelector('#loanModal button[type="submit"]');
+        btn.innerText = btnText;
+        
+        // Reset Class Tombol
+        btn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700', 'bg-yellow-600', 'hover:bg-yellow-700');
+        btn.classList.add(btnClassAdd, btnHoverAdd);
+
         document.getElementById('loanModal').classList.remove('hidden');
     }
+
     function closeLoanModal(){ document.getElementById('loanModal').classList.add('hidden'); }
 </script>
 @endsection

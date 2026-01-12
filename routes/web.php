@@ -2,10 +2,11 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\UserController;
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\AssetRequestController;
-use App\Http\Controllers\AssetReturnController; // Pastikan Controller ini di-import
+use App\Http\Controllers\AssetReturnController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\PostController;
 
 /*
 |--------------------------------------------------------------------------
@@ -13,50 +14,63 @@ use App\Http\Controllers\AssetReturnController; // Pastikan Controller ini di-im
 |--------------------------------------------------------------------------
 */
 
-// 1. TAMU (Login/Logout)
+// --- PUBLIC ROUTES (Tamu) ---
 Route::middleware('guest')->group(function () {
+    Route::get('/', function () { return view('welcome'); });
+    
+    // Login & Register
     Route::get('/login', [AuthController::class, 'login'])->name('login');
     Route::post('/login', [AuthController::class, 'authenticate']);
-    Route::get('/', function () { return redirect()->route('login'); });
+    Route::get('/register', [AuthController::class, 'register'])->name('register');
+    Route::post('/register', [AuthController::class, 'store']);
+    
+    // Blog (Public)
+    Route::get('/blog', [PostController::class, 'index']);
+    Route::get('/post/{post:slug}', [PostController::class, 'show']);
 });
 
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+// --- CAPTCHA REFRESH ---
+Route::get('/refresh-captcha', [AuthController::class, 'refreshCaptcha'])->name('refresh.captcha');
 
+// --- PROTECTED ROUTES (User Login) ---
+Route::middleware('auth')->group(function () {
+    
+    // Logout
+    Route::post('/logout', [AuthController::class, 'logout']);
 
-// 2. USER LOGIN (Admin & Karyawan)
-Route::middleware(['auth'])->group(function () {
+    // Dashboard Utama
     Route::get('/dashboard', [AssetController::class, 'dashboard'])->name('dashboard');
-    Route::get('/home', function () { return redirect('/dashboard'); });
 
-    // Menu Karyawan
-    Route::get('/assets', [AssetController::class, 'index'])->name('assets.index'); 
-    Route::get('/my-assets', [AssetController::class, 'myAssets']);
+    // === SECTION: KARYAWAN ===
+    // Aset Saya
+    Route::get('/my-assets', [AssetController::class, 'myAssets'])->name('my.assets');
     
-    // Logic Request Pinjam
-    Route::post('/requests', [AssetRequestController::class, 'store']); 
-
-    // [FIX] Logic Pengembalian Aset (Returns)
-    // Rute ini sebelumnya hilang, makanya error saat diklik
+    // Request Peminjaman (Booking & Pinjam)
+    Route::post('/requests', [AssetRequestController::class, 'store'])->name('requests.store');
+    
+    // Pengembalian Aset (User)
     Route::post('/returns', [AssetReturnController::class, 'store'])->name('returns.store');
-});
 
+    // === SECTION: ADMIN ONLY ===
+    Route::middleware(['is_admin'])->group(function () {
+        
+        // Manajemen Aset (CRUD)
+        Route::resource('assets', AssetController::class);
+        
+        // Manajemen User
+        Route::resource('users', UserController::class);
+        
+        // Approval Request (Terima/Tolak)
+        Route::post('/requests/{id}/approve', [AssetRequestController::class, 'approve'])->name('requests.approve');
+        Route::post('/requests/{id}/reject', [AssetRequestController::class, 'reject'])->name('requests.reject');
+        
+        // Verifikasi Pengembalian (Restock)
+        Route::post('/returns/{id}/verify', [AssetReturnController::class, 'verify'])->name('returns.verify');
 
-// 3. KHUSUS ADMIN
-Route::middleware(['auth', 'admin'])->group(function () { 
-    // User Management
-    Route::resource('/users', UserController::class)->except(['show']);
-    
-    // Resource Assets
-    Route::resource('/assets', AssetController::class)->except(['index']);
-    
-    // --- FITUR LAPORAN ---
-    Route::get('/report-generator', [AssetController::class, 'reportIndex'])->name('report.index');
-    Route::get('/report/print', [AssetController::class, 'printReport'])->name('report.assets');
-    
-    // Approval Request Pinjam
-    Route::post('/requests/{id}/approve', [AssetRequestController::class, 'approve']);
-    Route::post('/requests/{id}/reject', [AssetRequestController::class, 'reject']);
+        // Laporan (View & PDF Export)
+        // [PERBAIKAN] Pastikan method report() dan exportPdf() ada di AssetController
+        Route::get('/reports', [AssetController::class, 'report'])->name('report.index');
+        Route::get('/reports/export-pdf', [AssetController::class, 'exportPdf'])->name('report.pdf');
+    });
 
-    // [FIX] Approval Pengembalian Aset (Verify Return)
-    Route::post('/returns/{id}/verify', [AssetReturnController::class, 'verify'])->name('returns.verify');
 });

@@ -9,7 +9,7 @@ class AuthController extends Controller
 {
     public function login()
     {
-        return view('auth.login', [ // Pastikan file view ada di resources/views/auth/login.blade.php
+        return view('auth.login', [ 
             'title' => 'Login',
             'active' => 'login'
         ]);
@@ -17,19 +17,26 @@ class AuthController extends Controller
 
     public function authenticate(Request $request)
     {
-        $credentials = $request->validate([
+        // [IMPROVISASI] Validasi Captcha
+        $request->validate([
             'email' => 'required|email',
-            'password' => 'required'
+            'password' => 'required',
+            'captcha' => 'required|captcha'
+        ], [
+            // Custom Error Message biar lebih ramah
+            'captcha.required' => 'Kode keamanan wajib diisi.',
+            'captcha.captcha' => 'Kode keamanan salah! Silakan coba lagi.'
         ]);
+
+        $credentials = $request->only('email', 'password');
 
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
-            
-            // Cek role untuk redirect yang tepat (Opsional, dashboard aman untuk semua)
             return redirect()->intended('/dashboard');
         }
 
-        return back()->with('loginError', 'Login gagal! Email atau password salah.');
+        // Kalau password salah, input email jangan dihilangkan (UX)
+        return back()->with('loginError', 'Login gagal! Email atau password salah.')->withInput($request->only('email'));
     }
 
     public function logout(Request $request)
@@ -38,7 +45,12 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         
-        // FIX: Redirect ke '/login' bukan '/'
         return redirect('/login');
+    }
+    
+    // [FEATURE] Fungsi Refresh Captcha via AJAX
+    public function refreshCaptcha()
+    {
+        return response()->json(['captcha' => captcha_img('flat')]);
     }
 }

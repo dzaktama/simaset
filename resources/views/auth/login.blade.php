@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <style>body { font-family: 'Inter', sans-serif; }</style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body class="h-full">
     <div class="flex min-h-full">
@@ -38,7 +39,7 @@
 
                 <div class="mt-10">
                     @if(session()->has('loginError'))
-                    <div class="mb-4 rounded-md bg-red-50 p-4 border border-red-200">
+                    <div class="mb-4 rounded-md bg-red-50 p-4 border border-red-200 animate-pulse">
                         <div class="flex">
                             <div class="flex-shrink-0">
                                 <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -55,19 +56,13 @@
                     </div>
                     @endif
 
-                    @if(session()->has('success'))
-                    <div class="mb-4 rounded-md bg-green-50 p-4 border border-green-200">
-                        <p class="text-sm font-medium text-green-800">{{ session('success') }}</p>
-                    </div>
-                    @endif
-
                     <form action="/login" method="POST" class="space-y-6">
                         @csrf
                         
                         <div>
                             <label for="email" class="block text-sm font-medium leading-6 text-gray-900">Email Address</label>
                             <div class="mt-2">
-                                <input id="email" name="email" type="email" autocomplete="email" required 
+                                <input id="email" name="email" type="email" autocomplete="email" required value="{{ old('email') }}"
                                     class="block w-full rounded-md border-0 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
                                     placeholder="admin@vitech.asia">
                             </div>
@@ -78,6 +73,30 @@
                             <div class="mt-2">
                                 <input id="password" name="password" type="password" autocomplete="current-password" required 
                                     class="block w-full rounded-md border-0 py-1.5 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3">
+                            </div>
+                        </div>
+
+                        {{-- [IMPROVISASI] Bagian Captcha --}}
+                        <div>
+                            <label class="block text-sm font-medium leading-6 text-gray-900">Kode Keamanan</label>
+                            <div class="mt-2 flex gap-2">
+                                <div class="relative flex-1" id="captcha-img-container">
+                                    {{-- Image Captcha --}}
+                                    {!! captcha_img('flat') !!}
+                                </div>
+                                <button type="button" class="btn-refresh bg-gray-100 hover:bg-gray-200 text-gray-600 p-2 rounded-md border border-gray-300 transition" title="Ganti Gambar">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="mt-2">
+                                <input type="text" name="captcha" id="captcha" required placeholder="Masukkan kode di atas"
+                                    class="block w-full rounded-md border-0 py-1.5 shadow-sm ring-1 ring-inset {{ $errors->has('captcha') ? 'ring-red-500 focus:ring-red-600' : 'ring-gray-300 focus:ring-indigo-600' }} placeholder:text-gray-400 focus:ring-2 focus:ring-inset sm:text-sm sm:leading-6 px-3">
+                                
+                                @error('captcha')
+                                    <p class="mt-1 text-sm text-red-600 font-medium">{{ $message }}</p>
+                                @enderror
                             </div>
                         </div>
 
@@ -108,5 +127,18 @@
             </div>
         </div>
     </div>
+
+    {{-- Script AJAX Refresh Captcha --}}
+    <script type="text/javascript">
+        $(".btn-refresh").click(function(){
+            $.ajax({
+                type:'GET',
+                url:'/refresh-captcha',
+                success:function(data){
+                    $("#captcha-img-container").html(data.captcha);
+                }
+            });
+        });
+    </script>
 </body>
 </html>
