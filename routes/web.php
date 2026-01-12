@@ -37,7 +37,7 @@ Route::get('/refresh-captcha', [AuthController::class, 'refreshCaptcha'])->name(
 Route::middleware('auth')->group(function () {
     
     // Logout
-    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     // Dashboard Utama
     Route::get('/dashboard', [AssetController::class, 'dashboard'])->name('dashboard');

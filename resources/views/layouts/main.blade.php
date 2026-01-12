@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title ?? 'SIMASET Vitech Asia' }}</title>
+    {{-- CSRF token buat dipake di JS kalau perlu (fetch/ajax) --}}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     
     {{-- Scripts & Styles --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -59,6 +61,79 @@
             </main>
         </div>
     </div>
+
+    {{--
+        Form logout tersembunyi.
+        Kita pake form POST biar sesuai route logout yang aman (butuh CSRF token).
+        Kalau POST gagal (mis. token udah expired), script bakal redirect ke /login sebagai fallback.
+        Komennya santai biar gampang dimengerti: kalo nganggur 5 menit, auto logout.
+    --}}
+    <form id="idle-logout-form" action="{{ route('logout') }}" method="POST" style="display:none;">
+        @csrf
+    </form>
+
+    {{-- Script idle-logout: versi lebih aman pake fetch + CSRF header, ada fallback kalau error --}}
+    <script>
+        (function () {
+            // Timeout default: 5 menit (ubah kalo mau testing cepat)
+            const IDLE_TIMEOUT = 5 * 60 * 1000; // ms
+            // Untuk test cepat, bisa ubah ke 15 * 1000 (15 detik)
+
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            let idleTimer = null;
+
+            function resetTimer() {
+                if (idleTimer) clearTimeout(idleTimer);
+                idleTimer = setTimeout(doLogout, IDLE_TIMEOUT);
+            }
+
+            async function doLogout() {
+                // Kita coba POST via fetch (supaya bisa tangani response 419),
+                // sertakan credentials supaya cookie session dikirim.
+                try {
+                    const resp = await fetch('{{ route('logout') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': csrfToken || ''
+                        },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({})
+                    });
+
+                    // Kalau berhasil atau redirect, pindah ke login
+                    if (resp.ok) {
+                        // berhasil logout, redirect ke login
+                        window.location.href = '/login';
+                        return;
+                    }
+
+                    // Kalau server balik 419 (Page Expired) atau bukan ok, fallback ke GET login
+                    if (resp.status === 419 || resp.status === 403) {
+                        window.location.href = '/login';
+                        return;
+                    }
+
+                    // Fallback umum: submit form (ini akan pakai CSRF hidden input)
+                    const form = document.getElementById('idle-logout-form');
+                    if (form) form.submit();
+                    else window.location.href = '/login';
+                } catch (err) {
+                    // Kalau fetch error (network/CSRF expired), fallback ke redirect login
+                    console.warn('Auto-logout: fetch error, redirecting to login', err);
+                    window.location.href = '/login';
+                }
+            }
+
+            // Event yang dianggap aktivitas user, reset timer kalau ada.
+            const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
+            activityEvents.forEach(evt => window.addEventListener(evt, resetTimer, true));
+
+            // Start timer pas halaman dibuka
+            resetTimer();
+        })();
+    </script>
 
 </body>
 </html>
