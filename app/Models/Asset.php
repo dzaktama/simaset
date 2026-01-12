@@ -68,4 +68,12 @@ class Asset extends Model
     {
         return $this->hasOne(AssetRequest::class)->where('status', 'approved')->latest();
     }
+
+    /**
+     * Generate QR Code untuk scanning
+     */
+    public function getQrCodeAttribute(): string
+    {
+        return app(\App\Services\AssetService::class)->generateQrCodeDataUrl($this);
+    }
 }

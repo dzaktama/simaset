@@ -39,10 +39,14 @@
         <div class="w-full md:w-1/4">
             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Urutkan</label>
             <select name="sort" class="block w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                <option value="latest">Terbaru</option>
-                <option value="stock_low">Stok Sedikit</option>
-                <option value="stock_high">Stok Banyak</option>
-                <option value="name_asc">Nama (A-Z)</option>
+                <option value="latest" {{ request('sort') == 'latest' ? 'selected' : '' }}>Terbaru</option>
+                <option value="stock_low" {{ request('sort') == 'stock_low' ? 'selected' : '' }}>Stok Sedikit</option>
+                <option value="stock_high" {{ request('sort') == 'stock_high' ? 'selected' : '' }}>Stok Banyak</option>
+                <option value="name_asc" {{ request('sort') == 'name_asc' ? 'selected' : '' }}>Nama (A-Z)</option>
+                <option value="status_available" {{ request('sort') == 'status_available' ? 'selected' : '' }}>Status: Available</option>
+                <option value="status_deployed" {{ request('sort') == 'status_deployed' ? 'selected' : '' }}>Status: Deployed</option>
+                <option value="status_maintenance" {{ request('sort') == 'status_maintenance' ? 'selected' : '' }}>Status: Maintenance</option>
+                <option value="status_broken" {{ request('sort') == 'status_broken' ? 'selected' : '' }}>Status: Broken</option>
             </select>
         </div>
         <div class="flex gap-2 w-full md:w-auto">
@@ -58,6 +62,7 @@
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Aset Info</th>
+                    <th class="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase">QR Code</th>
                     <th class="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase">Stok</th>
                     <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Kondisi</th>
                     <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
@@ -78,6 +83,13 @@
                                 <div class="font-medium text-gray-900">{{ $asset->name }}</div>
                                 <div class="text-xs text-gray-500 font-mono">{{ $asset->serial_number }}</div>
                             </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <div class="flex items-center justify-center">
+                            <a href="{{ route('assets.scan', $asset->id) }}" title="Scan QR Code - {{ $asset->name }}" class="inline-block p-2 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition">
+                                <img src="{{ $asset->qr_code }}" alt="QR" class="h-12 w-12">
+                            </a>
                         </div>
                     </td>
                     <td class="px-6 py-4 text-center"><span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $asset->quantity > 0 ? 'bg-gray-100 text-gray-800' : 'bg-red-100 text-red-800' }}">{{ $asset->quantity }} Unit</span></td>

@@ -7,6 +7,7 @@ use App\Http\Controllers\AssetRequestController;
 use App\Http\Controllers\AssetReturnController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\PostController;
+use App\Http\Controllers\ReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -44,6 +45,9 @@ Route::middleware('auth')->group(function () {
     // [PERBAIKAN] Route '/assets' (Index/Daftar) ditaruh DI LUAR grup admin
     // Agar Karyawan bisa akses halaman list untuk melakukan peminjaman
     Route::get('/assets', [AssetController::class, 'index'])->name('assets.index');
+    
+    // QR Code Scanning Route (Public untuk karyawan & admin)
+    Route::get('/assets/scan/{id}', [AssetController::class, 'scanQr'])->name('assets.scan');
 
     // === SECTION: KARYAWAN ===
     // Aset Saya
@@ -73,8 +77,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/returns/{id}/verify', [AssetReturnController::class, 'verify'])->name('returns.verify');
 
         // Laporan (View & PDF Export)
-        Route::get('/reports', [AssetController::class, 'report'])->name('report.index');
-        Route::get('/reports/export-pdf', [AssetController::class, 'exportPdf'])->name('report.pdf');
+        Route::get('/reports', [ReportController::class, 'report'])->name('report.index');
+        Route::get('/reports/export-pdf', [ReportController::class, 'exportPdf'])->name('report.pdf');
+        Route::get('/reports/print', [ReportController::class, 'printReport'])->name('report.print');
+        Route::get('/reports/download', [ReportController::class, 'downloadPdf'])->name('report.download');
     });
 
 });

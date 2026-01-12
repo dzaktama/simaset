@@ -40,6 +40,10 @@
                                     <option value="newest">Terbaru</option>
                                     <option value="stock_low">Stok Minimum</option>
                                     <option value="name_asc">Nama (A-Z)</option>
+                                    <option value="status_available">Status: Available Dulu</option>
+                                    <option value="status_deployed">Status: Deployed Dulu</option>
+                                    <option value="status_maintenance">Status: Maintenance Dulu</option>
+                                    <option value="status_broken">Status: Broken Dulu</option>
                                 </select>
                             </div>
                         </div>
@@ -82,10 +86,14 @@
 
             {{-- TOMBOL AKSI --}}
             <div class="p-4 bg-gray-50 border-t border-gray-200 space-y-2">
-                {{-- [REVISI] Teks Tombol Diubah --}}
                 <button type="button" onclick="triggerPrint()" class="w-full flex justify-center items-center gap-2 bg-indigo-600 text-white py-3 rounded-lg text-sm font-bold hover:bg-indigo-700 shadow-md transition transform hover:-translate-y-0.5">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
                     Cetak Laporan PDF
+                </button>
+                
+                <button type="button" onclick="triggerDownload()" class="w-full flex justify-center items-center gap-2 bg-green-600 text-white py-3 rounded-lg text-sm font-bold hover:bg-green-700 shadow-md transition transform hover:-translate-y-0.5">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    Download Laporan PDF
                 </button>
             </div>
         </div>
@@ -113,6 +121,7 @@
 
 <script>
     const baseUrl = "{{ route('report.pdf') }}";
+    const downloadUrl = "{{ route('report.download') }}";
 
     function refreshPreview() {
         const form = document.getElementById('reportForm');
@@ -136,6 +145,20 @@
         } else {
             alert('Preview belum dimuat sepenuhnya.');
         }
+    }
+
+    function triggerDownload() {
+        const form = document.getElementById('reportForm');
+        const queryString = new URLSearchParams(new FormData(form)).toString();
+        const downloadLink = `${downloadUrl}?${queryString}`;
+        
+        // Trigger download dengan membuat invisible link
+        const link = document.createElement('a');
+        link.href = downloadLink;
+        link.download = 'Laporan_Aset.pdf';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 
     document.addEventListener('DOMContentLoaded', refreshPreview);

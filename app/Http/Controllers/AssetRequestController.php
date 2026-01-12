@@ -4,79 +4,52 @@ namespace App\Http\Controllers;
 
 use App\Models\Asset;
 use App\Models\AssetRequest;
-use App\Models\AssetHistory; // Penting untuk log history
+use App\Models\AssetHistory;
+use App\Services\AssetService;
 use Illuminate\Http\Request;
 
 class AssetRequestController extends Controller
 {
+    private AssetService $assetService;
+
+    public function __construct(AssetService $assetService)
+    {
+        $this->assetService = $assetService;
+    }
     /**
      * [KARYAWAN] Mengajukan Peminjaman
+     * Single entry point untuk request aset
      */
     public function store(Request $request)
     {
-        // 1. Validasi Input
         $validatedData = $request->validate([
             'asset_id' => 'required|exists:assets,id',
             'quantity' => 'required|integer|min:1', 
             'return_date' => 'nullable|date|after_or_equal:today',
             'return_time' => 'nullable', 
             'reason' => 'required|string|max:255',
-            'is_booking' => 'nullable|boolean', // Flag baru untuk nandain ini booking
+            'is_booking' => 'nullable|boolean',
         ]);
 
-        $asset = \App\Models\Asset::findOrFail($request->asset_id);
-        $user = auth()->user();
+        try {
+            $this->assetService->createAssetRequest(
+                userId: auth()->id(),
+                assetId: $validatedData['asset_id'],
+                quantity: $validatedData['quantity'],
+                returnDate: $validatedData['return_date'] ?? null,
+                returnTime: $validatedData['return_time'] ?? null,
+                reason: $validatedData['reason'],
+                isBooking: $validatedData['is_booking'] ?? false
+            );
 
-        // 2. Cek apakah User sudah punya request PENDING/APPROVED untuk barang ini? (Cegah Spam)
-        $existingReq = \App\Models\AssetRequest::where('user_id', $user->id)
-                        ->where('asset_id', $asset->id)
-                        ->whereIn('status', ['pending', 'approved'])
-                        ->exists();
+            $msg = $validatedData['is_booking'] ?? false
+                ? 'Berhasil Booking! Menunggu aset dikembalikan & persetujuan Admin.'
+                : 'Permintaan berhasil dikirim! Menunggu persetujuan Admin.';
 
-        if ($existingReq) {
-            return back()->with('error', 'Anda sudah memiliki permintaan aktif atau antrian untuk aset ini.');
+            return back()->with('success', $msg);
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
         }
-
-        // 3. Logika Booking vs Pinjam Biasa
-        if ($request->is_booking == 1) {
-            // --- LOGIKA BOOKING ---
-            // Pastikan barang emang lagi dipinjam, bukan rusak
-            if ($asset->status != 'deployed') {
-                return back()->with('error', 'Booking hanya bisa dilakukan jika aset sedang dipinjam orang lain.');
-            }
-            // (Disini kita SKIP pengecekan stok quantity > 0)
-            
-        } else {
-            // --- LOGIKA PINJAM BIASA ---
-            if ($asset->quantity < $request->quantity) {
-                return back()->with('error', "Gagal! Stok tidak mencukupi. Tersisa {$asset->quantity} unit.");
-            }
-            if ($asset->status != 'available') {
-                return back()->with('error', "Gagal! Aset sedang tidak tersedia (Status: {$asset->status}).");
-            }
-        }
-
-        // 4. Format Tanggal
-        $fullReturnDate = null;
-        if (!empty($validatedData['return_date'])) {
-            $time = $validatedData['return_time'] ?? '17:00:00'; 
-            $fullReturnDate = $validatedData['return_date'] . ' ' . $time;
-        }
-
-        // 5. Simpan Request
-        \App\Models\AssetRequest::create([
-            'user_id' => $user->id,
-            'asset_id' => $validatedData['asset_id'],
-            'quantity' => $validatedData['quantity'],
-            'request_date' => now(),
-            'return_date' => $fullReturnDate,
-            'reason' => $validatedData['reason'],
-            'status' => 'pending' // Masuk antrian admin
-        ]);
-
-        $msg = $request->is_booking ? 'Berhasil Booking! Menunggu aset dikembalikan & persetujuan Admin.' : 'Permintaan berhasil dikirim! Menunggu persetujuan Admin.';
-
-        return back()->with('success', $msg);
     }
 
     /**
@@ -84,47 +57,14 @@ class AssetRequestController extends Controller
      */
     public function approve($id)
     {
-        $request = AssetRequest::findOrFail($id);
-        $asset = Asset::findOrFail($request->asset_id);
+        $assetRequest = AssetRequest::findOrFail($id);
 
-        // 1. Cek Stok Lagi (Untuk keamanan saat admin klik approve)
-        if ($asset->quantity < $request->quantity) {
-            return back()->with('error', 'Gagal! Stok barang ini sudah habis atau tidak cukup.');
+        try {
+            $this->assetService->approveAssetRequest($assetRequest);
+            return back()->with('success', 'Permintaan disetujui. Stok aset telah dikurangi.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
         }
-
-        // 2. KURANGI STOK (POIN B: Sesuai jumlah pinjam)
-        $asset->decrement('quantity', $request->quantity);
-
-        // 3. Update Status Aset
-        // Jika stok habis (0), ubah status jadi deployed. 
-        // Jika masih ada sisa, biarkan available agar orang lain bisa pinjam sisanya.
-        if ($asset->quantity == 0) {
-            $asset->update([
-                'status' => 'deployed',
-                'user_id' => $request->user_id, // Set pemegang terakhir
-                'assigned_date' => now(),
-                'return_date' => $request->return_date
-            ]);
-        } else {
-            // Jika ini barang bulk (stok banyak), status tetap available 
-            // tapi kita catat tanggalnya saja di background
-            $asset->update([
-                'status' => 'available' 
-            ]);
-        }
-
-        // 4. Update Status Request
-        $request->update(['status' => 'approved']);
-
-        // 5. Catat History
-        AssetHistory::create([
-            'asset_id' => $asset->id,
-            'user_id' => auth()->id(), // Admin yang approve
-            'action' => 'approved',
-            'notes' => "Disetujui untuk: {$request->user->name}. Mengurangi stok sebanyak {$request->quantity}."
-        ]);
-
-        return back()->with('success', 'Permintaan disetujui. Stok aset telah dikurangi.');
     }
 
     /**
@@ -132,27 +72,15 @@ class AssetRequestController extends Controller
      */
     public function reject(Request $req, $id)
     {
-        $request = AssetRequest::findOrFail($id);
+        $assetRequest = AssetRequest::findOrFail($id);
 
-        // Validasi Alasan
-        $req->validate([
-            'admin_note' => 'required|string|max:255'
-        ]);
+        $req->validate(['admin_note' => 'required|string|max:255']);
 
-        // Update Status Request
-        $request->update([
-            'status' => 'rejected',
-            'admin_note' => $req->admin_note
-        ]);
-
-        // Catat History
-        AssetHistory::create([
-            'asset_id' => $request->asset_id,
-            'user_id' => auth()->id(),
-            'action' => 'rejected',
-            'notes' => "Ditolak: " . $req->admin_note
-        ]);
-
-        return back()->with('success', 'Permintaan berhasil ditolak.');
+        try {
+            $this->assetService->rejectAssetRequest($assetRequest, $req->admin_note);
+            return back()->with('success', 'Permintaan berhasil ditolak.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
     }
 }

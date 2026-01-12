@@ -99,6 +99,9 @@
         .bg-maintenance { background-color: #f59e0b; }
         .bg-broken { background-color: #ef4444; }
         .asset-img { width: 40px; height: 40px; object-fit: cover; border: 1px solid #ccc; }
+        
+        /* QR CODE STYLES */
+        .qr-code { width: 50px; height: 50px; object-fit: contain; }
 
         /* PAGE NUMBERING */
         @page {
@@ -123,7 +126,11 @@
 
     <div class="header-container">
         <div class="logo-wrapper">
-            <img src="{{ asset('img/logoVitechAsia.png') }}" class="logo-img" alt="Logo">
+            @if(isset($logoBase64) && !empty($logoBase64))
+                <img src="{{ $logoBase64 }}" class="logo-img" alt="Logo" style="width: 120px; height: auto;">
+            @else
+                <img src="{{ isset($publicPath) ? $publicPath . '/img/logoVitechAsia.png' : public_path('img/logoVitechAsia.png') }}" class="logo-img" alt="Logo" style="width: 120px; height: auto;">
+            @endif
         </div>
         <div class="header-content">
             <h1>{{ $customTitle ?? 'Laporan Aset IT' }}</h1>
@@ -159,8 +166,8 @@
                 <th style="width: 5%;">No</th>
                 @if($showImages) <th style="width: 8%;">Foto</th> @endif
                 <th style="width: 25%;">Nama Aset / Spesifikasi</th>
-                <th style="width: 15%;">Serial Number</th>
-                <th style="width: 12%;">Kategori</th>
+                <th style="width: 12%;">Serial Number</th>
+                <th style="width: 10%;">QR Code</th>
                 <th style="width: 8%;">Stok</th>
                 <th style="width: 12%;">Status</th>
                 <th style="width: 15%;">Lokasi</th>
@@ -173,8 +180,15 @@
                 
                 @if($showImages)
                 <td style="text-align: center;">
-                    @if($asset->image)
-                        <img src="{{ asset('storage/' . $asset->image) }}" class="asset-img">
+                    @if($asset->image || isset($asset->image_base64))
+                        @if(isset($asset->image_base64) && !empty($asset->image_base64))
+                            <img src="{{ $asset->image_base64 }}" class="asset-img" style="max-width: 50px; max-height: 50px;">
+                        @else
+                            @php
+                                $imagePath = (isset($storagePath) ? $storagePath : storage_path('app/public')) . '/' . $asset->image;
+                            @endphp
+                            <img src="{{ $imagePath }}" class="asset-img" style="max-width: 50px; max-height: 50px;">
+                        @endif
                     @else - @endif
                 </td>
                 @endif
@@ -184,7 +198,9 @@
                     <div style="font-size: 8px; color: #555;">{{ Str::limit($asset->description, 50) }}</div>
                 </td>
                 <td style="font-family: monospace;">{{ $asset->serial_number }}</td>
-                <td>{{ $asset->category ?? '-' }}</td>
+                <td style="text-align: center;">
+                    <img src="{{ $asset->qr_code }}" alt="QR-{{ $asset->serial_number }}" class="qr-code" style="width: 40px; height: 40px;">
+                </td>
                 <td style="text-align: center; font-weight: bold;">{{ $asset->quantity }}</td>
                 <td style="text-align: center;">
                     @php
@@ -211,7 +227,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="8" style="text-align: center; padding: 20px;">Data tidak ditemukan.</td>
+                <td colspan="7" style="text-align: center; padding: 20px;">Data tidak ditemukan.</td>
             </tr>
             @endforelse
         </tbody>
