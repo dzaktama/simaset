@@ -82,7 +82,7 @@
 
             {{-- TOMBOL AKSI --}}
             <div class="p-4 bg-gray-50 border-t border-gray-200 space-y-2">
-                {{-- [REVISI 1] Nama Tombol Diganti --}}
+                {{-- [REVISI] Teks Tombol Diubah --}}
                 <button type="button" onclick="triggerPrint()" class="w-full flex justify-center items-center gap-2 bg-indigo-600 text-white py-3 rounded-lg text-sm font-bold hover:bg-indigo-700 shadow-md transition transform hover:-translate-y-0.5">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
                     Cetak Laporan PDF

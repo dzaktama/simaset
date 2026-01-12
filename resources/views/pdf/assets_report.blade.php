@@ -52,7 +52,7 @@
             margin-bottom: 20px;
         }
         
-        /* [REVISI 2] Logo Diperbesar dari 80px ke 120px */
+        /* [REVISI] Logo Diperbesar ke 120px */
         .logo-wrapper { 
             width: 120px; 
             flex-shrink: 0; 
@@ -61,7 +61,7 @@
             width: 100%; 
             height: auto; 
         }
-        /* Padding kanan header teks disamakan dgn lebar logo agar teks tetap di tengah page */
+        /* Padding kanan header teks disamakan dgn lebar logo agar teks tetap di tengah */
         .header-content { 
             flex-grow: 1; 
             text-align: center; 

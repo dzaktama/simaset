@@ -32,7 +32,7 @@ Route::middleware('guest')->group(function () {
 // --- CAPTCHA REFRESH ---
 Route::get('/refresh-captcha', [AuthController::class, 'refreshCaptcha'])->name('refresh.captcha');
 
-// --- PROTECTED ROUTES (User Login) ---
+// --- PROTECTED ROUTES (User Login: Admin & Karyawan) ---
 Route::middleware('auth')->group(function () {
     
     // Logout
@@ -40,6 +40,10 @@ Route::middleware('auth')->group(function () {
 
     // Dashboard Utama
     Route::get('/dashboard', [AssetController::class, 'dashboard'])->name('dashboard');
+
+    // [PERBAIKAN] Route '/assets' (Index/Daftar) ditaruh DI LUAR grup admin
+    // Agar Karyawan bisa akses halaman list untuk melakukan peminjaman
+    Route::get('/assets', [AssetController::class, 'index'])->name('assets.index');
 
     // === SECTION: KARYAWAN ===
     // Aset Saya
@@ -54,8 +58,9 @@ Route::middleware('auth')->group(function () {
     // === SECTION: ADMIN ONLY ===
     Route::middleware(['is_admin'])->group(function () {
         
-        // Manajemen Aset (CRUD)
-        Route::resource('assets', AssetController::class);
+        // Manajemen Aset (CRUD Lengkap KECUALI Index yang sudah ada di atas)
+        // Kita gunakan 'except' index agar tidak bentrok
+        Route::resource('assets', AssetController::class)->except(['index']);
         
         // Manajemen User
         Route::resource('users', UserController::class);
@@ -68,9 +73,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/returns/{id}/verify', [AssetReturnController::class, 'verify'])->name('returns.verify');
 
         // Laporan (View & PDF Export)
-        // [PERBAIKAN] Pastikan method report() dan exportPdf() ada di AssetController
         Route::get('/reports', [AssetController::class, 'report'])->name('report.index');
         Route::get('/reports/export-pdf', [AssetController::class, 'exportPdf'])->name('report.pdf');
     });
 
 });
+

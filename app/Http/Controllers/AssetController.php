@@ -488,10 +488,11 @@ class AssetController extends Controller
         $data = [
             'assets' => $assets,
             
-            // Waktu & Tanggal
-            'date' => now()->translatedFormat('d F Y'),
-            'printTime' => now()->format('H:i'),
-            'title' => 'Laporan Aset IT - ' . now()->format('Y-m-d'),
+            // [FIX TIME] Paksa konversi ke Asia/Jakarta biar akurat 100%
+            'date' => now()->setTimezone('Asia/Jakarta')->translatedFormat('d F Y'),
+            'printTime' => now()->setTimezone('Asia/Jakarta')->format('H:i'),
+            
+            'title' => 'Laporan Aset IT - ' . now()->setTimezone('Asia/Jakarta')->format('Y-m-d'),
             
             // Filter Info
             'filterStatus' => ucfirst($status), 
