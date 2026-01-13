@@ -83,5 +83,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports/download', [ReportController::class, 'downloadPdf'])->name('report.download');
     });
 
+    // Chart data (dipakai di dashboard untuk admin & user)
+    Route::get('/charts/asset-stats', [AssetController::class, 'chartsData'])->name('charts.asset_stats');
+    Route::get('/charts/borrow-stats', [AssetController::class, 'borrowStats'])->name('charts.borrow_stats');
+    Route::get('/charts/details', [AssetController::class, 'chartDetails'])->name('charts.details');
+
 });
 

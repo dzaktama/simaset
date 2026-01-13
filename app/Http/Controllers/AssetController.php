@@ -306,4 +306,155 @@ class AssetController extends Controller
             'asset' => $asset
         ]);
     }
+
+    /**
+     * Endpoint untuk data chart di dashboard
+     * range: daily | monthly | yearly
+     * Balik JSON: status counts + time series untuk assets created
+     */
+    public function chartsData(Request $request)
+    {
+        // Santai aja, kita bikin data yang umum dibutuhkan: status counts + series waktu
+        $range = $request->query('range', 'monthly'); // default monthly
+
+        // Status counts sekarang
+        $statusCounts = [
+            'available' => Asset::where('status', 'available')->count(),
+            'deployed' => Asset::where('status', 'deployed')->count(),
+            'maintenance' => Asset::where('status', 'maintenance')->count(),
+            'broken' => Asset::where('status', 'broken')->count(),
+            'total' => Asset::count()
+        ];
+
+        $series = [
+            'labels' => [],
+            'data' => []
+        ];
+
+        if ($range === 'daily') {
+            // last 7 days
+            for ($i = 6; $i >= 0; $i--) {
+                $day = now()->subDays($i)->format('Y-m-d');
+                $series['labels'][] = now()->subDays($i)->format('d M');
+                $series['data'][] = Asset::whereDate('created_at', $day)->count();
+            }
+        } elseif ($range === 'yearly') {
+            // last 5 years
+            $currentYear = now()->year;
+            for ($y = $currentYear - 4; $y <= $currentYear; $y++) {
+                $series['labels'][] = (string)$y;
+                $series['data'][] = Asset::whereYear('created_at', $y)->count();
+            }
+        } else {
+            // monthly (default) - last 12 months
+            for ($m = 11; $m >= 0; $m--) {
+                $dt = now()->subMonths($m);
+                $series['labels'][] = $dt->format('M Y');
+                $series['data'][] = Asset::whereYear('created_at', $dt->year)
+                                        ->whereMonth('created_at', $dt->month)
+                                        ->count();
+            }
+        }
+
+        return response()->json([
+            'statusCounts' => $statusCounts,
+            'series' => $series,
+            'range' => $range
+        ]);
+    }
+
+    /**
+     * Data peminjaman (approved requests) untuk chart
+     * range: daily | monthly | yearly
+     */
+    public function borrowStats(Request $request)
+    {
+        $range = $request->query('range', 'monthly');
+
+        $series = ['labels' => [], 'data' => []];
+
+        if ($range === 'daily') {
+            // last 7 days
+            for ($i = 6; $i >= 0; $i--) {
+                $day = now()->subDays($i)->format('Y-m-d');
+                $series['labels'][] = now()->subDays($i)->format('d M');
+                $series['data'][] = \App\Models\AssetRequest::whereDate('created_at', $day)->where('status','approved')->count();
+            }
+        } elseif ($range === 'yearly') {
+            $currentYear = now()->year;
+            for ($y = $currentYear - 4; $y <= $currentYear; $y++) {
+                $series['labels'][] = (string)$y;
+                $series['data'][] = \App\Models\AssetRequest::whereYear('created_at', $y)->where('status','approved')->count();
+            }
+        } else {
+            // monthly last 12 months
+            for ($m = 11; $m >= 0; $m--) {
+                $dt = now()->subMonths($m);
+                $series['labels'][] = $dt->format('M Y');
+                $series['data'][] = \App\Models\AssetRequest::whereYear('created_at', $dt->year)
+                                            ->whereMonth('created_at', $dt->month)
+                                            ->where('status','approved')
+                                            ->count();
+            }
+        }
+
+        // Totals
+        $totalApproved = \App\Models\AssetRequest::where('status','approved')->count();
+
+        return response()->json([
+            'series' => $series,
+            'totalApproved' => $totalApproved,
+            'range' => $range
+        ]);
+    }
+
+    /**
+     * Detail items for a clicked chart point (drilldown)
+     * Query params: metric=assets|borrows, label=<label_string>, range=daily|monthly|yearly
+     */
+    public function chartDetails(Request $request)
+    {
+        $metric = $request->query('metric', 'assets');
+        $label = $request->query('label');
+        $range = $request->query('range', 'monthly');
+
+        $items = [];
+
+        if ($metric === 'assets') {
+            // Parse label depending on range
+            if ($range === 'daily') {
+                $date = \Carbon\Carbon::createFromFormat('d M', $label)->setYear(now()->year)->format('Y-m-d');
+                $assets = Asset::whereDate('created_at', $date)->get();
+            } elseif ($range === 'yearly') {
+                $year = (int)$label;
+                $assets = Asset::whereYear('created_at', $year)->get();
+            } else {
+                // monthly label like 'Mar 2026'
+                $dt = \Carbon\Carbon::createFromFormat('M Y', $label);
+                $assets = Asset::whereYear('created_at', $dt->year)->whereMonth('created_at', $dt->month)->get();
+            }
+
+            foreach ($assets as $a) {
+                $items[] = ['id' => $a->id, 'name' => $a->name, 'sn' => $a->serial_number, 'created_at' => $a->created_at->toDateTimeString()];
+            }
+        } else {
+            // borrows (approved requests)
+            if ($range === 'daily') {
+                $date = \Carbon\Carbon::createFromFormat('d M', $label)->setYear(now()->year)->format('Y-m-d');
+                $reqs = \App\Models\AssetRequest::with('asset','user')->whereDate('created_at', $date)->where('status','approved')->get();
+            } elseif ($range === 'yearly') {
+                $year = (int)$label;
+                $reqs = \App\Models\AssetRequest::with('asset','user')->whereYear('created_at', $year)->where('status','approved')->get();
+            } else {
+                $dt = \Carbon\Carbon::createFromFormat('M Y', $label);
+                $reqs = \App\Models\AssetRequest::with('asset','user')->whereYear('created_at', $dt->year)->whereMonth('created_at', $dt->month)->where('status','approved')->get();
+            }
+
+            foreach ($reqs as $r) {
+                $items[] = ['id' => $r->id, 'asset' => $r->asset->name ?? '-', 'user' => $r->user->name ?? '-', 'qty' => $r->quantity, 'created_at' => $r->created_at->toDateTimeString()];
+            }
+        }
+
+        return response()->json(['items' => $items]);
+    }
 }

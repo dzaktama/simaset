@@ -62,12 +62,7 @@
         </div>
     </div>
 
-    {{--
-        Form logout tersembunyi.
-        Kita pake form POST biar sesuai route logout yang aman (butuh CSRF token).
-        Kalau POST gagal (mis. token udah expired), script bakal redirect ke /login sebagai fallback.
-        Komennya santai biar gampang dimengerti: kalo nganggur 5 menit, auto logout.
-    --}}
+    
     <form id="idle-logout-form" action="{{ route('logout') }}" method="POST" style="display:none;">
         @csrf
     </form>
@@ -134,6 +129,9 @@
             resetTimer();
         })();
     </script>
+
+            {{-- Chart.js CDN (dipakai di dashboard) --}}
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 </body>
 </html>

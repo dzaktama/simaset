@@ -112,6 +112,31 @@
             </div>
         </div>
 
+        {{-- GRAFIK DASHBOARD (ADMIN) --}}
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div class="col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-lg font-bold text-gray-900">Tren Penambahan Aset</h3>
+                    <div class="flex items-center gap-2">
+                        <button data-range="daily" class="range-btn px-3 py-1 text-sm rounded bg-gray-100">Harian</button>
+                        <button data-range="monthly" class="range-btn px-3 py-1 text-sm rounded bg-indigo-600 text-white">Bulanan</button>
+                        <button data-range="yearly" class="range-btn px-3 py-1 text-sm rounded bg-gray-100">Tahunan</button>
+                    </div>
+                </div>
+                <div style="height:320px; max-height:360px;">
+                    <canvas id="assetsTimeSeries" style="height:100%; width:100%;"></canvas>
+                </div>
+            </div>
+
+            <div class="col-span-1 bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <h3 class="text-lg font-bold text-gray-900 mb-3">Status Aset Saat Ini</h3>
+                <div style="height:260px;">
+                    <canvas id="assetsStatusPie" style="height:100%; width:100%;"></canvas>
+                </div>
+                <div class="mt-4 text-sm text-gray-600">Legend: Available / Deployed / Maintenance / Broken</div>
+            </div>
+        </div>
+
         {{-- TABEL PERMINTAAN MASUK (FULL WIDTH) --}}
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
             <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-xl">
@@ -339,6 +364,113 @@
         </div>
 
         <script>
+            // Dashboard Charts (Chart.js) - hanya untuk admin
+            (function(){
+                if (!document.getElementById('assetsTimeSeries')) return;
+
+                const timeCtx = document.getElementById('assetsTimeSeries').getContext('2d');
+                const pieCtx = document.getElementById('assetsStatusPie').getContext('2d');
+
+                let timeChart = null;
+                let pieChart = null;
+
+                async function loadCharts(range = 'monthly'){
+                    try{
+                        const res = await fetch(`/charts/asset-stats?range=${range}`, {credentials: 'same-origin'});
+                        const json = await res.json();
+
+                        // Time series
+                        const labels = json.series.labels;
+                        const data = json.series.data;
+
+                        if (timeChart) timeChart.destroy();
+                        timeChart = new Chart(timeCtx, {
+                            type: 'line',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    label: 'Aset Dibuat',
+                                    data: data,
+                                    fill: true,
+                                    backgroundColor: 'rgba(99,102,241,0.08)',
+                                    borderColor: 'rgba(99,102,241,1)',
+                                    pointRadius: 4,
+                                    pointHoverRadius: 6,
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                interaction: { mode: 'index', intersect: false },
+                                plugins: {
+                                    tooltip: {
+                                        enabled: true,
+                                        callbacks: {
+                                            title: (items) => items[0].label,
+                                            label: (ctx) => {
+                                                const val = ctx.parsed.y ?? ctx.parsed ?? ctx.raw;
+                                                return `Jumlah aset dibuat: ${val}`;
+                                            }
+                                        }
+                                    },
+                                    legend: { display: false }
+                                },
+                                scales: {
+                                    x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 12 } },
+                                    y: { beginAtZero: true }
+                                }
+                            }
+                        });
+
+                        // Pie status
+                        const sc = json.statusCounts;
+                        const pieData = [sc.available, sc.deployed, sc.maintenance, sc.broken];
+
+                        if (pieChart) pieChart.destroy();
+                        pieChart = new Chart(pieCtx, {
+                            type: 'doughnut',
+                            data: {
+                                labels: ['Available','Deployed','Maintenance','Broken'],
+                                datasets: [{ data: pieData, backgroundColor: ['#10B981','#3B82F6','#F59E0B','#EF4444'] }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    tooltip: {
+                                        callbacks: {
+                                            label: (ctx) => {
+                                                const label = ctx.label || '';
+                                                const val = ctx.parsed || 0;
+                                                const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
+                                                const pct = total ? ((val/total)*100).toFixed(1) : 0;
+                                                return `${label}: ${val} (${pct}%)`;
+                                            }
+                                        }
+                                    },
+                                    legend: { position: 'top', labels: { boxWidth:12 } }
+                                }
+                            }
+                        });
+
+                    }catch(err){
+                        console.error('Gagal load chart data', err);
+                    }
+                }
+
+                // Inisialisasi default
+                loadCharts('monthly');
+
+                // Range buttons
+                document.querySelectorAll('.range-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('bg-indigo-600','text-white'));
+                        e.currentTarget.classList.add('bg-indigo-600','text-white');
+                        const range = e.currentTarget.getAttribute('data-range');
+                        loadCharts(range);
+                    });
+                });
+            })();
             // Script Modal Verifikasi
             function openVerifyModal(retData, assetData, userData) {
                 // Populate Data
