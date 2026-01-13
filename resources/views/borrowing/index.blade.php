@@ -110,23 +110,23 @@
         </form>
     </div>
 
-    <!-- Table -->
-    <div class="bg-white rounded-lg shadow overflow-hidden">
+    <!-- Table Responsive -->
+    <div class="bg-white rounded-lg shadow overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50 border-b border-gray-200">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Peminjam</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aset</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Peminjaman</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durasi</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Peminjam</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aset</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tanggal Peminjaman</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Durasi</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aksi</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
                 @forelse($borrowings as $borrowing)
                     <tr class="hover:bg-gray-50 transition">
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-4 py-4 whitespace-nowrap">
                             <div class="flex items-center">
                                 <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
                                     <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -135,11 +135,11 @@
                                 </div>
                                 <div class="ml-4">
                                     <p class="text-sm font-medium text-gray-900">{{ $borrowing->user->name ?? 'N/A' }}</p>
-                                    <p class="text-sm text-gray-500">{{ $borrowing->user->email ?? '' }}</p>
+                                    <p class="text-sm text-gray-500">{{ $borrowing->user->email ?? '-' }}</p>
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-4 py-4 whitespace-nowrap">
                             <div class="flex items-center gap-2">
                                 <div class="h-8 w-8 rounded bg-indigo-100 flex items-center justify-center">
                                     <svg class="h-4 w-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -149,19 +149,18 @@
                                 <span class="text-sm font-medium text-gray-900">{{ $borrowing->asset->name ?? 'N/A' }}</span>
                             </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {{ \Carbon\Carbon::parse($borrowing->request_date ?? $borrowing->created_at)->format('d M Y') }}
+                        <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {{ $borrowing->request_date ? \Carbon\Carbon::parse($borrowing->request_date)->format('d M Y H:i') : ($borrowing->created_at ? \Carbon\Carbon::parse($borrowing->created_at)->format('d M Y H:i') : '-') }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-4 py-4 whitespace-nowrap">
                             @if($borrowing->borrowing_status === 'active')
                                 <div class="text-sm">
                                     <span class="font-medium text-gray-900" id="duration-{{ $borrowing->id }}">Menghitung...</span>
                                 </div>
                                 <script>
                                     (function() {
-                                        const startDate = new Date('{{ \Carbon\Carbon::parse($borrowing->request_date ?? $borrowing->created_at)->toIso8601String() }}');
+                                        const startDate = new Date('{{ $borrowing->request_date ? \Carbon\Carbon::parse($borrowing->request_date)->toIso8601String() : ($borrowing->created_at ? \Carbon\Carbon::parse($borrowing->created_at)->toIso8601String() : '') }}');
                                         const durationEl = document.getElementById('duration-{{ $borrowing->id }}');
-                                        
                                         function updateDuration() {
                                             const now = new Date();
                                             const diffMs = now - startDate;
@@ -174,11 +173,13 @@
                                         setInterval(updateDuration, 60000);
                                     })();
                                 </script>
+                            @elseif($borrowing->borrowing_status === 'returned' && $borrowing->returned_at && $borrowing->created_at)
+                                <span class="text-sm text-gray-900">{{ \Carbon\Carbon::parse($borrowing->returned_at)->diffInDays(\Carbon\Carbon::parse($borrowing->created_at)) }} hari</span>
                             @else
                                 <span class="text-sm text-gray-500">-</span>
                             @endif
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-4 py-4 whitespace-nowrap">
                             @if($borrowing->borrowing_status === 'active')
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                     <span class="w-2 h-2 bg-green-600 rounded-full mr-2 animate-pulse"></span>
@@ -191,6 +192,13 @@
                                     </svg>
                                     Dikembalikan
                                 </span>
+                            @elseif($borrowing->borrowing_status === 'rejected')
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Ditolak
+                                </span>
                             @else
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                                     <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -200,7 +208,7 @@
                                 </span>
                             @endif
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
+                        <td class="px-4 py-4 whitespace-nowrap text-sm text-center">
                             <div class="flex justify-center gap-2">
                                 <a href="{{ route('borrowing.show', $borrowing->id) }}" class="text-blue-600 hover:text-blue-900 transition font-medium">
                                     Detail

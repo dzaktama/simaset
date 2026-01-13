@@ -4,18 +4,20 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
     <div class="mb-8">
-        <div class="flex items-center justify-between mb-4">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-900">Detail Peminjaman</h1>
-                <p class="text-gray-600 mt-2">#{{ $borrowing->id }}</p>
-            </div>
-            <a href="{{ route('borrowing.index') }}" class="text-blue-600 hover:text-blue-900 flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                </svg>
-                Kembali
-            </a>
-        </div>
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
+    <div>
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Detail Peminjaman</h1>
+        <p class="text-gray-600 mt-1 sm:mt-2">#{{ $borrowing->id }}</p>
+    </div>
+    
+    {{-- Tombol Kembali --}}
+    <a href="{{ route('borrowing.index') }}" class="text-blue-600 hover:text-blue-900 flex items-center gap-2 self-start sm:self-center">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+        Kembali
+    </a>
+</div>
 
         <!-- Status Badge -->
         <div>
@@ -71,7 +73,7 @@
                         </div>
                         <div>
                             <p class="text-sm text-gray-600">Nama Lengkap</p>
-                            <p class="font-semibold text-gray-900">{{ $borrowing->user->name ?? 'N/A' }}</p>
+                            <p class="font-semibold text-gray-900">{{ $borrowing->user->name ?? '-' }}</p>
                         </div>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -100,7 +102,7 @@
                 <div class="px-6 py-4 space-y-4">
                     <div>
                         <p class="text-sm text-gray-600">Nama Aset</p>
-                        <p class="font-semibold text-lg text-gray-900">{{ $borrowing->asset->name ?? 'N/A' }}</p>
+                        <p class="font-semibold text-lg text-gray-900">{{ $borrowing->asset->name ?? '-' }}</p>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
@@ -123,12 +125,12 @@
                                     {{ ucfirst(str_replace('_', ' ', $borrowing->condition)) }}
                                 </span>
                             @else
-                                <span class="text-gray-500">-</span>
+                                <span class="text-gray-500">Belum ada data kondisi</span>
                             @endif
                         </div>
                         <div>
                             <p class="text-sm text-gray-600">Jumlah</p>
-                            <p class="font-medium text-gray-900">{{ $borrowing->quantity ?? 1 }} Unit</p>
+                            <p class="font-medium text-gray-900">{{ $borrowing->quantity ?? '-' }} Unit</p>
                         </div>
                     </div>
                 </div>
@@ -147,20 +149,29 @@
                 <div class="px-6 py-4">
                     <div class="space-y-6">
                         <!-- Diajukan -->
-                        <div class="flex gap-4">
-                            <div class="flex flex-col items-center">
-                                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                                    <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                    </svg>
-                                </div>
-                                <div class="w-1 h-12 bg-gray-300 mt-2"></div>
+                       <div class="flex gap-4">
+                        <div class="flex flex-col items-center">
+                            <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0 z-10">
+                                <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                </svg>
                             </div>
-                            <div class="py-2">
-                                <p class="font-semibold text-gray-900">Permintaan Diajukan</p>
-                                <p class="text-sm text-gray-600">{{ \Carbon\Carbon::parse($borrowing->request_date ?? $borrowing->created_at)->format('d F Y, H:i') }}</p>
-                            </div>
+                            
+                            <div class="w-0.5 h-full bg-gray-300 -my-2"></div> 
                         </div>
+                        <div class="py-2 pb-6"> {{-- Tambah padding bottom biar ada jarak --}}
+                            <p class="font-semibold text-gray-900">Permintaan Diajukan</p>
+                            <p class="text-sm text-gray-600">
+                                @if($borrowing->request_date)
+                                    {{ \Carbon\Carbon::parse($borrowing->request_date)->format('d F Y, H:i') }}
+                                @elseif($borrowing->created_at)
+                                    {{ \Carbon\Carbon::parse($borrowing->created_at)->format('d F Y, H:i') }}
+                                @else
+                                    -
+                                @endif
+                            </p>
+                        </div>
+                    </div>
 
                         <!-- Disetujui/Ditolak -->
                         <div class="flex gap-4">
@@ -185,7 +196,13 @@
                                     {{ $borrowing_status === 'rejected' ? 'Permintaan Ditolak' : 'Permintaan Disetujui' }}
                                 </p>
                                 <p class="text-sm text-gray-600">
-                                    {{ $borrowing->approved_at ? \Carbon\Carbon::parse($borrowing->approved_at)->format('d F Y, H:i') : '-' }}
+                                    @if($borrowing->approved_at)
+                                        {{ \Carbon\Carbon::parse($borrowing->approved_at)->format('d F Y, H:i') }}
+                                    @elseif($borrowing_status === 'pending')
+                                        <span class="text-yellow-700">Belum disetujui</span>
+                                    @else
+                                        -
+                                    @endif
                                 </p>
                             </div>
                         </div>
@@ -211,7 +228,13 @@
                                         {{ $borrowing_status === 'active' ? 'Sedang Dipinjam' : 'Dikembalikan' }}
                                     </p>
                                     <p class="text-sm text-gray-600">
-                                        {{ $borrowing->returned_at ? \Carbon\Carbon::parse($borrowing->returned_at)->format('d F Y, H:i') : '-' }}
+                                        @if($borrowing->returned_at)
+                                            {{ \Carbon\Carbon::parse($borrowing->returned_at)->format('d F Y, H:i') }}
+                                        @elseif($borrowing_status === 'active')
+                                            <span class="text-green-700">Belum dikembalikan</span>
+                                        @else
+                                            -
+                                        @endif
                                     </p>
                                 </div>
                             </div>
@@ -273,8 +296,10 @@
                 @else
                     <div class="text-center">
                         <div class="text-3xl font-bold">
-                            @if($borrowing->returned_at)
+                            @if($borrowing->returned_at && $borrowing->created_at)
                                 {{ \Carbon\Carbon::parse($borrowing->returned_at)->diffInDays(\Carbon\Carbon::parse($borrowing->created_at)) }} Hari
+                            @elseif($borrowing_status === 'active')
+                                <span class="text-green-700">Masih dipinjam</span>
                             @else
                                 -
                             @endif
@@ -287,13 +312,13 @@
             <!-- ID Card -->
             <div class="bg-white rounded-lg shadow p-6 border-l-4 border-gray-400">
                 <p class="text-sm text-gray-600 mb-1">ID Peminjaman</p>
-                <p class="text-2xl font-bold text-gray-900 font-mono">#{{ $borrowing->id }}</p>
+                <p class="text-2xl font-bold text-gray-900 font-mono">#{{ $borrowing->id ?? '-' }}</p>
             </div>
 
             <!-- Quantity Card -->
             <div class="bg-white rounded-lg shadow p-6 border-l-4 border-indigo-400">
                 <p class="text-sm text-gray-600 mb-1">Jumlah Dipinjam</p>
-                <p class="text-2xl font-bold text-gray-900">{{ $borrowing->quantity ?? 1 }} Unit</p>
+                <p class="text-2xl font-bold text-gray-900">{{ $borrowing->quantity ?? '-' }} Unit</p>
             </div>
 
             <!-- Status Badge Large -->

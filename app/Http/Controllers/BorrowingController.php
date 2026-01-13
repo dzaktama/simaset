@@ -47,7 +47,22 @@ class BorrowingController extends Controller
             $query->oldest('created_at');
         }
 
+
+        // Ambil data dan hitung status dinamis (agar sama dengan detail)
         $borrowings = $query->paginate(15)->appends($request->query());
+        // Map status logic ke setiap item
+        $borrowings->getCollection()->transform(function($item) {
+            $status = 'pending';
+            if ($item->status === 'rejected') {
+                $status = 'rejected';
+            } elseif ($item->status === 'approved' && $item->returned_at) {
+                $status = 'returned';
+            } elseif ($item->status === 'approved' && !$item->returned_at) {
+                $status = 'active';
+            }
+            $item->borrowing_status = $status;
+            return $item;
+        });
 
         // Statistics
         $statistics = [
@@ -68,15 +83,17 @@ class BorrowingController extends Controller
      */
     public function show($id)
     {
+        // Pastikan load user dan asset
         $borrowing = AssetRequest::with(['user', 'asset'])->findOrFail($id);
 
-        // Get history
+        // FIX: Hapus pencarian berdasarkan 'asset_request_id' karena kolomnya tidak ada di DB
+        // Cukup cari history berdasarkan asset_id saja
         $history = AssetHistory::where('asset_id', $borrowing->asset_id)
             ->latest()
             ->take(10)
             ->get();
 
-        // Determine status
+        // Determine status (logika status biarkan sama)
         $status = 'pending';
         if ($borrowing->status === 'rejected') {
             $status = 'rejected';
