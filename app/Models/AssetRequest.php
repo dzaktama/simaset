@@ -17,12 +17,18 @@ class AssetRequest extends Model
     protected $fillable = [
         'user_id',
         'asset_id',
-        'quantity', // <--- Tambahkan ini
+        'quantity',
         'request_date',
         'return_date',
+        'borrowed_at',
+        'returned_at',
+        'approved_at',
         'reason',
         'status',
-        'admin_note'
+        'borrowing_status',
+        'admin_note',
+        'condition',
+        'return_notes'
     ];
     
     public function user()

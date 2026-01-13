@@ -51,6 +51,13 @@
                     </svg>
                     Laporan & Audit
                 </a>
+
+                <a href="{{ route('borrowing.index') }}" class="{{ request()->routeIs('borrowing.*') ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-gray-400 hover:bg-gray-800 hover:text-white' }} group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200">
+                    <svg class="mr-3 flex-shrink-0 h-5 w-5 {{ request()->routeIs('borrowing.*') ? 'text-white' : 'text-gray-500 group-hover:text-gray-300' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Manajemen Peminjaman
+                </a>
             @endif
 
             @if(auth()->user()->role !== 'admin')

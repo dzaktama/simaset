@@ -8,6 +8,7 @@ use App\Http\Controllers\AssetReturnController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\BorrowingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,7 +18,10 @@ use App\Http\Controllers\ReportController;
 
 // --- PUBLIC ROUTES (Tamu) ---
 Route::middleware('guest')->group(function () {
-    Route::get('/', function () { return view('welcome'); });
+    // Redirect root ke login
+    Route::get('/', function () { 
+        return redirect('/login'); 
+    });
     
     // Login & Register
     Route::get('/login', [AuthController::class, 'login'])->name('login');
@@ -81,6 +85,17 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports/export-pdf', [ReportController::class, 'exportPdf'])->name('report.pdf');
         Route::get('/reports/print', [ReportController::class, 'printReport'])->name('report.print');
         Route::get('/reports/download', [ReportController::class, 'downloadPdf'])->name('report.download');
+
+        // Manajemen Peminjaman
+        Route::prefix('borrowing')->group(function () {
+            Route::get('/', [BorrowingController::class, 'index'])->name('borrowing.index');
+            Route::get('{id}', [BorrowingController::class, 'show'])->name('borrowing.show');
+            Route::put('{id}/return', [BorrowingController::class, 'return'])->name('borrowing.return');
+            Route::get('user/{userId}/history', [BorrowingController::class, 'userHistory'])->name('borrowing.user-history');
+            Route::get('reports', [BorrowingController::class, 'report'])->name('borrowing.report');
+            Route::get('export/excel', [BorrowingController::class, 'exportExcel'])->name('borrowing.export-excel');
+            Route::get('stats', [BorrowingController::class, 'stats'])->name('borrowing.stats');
+        });
     });
 
     // Chart data (dipakai di dashboard untuk admin & user)

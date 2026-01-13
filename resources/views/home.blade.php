@@ -112,28 +112,72 @@
             </div>
         </div>
 
-        {{-- GRAFIK DASHBOARD (ADMIN) --}}
+        {{-- GRAFIK DASHBOARD (ADMIN) - CAROUSEL --}}
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <div class="col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-lg font-bold text-gray-900">Tren Penambahan Aset</h3>
-                    <div class="flex items-center gap-2">
-                        <button data-range="daily" class="range-btn px-3 py-1 text-sm rounded bg-gray-100">Harian</button>
-                        <button data-range="monthly" class="range-btn px-3 py-1 text-sm rounded bg-indigo-600 text-white">Bulanan</button>
-                        <button data-range="yearly" class="range-btn px-3 py-1 text-sm rounded bg-gray-100">Tahunan</button>
+            <div class="col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                {{-- Carousel Header --}}
+                <div class="bg-gradient-to-r from-indigo-600 to-blue-600 px-6 py-4 text-white">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-bold" id="chartTitle">📊 Tren Peminjaman Aset</h3>
+                            <p class="text-sm text-indigo-100 mt-1" id="chartDescription">Menampilkan jumlah aset yang diminta per periode</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button id="prevChart" class="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition transform hover:scale-110">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                            </button>
+                            <div class="flex gap-1.5">
+                                <div id="dot0" class="w-2 h-2 rounded-full bg-white transition-all cursor-pointer hover:bg-white/80"></div>
+                                <div id="dot1" class="w-2 h-2 rounded-full bg-white/40 transition-all cursor-pointer hover:bg-white/80"></div>
+                            </div>
+                            <button id="nextChart" class="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition transform hover:scale-110">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div style="height:320px; max-height:360px;">
-                    <canvas id="assetsTimeSeries" style="height:100%; width:100%;"></canvas>
+
+                {{-- Range Buttons --}}
+                <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button data-range="hourly" class="range-btn px-3 py-2 text-xs font-semibold rounded transition border border-transparent bg-white border-gray-300 hover:bg-gray-100 text-gray-700">Per Jam</button>
+                        <button data-range="daily" class="range-btn px-3 py-2 text-xs font-semibold rounded transition border border-transparent bg-white border-gray-300 hover:bg-gray-100 text-gray-700">Harian</button>
+                        <button data-range="monthly" class="range-btn px-3 py-2 text-xs font-semibold rounded transition border border-transparent bg-indigo-100 border-indigo-300 text-indigo-700 font-bold">Bulanan</button>
+                        <button data-range="yearly" class="range-btn px-3 py-2 text-xs font-semibold rounded transition border border-transparent bg-white border-gray-300 hover:bg-gray-100 text-gray-700">Tahunan</button>
+                    </div>
+                </div>
+
+                {{-- Charts Container --}}
+                <div class="p-6 relative overflow-hidden" style="height: 380px;">
+                    {{-- Chart 1: Tren Peminjaman --}}
+                    <div id="chartSlide0" class="absolute inset-0 p-6 transition-all duration-500 ease-out" style="opacity: 1; transform: translateX(0);">
+                        <div class="relative w-full h-full">
+                            <canvas id="borrowTrendChart"></canvas>
+                        </div>
+                    </div>
+
+                    {{-- Chart 2: Tren Penambahan Aset --}}
+                    <div id="chartSlide1" class="absolute inset-0 p-6 transition-all duration-500 ease-out" style="opacity: 0; transform: translateX(100%);">
+                        <div class="relative w-full h-full">
+                            <canvas id="assetAdditionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Info Footer --}}
+                <div class="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-600">
+                    <span id="chartInfo">📌 Geser atau klik tombol navigasi untuk melihat grafik lainnya</span>
                 </div>
             </div>
 
-            <div class="col-span-1 bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                <h3 class="text-lg font-bold text-gray-900 mb-3">Status Aset Saat Ini</h3>
-                <div style="height:260px;">
-                    <canvas id="assetsStatusPie" style="height:100%; width:100%;"></canvas>
+            <div class="col-span-1 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 mb-1">Status Aset Saat Ini</h3>
+                    <p class="text-sm text-gray-500 mb-4">Distribusi status aset keseluruhan</p>
                 </div>
-                <div class="mt-4 text-sm text-gray-600">Legend: Available / Deployed / Maintenance / Broken</div>
+                <div class="relative w-full" style="height: 280px;">
+                    <canvas id="assetsStatusPie"></canvas>
+                </div>
             </div>
         </div>
 
@@ -364,38 +408,183 @@
         </div>
 
         <script>
-            // Dashboard Charts (Chart.js) - hanya untuk admin
+            // Dashboard Charts with Carousel (Chart.js) - hanya untuk admin
             (function(){
-                if (!document.getElementById('assetsTimeSeries')) return;
+                const borrowCanvas = document.getElementById('borrowTrendChart');
+                const assetCanvas = document.getElementById('assetAdditionChart');
+                const pieCanvas = document.getElementById('assetsStatusPie');
+                
+                if (!borrowCanvas || !assetCanvas || !pieCanvas) return;
 
-                const timeCtx = document.getElementById('assetsTimeSeries').getContext('2d');
-                const pieCtx = document.getElementById('assetsStatusPie').getContext('2d');
+                const borrowCtx = borrowCanvas.getContext('2d');
+                const assetCtx = assetCanvas.getContext('2d');
+                const pieCtx = pieCanvas.getContext('2d');
 
-                let timeChart = null;
+                let borrowChart = null;
+                let assetChart = null;
                 let pieChart = null;
+                let currentSlide = 0;
+
+                // Carousel Config
+                const slides = [
+                    { id: 0, title: '📊 Tren Peminjaman Aset', description: 'Menampilkan jumlah aset yang diminta per periode' },
+                    { id: 1, title: '📈 Tren Penambahan Aset', description: 'Menampilkan pertambahan aset yang didaftarkan per periode' }
+                ];
+
+                function updateCarousel() {
+                    // Update title & description
+                    document.getElementById('chartTitle').innerText = slides[currentSlide].title;
+                    document.getElementById('chartDescription').innerText = slides[currentSlide].description;
+
+                    // Update dots
+                    document.querySelectorAll('[id^="dot"]').forEach((dot, i) => {
+                        if (i === currentSlide) {
+                            dot.classList.add('!bg-white');
+                            dot.classList.remove('bg-white/40');
+                        } else {
+                            dot.classList.remove('!bg-white');
+                            dot.classList.add('bg-white/40');
+                        }
+                    });
+
+                    // Update slides
+                    document.getElementById('chartSlide0').style.opacity = currentSlide === 0 ? '1' : '0';
+                    document.getElementById('chartSlide0').style.transform = currentSlide === 0 ? 'translateX(0)' : 'translateX(-100%)';
+                    
+                    document.getElementById('chartSlide1').style.opacity = currentSlide === 1 ? '1' : '0';
+                    document.getElementById('chartSlide1').style.transform = currentSlide === 1 ? 'translateX(0)' : 'translateX(100%)';
+                }
+
+                function nextSlide() {
+                    currentSlide = (currentSlide + 1) % slides.length;
+                    updateCarousel();
+                }
+
+                function prevSlide() {
+                    currentSlide = (currentSlide - 1 + slides.length) % slides.length;
+                    updateCarousel();
+                }
 
                 async function loadCharts(range = 'monthly'){
                     try{
-                        const res = await fetch(`/charts/asset-stats?range=${range}`, {credentials: 'same-origin'});
-                        const json = await res.json();
+                        // Fetch tren peminjaman
+                        const borrowRes = await fetch(`/charts/borrow-stats?range=${range}`, {credentials: 'same-origin'});
+                        if (!borrowRes.ok) throw new Error('Gagal fetch borrow-stats');
+                        const borrowJson = await borrowRes.json();
 
-                        // Time series
-                        const labels = json.series.labels;
-                        const data = json.series.data;
+                        // Fetch penambahan aset
+                        const assetRes = await fetch(`/charts/asset-stats?range=${range}`, {credentials: 'same-origin'});
+                        if (!assetRes.ok) throw new Error('Gagal fetch asset-stats');
+                        const assetJson = await assetRes.json();
 
-                        if (timeChart) timeChart.destroy();
-                        timeChart = new Chart(timeCtx, {
+                        // Chart 1: Tren Peminjaman & Penolakan
+                        const borrowLabels = borrowJson.series.labels;
+                        const approvedData = borrowJson.series.approved;
+                        const rejectedData = borrowJson.series.rejected;
+
+                        if (borrowChart) borrowChart.destroy();
+                        borrowChart = new Chart(borrowCtx, {
                             type: 'line',
                             data: {
-                                labels: labels,
+                                labels: borrowLabels,
+                                datasets: [
+                                    {
+                                        label: '✅ Disetujui',
+                                        data: approvedData,
+                                        fill: true,
+                                        backgroundColor: 'rgba(34,197,94,0.1)',
+                                        borderColor: 'rgba(34,197,94,1)',
+                                        borderWidth: 2.5,
+                                        pointRadius: 5,
+                                        pointHoverRadius: 7,
+                                        pointBackgroundColor: 'rgba(34,197,94,1)',
+                                        pointBorderColor: '#fff',
+                                        pointBorderWidth: 2,
+                                        tension: 0.4
+                                    },
+                                    {
+                                        label: '❌ Ditolak',
+                                        data: rejectedData,
+                                        fill: true,
+                                        backgroundColor: 'rgba(239,68,68,0.1)',
+                                        borderColor: 'rgba(239,68,68,1)',
+                                        borderWidth: 2.5,
+                                        pointRadius: 5,
+                                        pointHoverRadius: 7,
+                                        pointBackgroundColor: 'rgba(239,68,68,1)',
+                                        pointBorderColor: '#fff',
+                                        pointBorderWidth: 2,
+                                        tension: 0.4
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                interaction: { mode: 'index', intersect: false },
+                                plugins: {
+                                    tooltip: {
+                                        enabled: true,
+                                        backgroundColor: 'rgba(0,0,0,0.8)',
+                                        padding: 12,
+                                        titleFont: { size: 13, weight: 'bold' },
+                                        bodyFont: { size: 12 },
+                                        cornerRadius: 6,
+                                        callbacks: {
+                                            title: (items) => items[0].label || 'Data',
+                                            label: (ctx) => {
+                                                const val = ctx.parsed.y ?? 0;
+                                                return `${ctx.dataset.label}: ${val}`;
+                                            }
+                                        }
+                                    },
+                                    legend: { 
+                                        display: true,
+                                        position: 'bottom',
+                                        labels: { 
+                                            boxWidth: 12,
+                                            padding: 12,
+                                            font: { size: 11 },
+                                            color: '#666'
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    x: { 
+                                        grid: { display: true, color: 'rgba(0,0,0,0.05)' },
+                                        ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 10, font: { size: 11 } }
+                                    },
+                                    y: { 
+                                        beginAtZero: true,
+                                        grid: { color: 'rgba(0,0,0,0.05)' },
+                                        ticks: { stepSize: 1, font: { size: 11 } }
+                                    }
+                                }
+                            }
+                        });
+
+                        // Chart 2: Tren Penambahan Aset
+                        const assetLabels = assetJson.series.labels;
+                        const assetData = assetJson.series.data;
+
+                        if (assetChart) assetChart.destroy();
+                        assetChart = new Chart(assetCtx, {
+                            type: 'line',
+                            data: {
+                                labels: assetLabels,
                                 datasets: [{
-                                    label: 'Aset Dibuat',
-                                    data: data,
+                                    label: 'Aset Ditambahkan',
+                                    data: assetData,
                                     fill: true,
-                                    backgroundColor: 'rgba(99,102,241,0.08)',
-                                    borderColor: 'rgba(99,102,241,1)',
-                                    pointRadius: 4,
-                                    pointHoverRadius: 6,
+                                    backgroundColor: 'rgba(34,197,94,0.1)',
+                                    borderColor: 'rgba(34,197,94,1)',
+                                    borderWidth: 2.5,
+                                    pointRadius: 5,
+                                    pointHoverRadius: 7,
+                                    pointBackgroundColor: 'rgba(34,197,94,1)',
+                                    pointBorderColor: '#fff',
+                                    pointBorderWidth: 2,
+                                    tension: 0.4
                                 }]
                             },
                             options: {
@@ -405,39 +594,63 @@
                                 plugins: {
                                     tooltip: {
                                         enabled: true,
+                                        backgroundColor: 'rgba(0,0,0,0.8)',
+                                        padding: 12,
+                                        titleFont: { size: 13, weight: 'bold' },
+                                        bodyFont: { size: 12 },
+                                        cornerRadius: 6,
                                         callbacks: {
-                                            title: (items) => items[0].label,
-                                            label: (ctx) => {
-                                                const val = ctx.parsed.y ?? ctx.parsed ?? ctx.raw;
-                                                return `Jumlah aset dibuat: ${val}`;
-                                            }
+                                            title: (items) => items[0].label || 'Data',
+                                            label: (ctx) => `📈 Aset Ditambahkan: ${ctx.parsed.y ?? 0}`
                                         }
                                     },
                                     legend: { display: false }
                                 },
                                 scales: {
-                                    x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 12 } },
-                                    y: { beginAtZero: true }
+                                    x: { 
+                                        grid: { display: true, color: 'rgba(0,0,0,0.05)' },
+                                        ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 10, font: { size: 11 } }
+                                    },
+                                    y: { 
+                                        beginAtZero: true,
+                                        grid: { color: 'rgba(0,0,0,0.05)' },
+                                        ticks: { stepSize: 1, font: { size: 11 } }
+                                    }
                                 }
                             }
                         });
 
-                        // Pie status
-                        const sc = json.statusCounts;
-                        const pieData = [sc.available, sc.deployed, sc.maintenance, sc.broken];
+                        // Pie status dari asset-stats
+                        const sc = assetJson.statusCounts;
+                        const pieData = [
+                            sc.available || 0,
+                            sc.deployed || 0,
+                            sc.maintenance || 0,
+                            sc.broken || 0
+                        ];
 
                         if (pieChart) pieChart.destroy();
                         pieChart = new Chart(pieCtx, {
                             type: 'doughnut',
                             data: {
                                 labels: ['Available','Deployed','Maintenance','Broken'],
-                                datasets: [{ data: pieData, backgroundColor: ['#10B981','#3B82F6','#F59E0B','#EF4444'] }]
+                                datasets: [{ 
+                                    data: pieData, 
+                                    backgroundColor: ['#10B981','#3B82F6','#F59E0B','#EF4444'],
+                                    borderColor: '#fff',
+                                    borderWidth: 3
+                                }]
                             },
                             options: {
                                 responsive: true,
                                 maintainAspectRatio: false,
                                 plugins: {
                                     tooltip: {
+                                        backgroundColor: 'rgba(0,0,0,0.8)',
+                                        padding: 12,
+                                        titleFont: { size: 12, weight: 'bold' },
+                                        bodyFont: { size: 11 },
+                                        cornerRadius: 6,
                                         callbacks: {
                                             label: (ctx) => {
                                                 const label = ctx.label || '';
@@ -448,29 +661,53 @@
                                             }
                                         }
                                     },
-                                    legend: { position: 'top', labels: { boxWidth:12 } }
+                                    legend: { 
+                                        position: 'top',
+                                        labels: { 
+                                            boxWidth: 12,
+                                            padding: 12,
+                                            font: { size: 11 },
+                                            color: '#666'
+                                        }
+                                    }
                                 }
                             }
                         });
 
                     }catch(err){
-                        console.error('Gagal load chart data', err);
+                        console.error('Gagal load chart data:', err);
                     }
                 }
 
                 // Inisialisasi default
                 loadCharts('monthly');
 
+                // Carousel navigation
+                document.getElementById('nextChart').addEventListener('click', nextSlide);
+                document.getElementById('prevChart').addEventListener('click', prevSlide);
+                document.getElementById('dot0').addEventListener('click', () => { currentSlide = 0; updateCarousel(); });
+                document.getElementById('dot1').addEventListener('click', () => { currentSlide = 1; updateCarousel(); });
+
                 // Range buttons
                 document.querySelectorAll('.range-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
-                        document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('bg-indigo-600','text-white'));
-                        e.currentTarget.classList.add('bg-indigo-600','text-white');
+                        e.preventDefault();
+                        // Remove active class dari semua button
+                        document.querySelectorAll('.range-btn').forEach(b => {
+                            b.classList.remove('bg-indigo-100', 'border-indigo-300', 'text-indigo-700', 'font-bold');
+                            b.classList.add('bg-white', 'border-gray-300', 'text-gray-700', 'hover:bg-gray-100');
+                        });
+                        // Tambah active class ke button yang diklik
+                        e.currentTarget.classList.remove('bg-white', 'border-gray-300', 'text-gray-700', 'hover:bg-gray-100');
+                        e.currentTarget.classList.add('bg-indigo-100', 'border-indigo-300', 'text-indigo-700', 'font-bold');
+                        
                         const range = e.currentTarget.getAttribute('data-range');
                         loadCharts(range);
                     });
                 });
             })();
+
+
             // Script Modal Verifikasi
             function openVerifyModal(retData, assetData, userData) {
                 // Populate Data

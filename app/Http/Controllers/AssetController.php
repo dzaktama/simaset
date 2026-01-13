@@ -364,46 +364,68 @@ class AssetController extends Controller
     }
 
     /**
-     * Data peminjaman (approved requests) untuk chart
-     * range: daily | monthly | yearly
+     * Data peminjaman (approved + rejected requests) untuk chart
+     * range: hourly | daily | monthly | yearly
      */
     public function borrowStats(Request $request)
     {
         $range = $request->query('range', 'monthly');
 
-        $series = ['labels' => [], 'data' => []];
+        $series = ['labels' => [], 'approved' => [], 'rejected' => []];
 
-        if ($range === 'daily') {
+        if ($range === 'hourly') {
+            // last 24 hours
+            for ($i = 23; $i >= 0; $i--) {
+                $hour = now()->subHours($i);
+                $series['labels'][] = $hour->format('H:i');
+                $series['approved'][] = \App\Models\AssetRequest::whereDate('created_at', $hour->format('Y-m-d'))
+                                                            ->whereHour('created_at', $hour->hour)
+                                                            ->where('status','approved')
+                                                            ->count();
+                $series['rejected'][] = \App\Models\AssetRequest::whereDate('created_at', $hour->format('Y-m-d'))
+                                                            ->whereHour('created_at', $hour->hour)
+                                                            ->where('status','rejected')
+                                                            ->count();
+            }
+        } elseif ($range === 'daily') {
             // last 7 days
             for ($i = 6; $i >= 0; $i--) {
                 $day = now()->subDays($i)->format('Y-m-d');
                 $series['labels'][] = now()->subDays($i)->format('d M');
-                $series['data'][] = \App\Models\AssetRequest::whereDate('created_at', $day)->where('status','approved')->count();
+                $series['approved'][] = \App\Models\AssetRequest::whereDate('created_at', $day)->where('status','approved')->count();
+                $series['rejected'][] = \App\Models\AssetRequest::whereDate('created_at', $day)->where('status','rejected')->count();
             }
         } elseif ($range === 'yearly') {
             $currentYear = now()->year;
             for ($y = $currentYear - 4; $y <= $currentYear; $y++) {
                 $series['labels'][] = (string)$y;
-                $series['data'][] = \App\Models\AssetRequest::whereYear('created_at', $y)->where('status','approved')->count();
+                $series['approved'][] = \App\Models\AssetRequest::whereYear('created_at', $y)->where('status','approved')->count();
+                $series['rejected'][] = \App\Models\AssetRequest::whereYear('created_at', $y)->where('status','rejected')->count();
             }
         } else {
             // monthly last 12 months
             for ($m = 11; $m >= 0; $m--) {
                 $dt = now()->subMonths($m);
                 $series['labels'][] = $dt->format('M Y');
-                $series['data'][] = \App\Models\AssetRequest::whereYear('created_at', $dt->year)
+                $series['approved'][] = \App\Models\AssetRequest::whereYear('created_at', $dt->year)
                                             ->whereMonth('created_at', $dt->month)
                                             ->where('status','approved')
+                                            ->count();
+                $series['rejected'][] = \App\Models\AssetRequest::whereYear('created_at', $dt->year)
+                                            ->whereMonth('created_at', $dt->month)
+                                            ->where('status','rejected')
                                             ->count();
             }
         }
 
         // Totals
         $totalApproved = \App\Models\AssetRequest::where('status','approved')->count();
+        $totalRejected = \App\Models\AssetRequest::where('status','rejected')->count();
 
         return response()->json([
             'series' => $series,
             'totalApproved' => $totalApproved,
+            'totalRejected' => $totalRejected,
             'range' => $range
         ]);
     }
