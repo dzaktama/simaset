@@ -52,7 +52,6 @@
             margin-bottom: 20px;
         }
         
-        /* [REVISI] Logo Diperbesar ke 120px */
         .logo-wrapper { 
             width: 120px; 
             flex-shrink: 0; 
@@ -61,7 +60,6 @@
             width: 100%; 
             height: auto; 
         }
-        /* Padding kanan header teks disamakan dgn lebar logo agar teks tetap di tengah */
         .header-content { 
             flex-grow: 1; 
             text-align: center; 
@@ -126,16 +124,17 @@
 
     <div class="header-container">
         <div class="logo-wrapper">
+            {{-- Perbaikan: Handle Logo agar aman di PDF maupun Preview --}}
             @if(isset($logoBase64) && !empty($logoBase64))
                 <img src="{{ $logoBase64 }}" class="logo-img" alt="Logo" style="width: 120px; height: auto;">
             @else
-                <img src="{{ isset($publicPath) ? $publicPath . '/img/logoVitechAsia.png' : public_path('img/logoVitechAsia.png') }}" class="logo-img" alt="Logo" style="width: 120px; height: auto;">
+                <img src="{{ public_path('img/logoVitechAsia.png') }}" class="logo-img" alt="Logo" style="width: 120px; height: auto;">
             @endif
         </div>
         <div class="header-content">
             <h1>{{ $customTitle ?? 'Laporan Aset IT' }}</h1>
             <h2>PT VITECH ASIA - INTEGRATED ASSET MANAGEMENT</h2>
-            <p>Tanggal: {{ $date }} | Pukul: {{ $printTime }} WIB</p>
+            <p>Tanggal: {{ $date ?? date('d/m/Y') }} | Pukul: {{ $printTime ?? date('H:i') }} WIB</p>
         </div>
     </div>
 
@@ -147,16 +146,17 @@
             </div>
             <div class="meta-item">
                 <span class="meta-label">Filter Status</span>
-                <span class="meta-value">{{ $filterStatus }}</span>
+                <span class="meta-value">{{ $filterStatus ?? 'Semua' }}</span>
             </div>
             <div class="meta-item">
                 <span class="meta-label">Pencarian</span>
-                <span class="meta-value">{{ $filterSearch ?: '-' }}</span>
+                {{-- PERBAIKAN: Gunakan null coalescing operator (??) agar tidak error undefined variable --}}
+                <span class="meta-value">{{ $filterSearch ?? '-' }}</span>
             </div>
         </div>
         <div class="meta-item" style="text-align: right;">
             <span class="meta-label">Catatan Admin</span>
-            <span class="meta-value" style="font-style: italic;">{{ Str::limit($adminNotes, 100) }}</span>
+            <span class="meta-value" style="font-style: italic;">{{ Str::limit($adminNotes ?? '', 100) }}</span>
         </div>
     </div>
 
@@ -164,7 +164,7 @@
         <thead>
             <tr>
                 <th style="width: 5%;">No</th>
-                @if($showImages) <th style="width: 8%;">Foto</th> @endif
+                @if(isset($showImages) && $showImages) <th style="width: 8%;">Foto</th> @endif
                 <th style="width: 25%;">Nama Aset / Spesifikasi</th>
                 <th style="width: 12%;">Serial Number</th>
                 <th style="width: 10%;">QR Code</th>
@@ -178,18 +178,27 @@
             <tr>
                 <td style="text-align: center;">{{ $index + 1 }}</td>
                 
-                @if($showImages)
+                @if(isset($showImages) && $showImages)
                 <td style="text-align: center;">
-                    @if($asset->image || isset($asset->image_base64))
-                        @if(isset($asset->image_base64) && !empty($asset->image_base64))
-                            <img src="{{ $asset->image_base64 }}" class="asset-img" style="max-width: 50px; max-height: 50px;">
+                    {{-- PERBAIKAN: Gunakan logika path yang aman --}}
+                    @if($asset->image)
+                        @php
+                            // Cek apakah file ada di storage public path
+                            $path = public_path('storage/' . $asset->image);
+                            // Jika tidak ada (misal di local dev kadang beda), coba storage_path
+                            if (!file_exists($path)) {
+                                $path = storage_path('app/public/' . $asset->image);
+                            }
+                        @endphp
+                        
+                        @if(file_exists($path))
+                            <img src="{{ $path }}" class="asset-img" style="max-width: 50px; max-height: 50px;">
                         @else
-                            @php
-                                $imagePath = (isset($storagePath) ? $storagePath : storage_path('app/public')) . '/' . $asset->image;
-                            @endphp
-                            <img src="{{ $imagePath }}" class="asset-img" style="max-width: 50px; max-height: 50px;">
+                            <span style="font-size:8px; color:red;">Img Not Found</span>
                         @endif
-                    @else - @endif
+                    @else
+                        -
+                    @endif
                 </td>
                 @endif
 
@@ -199,7 +208,12 @@
                 </td>
                 <td style="font-family: monospace;">{{ $asset->serial_number }}</td>
                 <td style="text-align: center;">
-                    <img src="{{ $asset->qr_code }}" alt="QR-{{ $asset->serial_number }}" class="qr-code" style="width: 40px; height: 40px;">
+                    {{-- PERBAIKAN: Generate QR Langsung di View (Bukan dari Model Accessor yang Error) --}}
+                    @if(class_exists('SimpleSoftwareIO\QrCode\Facades\QrCode'))
+                        <img src="data:image/png;base64, {!! base64_encode(QrCode::format('png')->size(50)->margin(0)->generate(route('assets.scan', $asset->id))) !!} " class="qr-code" style="width: 40px; height: 40px;">
+                    @else
+                        -
+                    @endif
                 </td>
                 <td style="text-align: center; font-weight: bold;">{{ $asset->quantity }}</td>
                 <td style="text-align: center;">
@@ -221,13 +235,14 @@
                     @if($asset->status == 'deployed' && $asset->holder)
                         <strong>{{ $asset->holder->name }}</strong>
                     @else
-                        {{ $asset->location ?? 'Gudang' }}
+                        {{-- Tampilkan lokasi gabungan jika ada, atau fallback ke Lorong/Rak --}}
+                        {{ $asset->location ?? (($asset->lorong ?? '-') . ' / ' . ($asset->rak ?? '-')) }}
                     @endif
                 </td>
             </tr>
             @empty
             <tr>
-                <td colspan="7" style="text-align: center; padding: 20px;">Data tidak ditemukan.</td>
+                <td colspan="{{ (isset($showImages) && $showImages) ? 8 : 7 }}" style="text-align: center; padding: 20px;">Data tidak ditemukan.</td>
             </tr>
             @endforelse
         </tbody>
