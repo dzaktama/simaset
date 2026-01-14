@@ -41,7 +41,7 @@
                         <p class="text-xs text-gray-500 mt-1">Serial number tidak dapat diubah sembarangan.</p>
                     </div>
 
-                    {{-- Kategori (DITAMBAHKAN) --}}
+                    {{-- Kategori --}}
                     <div>
                         <label class="block text-sm font-semibold text-gray-700">Kategori <span class="text-red-500">*</span></label>
                         <select name="category" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm border p-2.5 @error('category') border-red-500 @enderror">
@@ -79,15 +79,27 @@
                         </select>
                     </div>
 
-                    {{-- LOKASI (DITAMBAHKAN) --}}
+                    {{-- LOKASI (PERBAIKAN: Menggunakan Dropdown) --}}
                     <div class="grid grid-cols-2 gap-4 pt-4 border-t border-dashed mt-4">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700">Lorong / Area</label>
-                            <input type="text" name="lorong" value="{{ old('lorong', $asset->lorong) }}" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm border p-2.5 bg-blue-50" placeholder="Cth: A">
+                            <select name="lorong" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm border p-2.5 bg-blue-50 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">- Pilih Area -</option>
+                                @foreach(range('A', 'Z') as $char)
+                                    @php $val = "Area $char"; @endphp
+                                    <option value="{{ $val }}" {{ old('lorong', $asset->lorong) == $val ? 'selected' : '' }}>{{ $val }}</option>
+                                @endforeach
+                            </select>
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700">Nomor Rak</label>
-                            <input type="text" name="rak" value="{{ old('rak', $asset->rak) }}" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm border p-2.5 bg-blue-50" placeholder="Cth: R-01">
+                            <select name="rak" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm border p-2.5 bg-blue-50 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">- Pilih Rak -</option>
+                                @for($i = 1; $i <= 50; $i++)
+                                    @php $rakCode = 'R-' . str_pad($i, 2, '0', STR_PAD_LEFT); @endphp
+                                    <option value="{{ $rakCode }}" {{ old('rak', $asset->rak) == $rakCode ? 'selected' : '' }}>{{ $rakCode }}</option>
+                                @endfor
+                            </select>
                         </div>
                         <p class="col-span-2 text-xs text-gray-500">*Lokasi ini akan muncul di Peta Aset.</p>
                     </div>

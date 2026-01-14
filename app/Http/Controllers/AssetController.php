@@ -9,6 +9,7 @@ use App\Models\AssetHistory;
 use App\Services\AssetService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use SimpleSoftwareIO\QrCode\Facades\QrCode; // Pastikan Facade ini di-import
 
 class AssetController extends Controller
 {
@@ -60,27 +61,32 @@ class AssetController extends Controller
         }
     }
 
- 
+    /**
+     * Menampilkan Peta Lokasi Aset
+     */
     public function locationMap()
     {
-        // PERBAIKAN: Ganti 'kategori_barang' jadi 'category' sesuai database
-        $mapData = Asset::select('id', 'name', 'serial_number', 'category', 'lorong', 'rak', 'image', 'status')
-            ->whereNotNull('lorong')
-            ->whereNotNull('rak')
-            ->where('lorong', '!=', '') // Pastikan tidak kosong string
-            ->where('rak', '!=', '')
-            ->get()
-            ->groupBy('lorong')
-            ->map(function ($itemsInLorong) {
-                return $itemsInLorong->groupBy('rak');
-            });
+        // Ambil semua aset yang memiliki lokasi (lorong & rak tidak null)
+        // Kita select kolom spesifik agar load lebih ringan di JS Map
+        $assets = Asset::select(
+            'id', 
+            'name', 
+            'serial_number', 
+            'category', 
+            'lorong', 
+            'rak', 
+            'image', 
+            'status', 
+            'condition_notes', 
+            'description'
+        )
+        ->whereNotNull('lorong')
+        ->whereNotNull('rak')
+        ->where('lorong', '!=', '')
+        ->where('rak', '!=', '')
+        ->get();
 
-        // Hitung statistik ringkas untuk header
-        $totalLorong = $mapData->count();
-        // flatten(1) untuk menghitung total rak dari semua lorong
-        $totalRak = $mapData->flatten(1)->count();
-
-        return view('assets.map', compact('mapData', 'totalLorong', 'totalRak'));
+        return view('assets.map', compact('assets'));
     }
 
     /**
@@ -151,11 +157,11 @@ class AssetController extends Controller
         
         $number = $lastAsset ? (int) substr($lastAsset->serial_number, 4) + 1 : 1;
         
-        // PERBAIKAN: Hapus spasi di sini ($serialNumber bukan $ serialNumber)
+        // Perbaikan spasi
         $serialNumber = $prefix . '-' . str_pad($number, 5, '0', STR_PAD_LEFT);
 
         // 3. Logic Upload Multi Image
-        $data = $request->except(['image', 'image2', 'image3']); // Ambil semua data selain gambar dulu
+        $data = $request->except(['image', 'image2', 'image3']); 
         
         // Handle Image 1
         if ($request->hasFile('image')) {
@@ -173,7 +179,12 @@ class AssetController extends Controller
         // Tambahkan data manual lainnya
         $data['serial_number'] = $serialNumber;
         $data['status'] = $request->status ?? 'available';
-        $data['location'] = ($request->lorong ?? '-') . ' - Rak ' . ($request->rak ?? '-'); // Gabungan untuk display
+        
+        // Simpan juga lorong & rak terpisah
+        $data['lorong'] = $request->lorong;
+        $data['rak'] = $request->rak;
+        // Lokasi gabungan (Opsional, buat backward compatibility)
+        $data['location'] = ($request->lorong ?? '-') . ' - Rak ' . ($request->rak ?? '-');
 
         // 4. Simpan
         Asset::create($data);
@@ -204,10 +215,10 @@ class AssetController extends Controller
      */
     public function update(Request $request, Asset $asset)
     {
-        // 1. Validasi (Perbaikan nama kolom category)
+        // 1. Validasi
         $rules = [
             'name' => 'required|max:255',
-            'category' => 'required', // Wajib ada
+            'category' => 'required',
             'status' => 'required',
             'quantity' => 'required|integer|min:0',
             'user_id' => 'nullable|exists:users,id',
@@ -244,7 +255,7 @@ class AssetController extends Controller
             $requestFiles
         );
 
-        // 3. Update Format Lokasi Gabungan (PENTING untuk display list lama)
+        // 3. Update Format Lokasi Gabungan
         $lorong = $request->lorong ?? '-';
         $rak = $request->rak ?? '-';
         $validatedData['location'] = "$lorong - Rak $rak";
@@ -344,6 +355,20 @@ class AssetController extends Controller
             'title' => 'Detail Aset - ' . $asset->name,
             'asset' => $asset
         ]);
+    }
+
+    /**
+     * Helper untuk Scan QR Image (Return Text/HTML/Image)
+     * Digunakan oleh Peta Lokasi
+     */
+    public function scanQrImage($id)
+    {
+        if (class_exists('SimpleSoftwareIO\QrCode\Facades\QrCode')) {
+            // Return raw image PNG response
+            $qrCode = QrCode::format('png')->size(200)->margin(1)->generate(route('assets.show', $id));
+            return response($qrCode)->header('Content-type','image/png');
+        }
+        return response('QR Library Missing', 404);
     }
 
     /**
