@@ -1,29 +1,51 @@
 <?php
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
     /**
-     * Tambah kolom kategori_barang dan lokasi ke tabel assets
+     * Run the migrations.
      */
     public function up(): void
     {
         Schema::table('assets', function (Blueprint $table) {
-            $table->string('kategori_barang')->nullable()->after('name'); // kategori barang
-            $table->string('rak')->nullable()->after('kategori_barang'); // rak
-            $table->string('lorong')->nullable()->after('rak'); // lorong
-            $table->string('keterangan_lokasi')->nullable()->after('lorong'); // keterangan lokasi
+            // Cek dulu, kalau kolom belum ada, baru dibuat.
+            if (!Schema::hasColumn('assets', 'category')) {
+                $table->string('category')->nullable()->after('name');
+            }
+            if (!Schema::hasColumn('assets', 'rak')) {
+                $table->string('rak')->nullable()->after('category');
+            }
+            if (!Schema::hasColumn('assets', 'lorong')) {
+                $table->string('lorong')->nullable()->after('rak');
+            }
+            // Kolom location biasanya sudah ada, tapi kita cek aja biar aman
+            if (!Schema::hasColumn('assets', 'location')) {
+                $table->string('location')->nullable()->after('lorong');
+            }
         });
     }
 
     /**
-     * Rollback perubahan
+     * Reverse the migrations.
      */
     public function down(): void
     {
         Schema::table('assets', function (Blueprint $table) {
-            $table->dropColumn(['kategori_barang', 'rak', 'lorong', 'keterangan_lokasi']);
+            // INI PERBAIKANNYA: Cek dulu sebelum hapus!
+            // Kalau kolomnya ada, baru dihapus. Kalau gak ada, ya udah biarin (jangan error).
+            
+            if (Schema::hasColumn('assets', 'category')) {
+                $table->dropColumn('category');
+            }
+            if (Schema::hasColumn('assets', 'rak')) {
+                $table->dropColumn('rak');
+            }
+            if (Schema::hasColumn('assets', 'lorong')) {
+                $table->dropColumn('lorong');
+            }
         });
     }
 };

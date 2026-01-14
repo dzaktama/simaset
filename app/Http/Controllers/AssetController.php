@@ -130,56 +130,50 @@ class AssetController extends Controller
      */
     public function store(Request $request)
     {
+        // 1. Validasi
         $request->validate([
-            'name' => 'required',
-            'kategori_barang' => 'required', // Sesuaikan dengan kolom database baru
-            'image' => 'image|mimes:jpeg,png,jpg|max:2048',
+            'name' => 'required|string|max:255',
+            'category' => 'required',
             'quantity' => 'required|integer|min:1',
+            'purchase_date' => 'required|date',
+            'image' => 'nullable|image|max:2048',  // Foto Utama
+            'image2' => 'nullable|image|max:2048', // Foto Tambahan 1
+            'image3' => 'nullable|image|max:2048', // Foto Tambahan 2
         ]);
 
-        // LOGIC SERIAL NUMBER OTOMATIS (Format: AAA-00001) - REVISI
-        // 1. Ambil 3 huruf pertama dari nama aset, uppercase
+        // 2. Generate Serial Number (Logic Tetap Sama)
         $prefix = strtoupper(substr($request->name, 0, 3));
-        
-        // 2. Cari serial number terakhir yang punya prefix sama
         $lastAsset = Asset::where('serial_number', 'like', $prefix . '-%')
-                          ->orderBy('id', 'desc')
+                          ->orderByRaw('CAST(SUBSTRING(serial_number, 5) AS UNSIGNED) DESC')
                           ->first();
+        $number = $lastAsset ? (int) substr($lastAsset->serial_number, 4) + 1 : 1;
+        $serialNumber = $prefix . '-' . str_pad($number, 5, '0', STR_PAD_LEFT);
 
-        // 3. Tentukan nomor urut
-        if ($lastAsset) {
-            // Pecah string AAA-00001, ambil angkanya saja (mulai index 4)
-            // Contoh: MAC-00005 -> ambil 00005
-            $lastNumber = (int) substr($lastAsset->serial_number, -5);
-            $newNumber = $lastNumber + 1;
-        } else {
-            $newNumber = 1;
-        }
-
-        // 4. Format jadi 5 digit angka (00001)
-        $serialNumber = $prefix . '-' . str_pad($newNumber, 5, '0', STR_PAD_LEFT);
-
-        // Upload Gambar
-        $imageName = null;
+        // 3. Logic Upload Multi Image
+        $data = $request->except(['image', 'image2', 'image3']); // Ambil semua data selain gambar dulu
+        
+        // Handle Image 1
         if ($request->hasFile('image')) {
-            $imageName = time() . '.' . $request->image->extension();
-            $request->image->move(public_path('images'), $imageName);
+            $data['image'] = $request->file('image')->store('assets', 'public');
+        }
+        // Handle Image 2
+        if ($request->hasFile('image2')) {
+            $data['image2'] = $request->file('image2')->store('assets', 'public');
+        }
+        // Handle Image 3
+        if ($request->hasFile('image3')) {
+            $data['image3'] = $request->file('image3')->store('assets', 'public');
         }
 
-        Asset::create([
-            'name' => $request->name,
-            'serial_number' => $serialNumber, // Hasil generate
-            'kategori_barang' => $request->kategori_barang, // Bahasa Indonesia
-            'lorong' => $request->lorong,
-            'rak' => $request->rak,
-            'keterangan_lokasi' => $request->keterangan_lokasi,
-            'status' => 'available',
-            'image' => $imageName,
-            'quantity' => $request->quantity,
-            'purchase_date' => $request->purchase_date ?? now(),
-        ]);
+        // Tambahkan data manual lainnya
+        $data['serial_number'] = $serialNumber;
+        $data['status'] = $request->status ?? 'available';
+        $data['location'] = ($request->lorong ?? '-') . ' - Rak ' . ($request->rak ?? '-'); // Gabungan untuk display
 
-        return redirect()->route('assets.index')->with('success', 'Aset berhasil ditambahkan dengan Serial Number: ' . $serialNumber);
+        // 4. Simpan
+        Asset::create($data);
+
+        return redirect()->route('assets.index')->with('success', 'Aset berhasil disimpan! SN: ' . $serialNumber);
     }
 
     /**

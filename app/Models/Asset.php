@@ -13,22 +13,19 @@ class Asset extends Model
     protected $fillable = [
         'name',
         'serial_number',
-        'quantity',      
-        'status',
-        'description',
-        'condition_notes',
-        'image',
-        'image2',
-        'image3',
+        'category',
+        'lorong',
+        'rak',
+        'location',
+        'quantity',
         'purchase_date',
-        'user_id',
-        'assigned_date',
-        'return_date',
-          'kategori_barang', // kategori barang
-          'rak', // rak
-          'lorong', // lorong
-          'keterangan_lokasi', // keterangan lokasi
-     ];
+        'status',
+        'image',
+        'image2',          // TAMBAHAN
+        'image3',          // TAMBAHAN
+        'description',
+        'condition_notes'  // TAMBAHAN
+    ];
 
     // 2. FORMAT TANGGAL AGAR BISA OLAH JAM/MENIT
     protected $casts = [
