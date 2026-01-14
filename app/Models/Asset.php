@@ -24,7 +24,11 @@ class Asset extends Model
         'user_id',
         'assigned_date',
         'return_date',
-    ];
+          'kategori_barang', // kategori barang
+          'rak', // rak
+          'lorong', // lorong
+          'keterangan_lokasi', // keterangan lokasi
+     ];
 
     // 2. FORMAT TANGGAL AGAR BISA OLAH JAM/MENIT
     protected $casts = [

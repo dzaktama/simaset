@@ -122,6 +122,10 @@ class AssetController extends Controller
             'user_id' => 'nullable|exists:users,id',
             'assigned_date' => 'nullable|date',
             'return_date' => 'nullable|date',
+            'kategori_barang' => 'nullable|string', // kategori barang
+            'rak' => 'nullable|string', // rak
+            'lorong' => 'nullable|string', // lorong
+            'keterangan_lokasi' => 'nullable|string', // keterangan lokasi
             'image' => 'nullable|image|file|max:2048',
             'image2' => 'nullable|image|file|max:2048',
             'image3' => 'nullable|image|file|max:2048',
@@ -184,6 +188,10 @@ class AssetController extends Controller
             'purchase_date' => 'nullable|date',
             'description' => 'nullable',
             'condition_notes' => 'nullable',
+            'kategori_barang' => 'nullable|string', // kategori barang
+            'rak' => 'nullable|string', // rak
+            'lorong' => 'nullable|string', // lorong
+            'keterangan_lokasi' => 'nullable|string', // keterangan lokasi
             'image' => 'nullable|image|file|max:2048',
             'image2' => 'nullable|image|file|max:2048',
             'image3' => 'nullable|image|file|max:2048',
