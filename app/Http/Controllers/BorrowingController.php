@@ -83,31 +83,96 @@ class BorrowingController extends Controller
      */
     public function show($id)
     {
-        // Pastikan load user dan asset
         $borrowing = AssetRequest::with(['user', 'asset'])->findOrFail($id);
 
-        // FIX: Hapus pencarian berdasarkan 'asset_request_id' karena kolomnya tidak ada di DB
-        // Cukup cari history berdasarkan asset_id saja
+        // ---[BAGIAN BARU: PERBAIKAN LOGIC DURASI]---
+        Carbon::setLocale('id'); // Paksa bahasa Indonesia
+        
+        // Hitung Total Durasi (Rencana Pinjam)
+        $start = Carbon::parse($borrowing->created_at);
+        $end   = $borrowing->return_date ? Carbon::parse($borrowing->return_date) : null;
+        
+        $totalDurasi = '-';
+        if($end) {
+             // Syntax 3 bagian (Hari, Jam, Menit) agar detail
+            $totalDurasi = $start->diffForHumans($end, [
+                'parts' => 3, 
+                'join' => true, 
+                'syntax' => Carbon::DIFF_ABSOLUTE
+            ]);
+        }
+
+        // Hitung Sisa Waktu / Keterlambatan
+        $sisaWaktu = '';
+        $isOverdue = false;
+        $now = Carbon::now();
+
+        if ($borrowing->status === 'approved' && !$borrowing->returned_at && $end) {
+            if ($now->greaterThan($end)) {
+                // Telat
+                $isOverdue = true;
+                $sisaWaktu = 'Terlambat ' . $end->diffForHumans($now, [
+                    'parts' => 2,
+                    'join' => true, 
+                    'syntax' => Carbon::DIFF_ABSOLUTE
+                ]);
+            } else {
+                // Masih jalan (Countdown)
+                $sisaWaktu = $now->diffForHumans($end, [
+                    'parts' => 3, 
+                    'join' => true, 
+                    'syntax' => Carbon::DIFF_ABSOLUTE
+                ]);
+            }
+        } elseif ($borrowing->returned_at) {
+            $sisaWaktu = 'Selesai (Dikembalikan)';
+        }
+
+        // Ambil history
         $history = AssetHistory::where('asset_id', $borrowing->asset_id)
             ->latest()
             ->take(10)
             ->get();
 
-        // Determine status (logika status biarkan sama)
+        // Status Logic (Biarkan sama, cuma dirapikan)
         $status = 'pending';
-        if ($borrowing->status === 'rejected') {
-            $status = 'rejected';
-        } elseif ($borrowing->status === 'approved' && $borrowing->returned_at) {
-            $status = 'returned';
-        } elseif ($borrowing->status === 'approved' && !$borrowing->returned_at) {
-            $status = 'active';
-        }
+        if ($borrowing->status === 'rejected') $status = 'rejected';
+        elseif ($borrowing->status === 'approved' && $borrowing->returned_at) $status = 'returned';
+        elseif ($borrowing->status === 'approved' && !$borrowing->returned_at) $status = 'active';
 
         return view('borrowing.show', [
             'borrowing' => $borrowing,
             'borrowing_status' => $status,
-            'history' => $history
+            'history' => $history,
+            'totalDurasi' => $totalDurasi, // Kirim ke view
+            'sisaWaktu' => $sisaWaktu,     // Kirim ke view
+            'isOverdue' => $isOverdue      // Kirim ke view
         ]);
+    }
+
+    // ---[FITUR BARU: QUICK APPROVE]---
+    public function quickApprove($id)
+    {
+        $request = AssetRequest::findOrFail($id);
+        
+        if($request->status == 'pending') {
+            $request->status = 'approved';
+            $request->admin_note = 'Disetujui Cepat via Timeline';
+            $request->approved_at = now(); // Catat waktu setuju
+            $request->save();
+            
+            // Catat History
+            AssetHistory::create([
+                'asset_id' => $request->asset_id,
+                'user_id' => auth()->id(),
+                'action' => 'check_out', 
+                'notes' => 'Peminjaman disetujui admin (Quick Action)',
+                'date' => now()
+            ]);
+            
+            return back()->with('success', 'Peminjaman berhasil disetujui!');
+        }
+        return back()->with('error', 'Status tidak valid');
     }
 
     /**

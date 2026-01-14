@@ -1,6 +1,7 @@
 @extends('layouts.main')
 
 @section('container')
+@php(\Carbon\Carbon::setLocale('id'))
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
     <div class="mb-8">
@@ -78,18 +79,33 @@
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {{ \Carbon\Carbon::parse($borrowing->created_at)->format('d M Y') }}
+                            {{ \Carbon\Carbon::parse($borrowing->created_at)->translatedFormat('d F Y, H:i') }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {{ $borrowing->returned_at ? \Carbon\Carbon::parse($borrowing->returned_at)->format('d M Y') : '-' }}
+                            {{ $borrowing->returned_at ? \Carbon\Carbon::parse($borrowing->returned_at)->translatedFormat('d F Y, H:i') : '-' }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
-                            @if($borrowing->returned_at)
+                            @php
+                                $mulai = \Carbon\Carbon::parse($borrowing->created_at);
+                                $batas = $borrowing->return_date ? \Carbon\Carbon::parse($borrowing->return_date) : null;
+                                $selesai = $borrowing->returned_at ? \Carbon\Carbon::parse($borrowing->returned_at) : null;
+                            @endphp
+
+                            @if($selesai)
                                 <span class="font-medium text-gray-900">
-                                    {{ \Carbon\Carbon::parse($borrowing->returned_at)->diffInDays(\Carbon\Carbon::parse($borrowing->created_at)) }} hari
+                                    {{ $mulai->diffForHumans($selesai, ['parts' => 3, 'join' => true, 'syntax' => \Carbon\Carbon::DIFF_ABSOLUTE]) }}
                                 </span>
+                            @elseif($borrowing->status === 'approved' && $batas)
+                                @php
+                                    $now = \Carbon\Carbon::now();
+                                @endphp
+                                @if($now->greaterThan($batas))
+                                    <span class="font-medium text-red-600">Terlambat {{ $batas->diffForHumans($now, ['parts' => 2, 'join' => true, 'syntax' => \Carbon\Carbon::DIFF_ABSOLUTE]) }}</span>
+                                @else
+                                    <span class="font-medium text-gray-900">{{ $now->diffForHumans($batas, ['parts' => 3, 'join' => true, 'syntax' => \Carbon\Carbon::DIFF_ABSOLUTE]) }}</span>
+                                @endif
                             @else
-                                <span class="text-gray-500">Masih dipinjam</span>
+                                <span class="text-gray-500">-</span>
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">

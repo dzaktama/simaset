@@ -65,25 +65,29 @@
                     </h2>
                 </div>
                 <div class="px-6 py-4 space-y-4">
-                    <div class="flex items-center gap-4">
-                        <div class="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center">
-                            <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                            </svg>
-                        </div>
+                    <div class="flex items-center gap-4 border-b border-gray-100 pb-4">
+                        <img class="h-16 w-16 rounded-full object-cover" src="https://ui-avatars.com/api/?name={{ urlencode($borrowing->user->name) }}&background=EBF4FF&color=7F9CF5" alt="Avatar">
                         <div>
-                            <p class="text-sm text-gray-600">Nama Lengkap</p>
-                            <p class="font-semibold text-gray-900">{{ $borrowing->user->name ?? '-' }}</p>
+                            <p class="font-bold text-lg text-gray-900">{{ $borrowing->user->name ?? '-' }}</p>
+                            <p class="text-sm text-gray-600">{{ $borrowing->user->email ?? '-' }}</p>
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                         <div>
-                            <p class="text-sm text-gray-600">Email</p>
-                            <p class="font-medium text-gray-900">{{ $borrowing->user->email ?? '-' }}</p>
+                            <p class="text-sm text-gray-500">NIP / NIK</p>
+                            <p class="font-semibold text-gray-900">{{ $borrowing->user->employee_id ?? '-' }}</p>
                         </div>
                         <div>
-                            <p class="text-sm text-gray-600">Departemen</p>
-                            <p class="font-medium text-gray-900">{{ $borrowing->user->department ?? '-' }}</p>
+                            <p class="text-sm text-gray-500">Jabatan</p>
+                            <p class="font-semibold text-gray-900">{{ $borrowing->user->position ?? '-' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Departemen</p>
+                            <p class="font-semibold text-gray-900">{{ $borrowing->user->department ?? '-' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Telepon</p>
+                            <p class="font-semibold text-gray-900">{{ $borrowing->user->phone ?? '-' }}</p>
                         </div>
                     </div>
                 </div>
@@ -137,108 +141,74 @@
             </div>
 
             <!-- Timeline Card -->
+            {{-- TIMELINE BARU (SHOPEEFOOD STYLE) --}}
             <div class="bg-white rounded-lg shadow overflow-hidden border-l-4 border-blue-600">
                 <div class="px-6 py-4 bg-gradient-to-r from-blue-50 to-transparent border-b border-gray-200">
                     <h2 class="text-lg font-bold text-gray-900 flex items-center gap-2">
-                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        Timeline Peminjaman
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Lacak Status
                     </h2>
                 </div>
-                <div class="px-6 py-4">
-                    <div class="space-y-6">
-                        <!-- Diajukan -->
-                       <div class="flex gap-4">
-                        <div class="flex flex-col items-center">
-                            <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0 z-10">
-                                <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                </svg>
-                            </div>
-                            
-                            <div class="w-0.5 h-full bg-gray-300 -my-2"></div> 
+                <div class="px-6 py-6 relative">
+                    {{-- Garis Vertikal Utama --}}
+                    <div class="absolute left-[2.2rem] top-8 bottom-8 w-0.5 bg-gray-200 -z-10"></div>
+
+                    {{-- 1. PENGAJUAN --}}
+                    <div class="flex gap-4 mb-8">
+                        <div class="w-8 h-8 rounded-full bg-blue-500 border-2 border-white shadow flex items-center justify-center shrink-0">
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         </div>
-                        <div class="py-2 pb-6"> {{-- Tambah padding bottom biar ada jarak --}}
-                            <p class="font-semibold text-gray-900">Permintaan Diajukan</p>
-                            <p class="text-sm text-gray-600">
-                                @if($borrowing->request_date)
-                                    {{ \Carbon\Carbon::parse($borrowing->request_date)->format('d F Y, H:i') }}
-                                @elseif($borrowing->created_at)
-                                    {{ \Carbon\Carbon::parse($borrowing->created_at)->format('d F Y, H:i') }}
-                                @else
-                                    -
-                                @endif
-                            </p>
+                        <div>
+                            <p class="font-bold text-gray-900">Permintaan Diajukan</p>
+                            <p class="text-sm text-gray-500">{{ \Carbon\Carbon::parse($borrowing->created_at)->translatedFormat('d F Y, H:i') }}</p>
                         </div>
                     </div>
 
-                        <!-- Disetujui/Ditolak -->
-                        <div class="flex gap-4">
-                            <div class="flex flex-col items-center">
-                                <div class="w-10 h-10 rounded-full {{ $borrowing_status === 'rejected' ? 'bg-red-100' : 'bg-green-100' }} flex items-center justify-center">
-                                    @if($borrowing_status === 'rejected')
-                                        <svg class="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-                                        </svg>
-                                    @else
-                                        <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                        </svg>
-                                    @endif
-                                </div>
-                                @if($borrowing_status !== 'rejected' && $borrowing_status !== 'pending')
-                                    <div class="w-1 h-12 bg-gray-300 mt-2"></div>
-                                @endif
-                            </div>
-                            <div class="py-2">
-                                <p class="font-semibold text-gray-900">
-                                    {{ $borrowing_status === 'rejected' ? 'Permintaan Ditolak' : 'Permintaan Disetujui' }}
-                                </p>
-                                <p class="text-sm text-gray-600">
-                                    @if($borrowing->approved_at)
-                                        {{ \Carbon\Carbon::parse($borrowing->approved_at)->format('d F Y, H:i') }}
-                                    @elseif($borrowing_status === 'pending')
-                                        <span class="text-yellow-700">Belum disetujui</span>
-                                    @else
-                                        -
-                                    @endif
-                                </p>
-                            </div>
+                    {{-- 2. PERSETUJUAN --}}
+                    <div class="flex gap-4 mb-8">
+                        @php $isApproved = $borrowing->status == 'approved' || $borrowing->returned_at; @endphp
+                        <div class="w-8 h-8 rounded-full {{ $isApproved ? 'bg-blue-500' : ($borrowing->status == 'rejected' ? 'bg-red-500' : 'bg-gray-300') }} border-2 border-white shadow flex items-center justify-center shrink-0">
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                         </div>
+                        <div class="w-full">
+                            <p class="font-bold {{ $isApproved ? 'text-gray-900' : 'text-gray-500' }}">Disetujui Admin</p>
+                            @if($borrowing->status == 'pending')
+                                <p class="text-xs text-gray-400 mb-2">Menunggu persetujuan...</p>
+                                {{-- TOMBOL SHORTCUT --}}
+                                @if(auth()->user()->role == 'admin')
+                                    <form action="{{ route('borrowing.quick_approve', $borrowing->id) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="bg-blue-600 text-white text-xs px-3 py-1 rounded hover:bg-blue-700 transition">Setujui Sekarang</button>
+                                    </form>
+                                @endif
+                            @elseif($isApproved)
+                                <p class="text-sm text-gray-500">{{ \Carbon\Carbon::parse($borrowing->updated_at)->translatedFormat('d F Y, H:i') }}</p>
+                            @endif
+                        </div>
+                    </div>
 
-                        <!-- Aktif/Dikembalikan -->
-                        @if($borrowing_status !== 'pending' && $borrowing_status !== 'rejected')
-                            <div class="flex gap-4">
-                                <div class="flex flex-col items-center">
-                                    <div class="w-10 h-10 rounded-full {{ $borrowing_status === 'active' ? 'bg-green-100 animate-pulse' : 'bg-blue-100' }} flex items-center justify-center">
-                                        @if($borrowing_status === 'active')
-                                            <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M13 10V3L4 14h7v7l9-11h-7z" clip-rule="evenodd"></path>
-                                            </svg>
-                                        @else
-                                            <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                            </svg>
-                                        @endif
-                                    </div>
-                                </div>
-                                <div class="py-2">
-                                    <p class="font-semibold text-gray-900">
-                                        {{ $borrowing_status === 'active' ? 'Sedang Dipinjam' : 'Dikembalikan' }}
-                                    </p>
-                                    <p class="text-sm text-gray-600">
-                                        @if($borrowing->returned_at)
-                                            {{ \Carbon\Carbon::parse($borrowing->returned_at)->format('d F Y, H:i') }}
-                                        @elseif($borrowing_status === 'active')
-                                            <span class="text-green-700">Belum dikembalikan</span>
-                                        @else
-                                            -
-                                        @endif
-                                    </p>
-                                </div>
-                            </div>
-                        @endif
+                    {{-- 3. BARANG DIGUNAKAN --}}
+                    <div class="flex gap-4 mb-8">
+                        @php $isActive = $borrowing->status == 'approved'; @endphp
+                        <div class="w-8 h-8 rounded-full {{ $isActive ? 'bg-blue-500' : 'bg-gray-300' }} border-2 border-white shadow flex items-center justify-center shrink-0">
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                        <div>
+                            <p class="font-bold {{ $isActive ? 'text-gray-900' : 'text-gray-500' }}">Barang Digunakan</p>
+                            @if($isActive) <p class="text-sm text-gray-500">Estimasi: {{ $totalDurasi }}</p> @endif
+                        </div>
+                    </div>
+
+                    {{-- 4. SELESAI --}}
+                    <div class="flex gap-4">
+                        @php $isDone = $borrowing->returned_at; @endphp
+                        <div class="w-8 h-8 rounded-full {{ $isDone ? 'bg-green-500' : 'bg-gray-300' }} border-2 border-white shadow flex items-center justify-center shrink-0">
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                        <div>
+                            <p class="font-bold {{ $isDone ? 'text-gray-900' : 'text-gray-500' }}">Dikembalikan</p>
+                            @if($isDone) <p class="text-sm text-gray-500">{{ \Carbon\Carbon::parse($borrowing->returned_at)->translatedFormat('d F Y, H:i') }}</p> @endif
+                        </div>
                     </div>
                 </div>
             </div>
@@ -281,32 +251,26 @@
         <!-- Sidebar (1 column) -->
         <div class="space-y-6">
             <!-- Duration Card -->
-            <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg shadow p-6 text-white">
+            {{-- KARTU DURASI (LOGIC FIX) --}}
+            <div class="bg-gradient-to-br {{ $isOverdue ? 'from-red-500 to-red-600' : 'from-blue-500 to-blue-600' }} rounded-lg shadow p-6 text-white">
                 <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    Durasi
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    {{ $borrowing->status == 'approved' && !$borrowing->returned_at ? ($isOverdue ? 'Terlambat' : 'Sisa Waktu') : 'Total Durasi' }}
                 </h3>
-                @if($borrowing_status === 'active')
-                    <div class="text-center">
-                        <div class="text-3xl font-bold font-mono" id="countdown">Menghitung...</div>
-                        <p class="text-orange-100 text-sm mt-2">Hari Jam Menit Detik</p>
+                
+                <div class="text-center">
+                    <div class="text-2xl font-bold font-mono">
+                        {{-- Menggunakan Variabel PHP dari Controller --}}
+                        {{ $borrowing->status == 'approved' && !$borrowing->returned_at ? $sisaWaktu : $totalDurasi }}
                     </div>
-                @else
-                    <div class="text-center">
-                        <div class="text-3xl font-bold">
-                            @if($borrowing->returned_at && $borrowing->created_at)
-                                {{ \Carbon\Carbon::parse($borrowing->returned_at)->diffInDays(\Carbon\Carbon::parse($borrowing->created_at)) }} Hari
-                            @elseif($borrowing_status === 'active')
-                                <span class="text-green-700">Masih dipinjam</span>
-                            @else
-                                -
-                            @endif
-                        </div>
-                        <p class="text-orange-100 text-sm mt-2">Total durasi peminjaman</p>
-                    </div>
-                @endif
+                    <p class="text-white text-opacity-80 text-sm mt-2">
+                        @if($borrowing->status == 'approved' && !$borrowing->returned_at)
+                             Batas Kembali: {{ \Carbon\Carbon::parse($borrowing->return_date)->translatedFormat('d M Y') }}
+                        @else
+                             Durasi Peminjaman
+                        @endif
+                    </p>
+                </div>
             </div>
 
             <!-- ID Card -->
@@ -351,7 +315,7 @@
             @if($borrowing_status === 'active')
                 <button type="button" onclick="openReturnModal()" class="w-full bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition flex items-center justify-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 12l-8 8M6 20l8-8m0-8L6 4m8-8l-8 8"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3"></path>
                     </svg>
                     Kembalikan Aset
                 </button>
@@ -366,7 +330,7 @@
         <div class="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4 flex items-center justify-between">
             <h3 class="text-lg font-bold text-white flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 12l-8 8M6 20l8-8m0-8L6 4m8-8l-8 8"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3"></path>
                 </svg>
                 Kembalikan Aset
             </h3>
@@ -444,26 +408,5 @@
         }
     });
 
-    // Countdown Timer
-    @if($borrowing_status === 'active')
-        (function() {
-            const startDate = new Date('{{ \Carbon\Carbon::parse($borrowing->request_date ?? $borrowing->created_at)->toIso8601String() }}');
-            const countdownEl = document.getElementById('countdown');
-            
-            function updateCountdown() {
-                const now = new Date();
-                const diffMs = now - startDate;
-                const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
-                
-                countdownEl.textContent = days + 'd ' + hours + 'h ' + minutes + 'm ' + seconds + 's';
-            }
-            
-            updateCountdown();
-            setInterval(updateCountdown, 1000);
-        })();
-    @endif
-</script>
+    </script>
 @endsection

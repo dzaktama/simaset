@@ -37,7 +37,11 @@
                     </svg>
                     Data Aset IT
                 </a>
-
+                {{-- Cari bagian menu Data Aset / Manajemen Aset --}}
+                <a href="{{ route('assets.map') }}" class="flex items-center px-6 py-2 mt-4 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors duration-200 {{ request()->routeIs('assets.map') ? 'bg-gray-100 text-gray-700 border-r-4 border-blue-500' : '' }}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <span class="mx-3">Peta Lokasi</span>
+                </a>
                 <a href="/users" class="{{ request()->is('users*') ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-gray-400 hover:bg-gray-800 hover:text-white' }} group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200">
                     <svg class="mr-3 flex-shrink-0 h-5 w-5 {{ request()->is('users*') ? 'text-white' : 'text-gray-500 group-hover:text-gray-300' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -58,8 +62,8 @@
                     </svg>
                     Manajemen Peminjaman
                 </a>
+                
             @endif
-
             @if(auth()->user()->role !== 'admin')
                 <div class="mt-8 mb-2 px-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Karyawan</div>
 

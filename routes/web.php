@@ -69,9 +69,11 @@ Route::middleware('auth')->group(function () {
         // Manajemen Aset (CRUD Lengkap KECUALI Index yang sudah ada di atas)
         // Kita gunakan 'except' index agar tidak bentrok
         Route::resource('assets', AssetController::class)->except(['index']);
-        
+        // Tambahkan ini di bawah route assets resource
+        Route::get('/assets/map', [App\Http\Controllers\AssetController::class, 'locationMap'])->name('assets.map');
         // Manajemen User
         Route::resource('users', UserController::class);
+        
         
         // Approval Request (Terima/Tolak)
         Route::post('/requests/{id}/approve', [AssetRequestController::class, 'approve'])->name('requests.approve');
@@ -88,6 +90,9 @@ Route::middleware('auth')->group(function () {
 
         // Manajemen Peminjaman
         Route::prefix('borrowing')->group(function () {
+            // Quick approve (hanya admin), konsisten dengan prefix
+            Route::post('{id}/quick-approve', [App\Http\Controllers\BorrowingController::class, 'quickApprove'])->name('borrowing.quick_approve');
+
             Route::get('/', [BorrowingController::class, 'index'])->name('borrowing.index');
             Route::get('{id}', [BorrowingController::class, 'show'])->name('borrowing.show');
             Route::put('{id}/return', [BorrowingController::class, 'return'])->name('borrowing.return');

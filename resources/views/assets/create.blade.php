@@ -44,6 +44,11 @@
                         <input type="number" name="quantity" value="1" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border" placeholder="1">
                         <p class="mt-1 text-xs text-gray-500">Biarkan 1 untuk aset unik (Laptop/PC). Isi lebih dari 1 untuk barang habis pakai (Mouse/Kabel).</p>
                     </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700">Kategori Barang <span class="text-red-500">*</span></label>
+                        <input type="text" name="kategori_barang" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2.5" placeholder="Contoh: Laptop, Monitor, Kabel">
+                        <p class="mt-1 text-xs text-gray-500">Kategori sesuai dengan jenis barang.</p>
+                    </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700">Status Awal</label>

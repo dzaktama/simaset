@@ -21,6 +21,25 @@ class AssetController extends Controller
     /**
      * Menampilkan Dashboard Utama
      */
+    public function locationMap()
+    {
+        // Ambil semua aset yang sudah diset Lorong dan Rak-nya
+        // Kita grouping: Lorong -> Rak -> Item
+        $mapData = Asset::select('id', 'name', 'serial_number', 'category', 'lorong', 'rak', 'image', 'status')
+            ->whereNotNull('lorong')
+            ->whereNotNull('rak')
+            ->get()
+            ->groupBy('lorong')
+            ->map(function ($itemsInLorong) {
+                return $itemsInLorong->groupBy('rak');
+            });
+
+        // Hitung statistik ringkas untuk header
+        $totalLorong = $mapData->count();
+        $totalRak = $mapData->flatten(1)->count();
+
+        return view('assets.map', compact('mapData', 'totalLorong', 'totalRak'));
+    }
     public function dashboard()
     {
         $user = auth()->user();
@@ -111,58 +130,54 @@ class AssetController extends Controller
      */
     public function store(Request $request)
     {
-        $validatedData = $request->validate([
-            'name' => 'required|max:255',
-            'serial_number' => 'required|unique:assets',
+        $request->validate([
+            'name' => 'required',
+            'category' => 'required', // Pastikan input ada name="category" di view
+            // 'location' => 'required', // Sesuai migrasi baru
+            'image' => 'image|mimes:jpeg,png,jpg|max:2048',
             'quantity' => 'required|integer|min:1',
-            'status' => 'required|in:available,deployed,maintenance,broken',
-            'description' => 'nullable|string',
-            'condition_notes' => 'nullable|string',
-            'purchase_date' => 'nullable|date',
-            'user_id' => 'nullable|exists:users,id',
-            'assigned_date' => 'nullable|date',
-            'return_date' => 'nullable|date',
-            'kategori_barang' => 'nullable|string', // kategori barang
-            'rak' => 'nullable|string', // rak
-            'lorong' => 'nullable|string', // lorong
-            'keterangan_lokasi' => 'nullable|string', // keterangan lokasi
-            'image' => 'nullable|image|file|max:2048',
-            'image2' => 'nullable|image|file|max:2048',
-            'image3' => 'nullable|image|file|max:2048',
         ]);
 
-        // Handle image uploads
-        $requestFiles = [];
-        foreach (['image', 'image2', 'image3'] as $key) {
-            if ($request->file($key)) {
-                $requestFiles[$key] = $request->file($key);
-            }
+        // LOGIC SERIAL NUMBER OTOMATIS (Format: AAA-00001)
+        // 1. Ambil 3 huruf pertama dari nama aset, uppercase
+        $prefix = strtoupper(substr($request->name, 0, 3));
+        
+        // 2. Cari serial number terakhir yang punya prefix sama
+        $lastAsset = Asset::where('serial_number', 'like', $prefix . '-%')
+                          ->orderBy('id', 'desc')
+                          ->first();
+
+        // 3. Tentukan nomor urut
+        if ($lastAsset) {
+            // Pecah string LAP-00001, ambil angkanya saja
+            $lastNumber = (int) substr($lastAsset->serial_number, 4);
+            $newNumber = $lastNumber + 1;
+        } else {
+            $newNumber = 1;
         }
 
-        $validatedData = $this->assetService->handleImageUploads(
-            new Asset(),
-            $validatedData,
-            $requestFiles
-        );
+        // 4. Format jadi 5 digit angka (00001)
+        $serialNumber = $prefix . '-' . str_pad($newNumber, 5, '0', STR_PAD_LEFT);
 
-        // Format dates
-        if (!empty($validatedData['assigned_date'])) {
-            $validatedData['assigned_date'] = \Carbon\Carbon::parse($validatedData['assigned_date'])->format('Y-m-d H:i:s');
-        }
-        if (!empty($validatedData['return_date'])) {
-            $validatedData['return_date'] = \Carbon\Carbon::parse($validatedData['return_date'])->format('Y-m-d H:i:s');
+        // Upload Gambar
+        $imageName = null;
+        if ($request->hasFile('image')) {
+            $imageName = time() . '.' . $request->image->extension();
+            $request->image->move(public_path('images'), $imageName);
         }
 
-        // Force user & dates to null jika status available
-        if ($validatedData['status'] === 'available') {
-            $validatedData['user_id'] = null;
-            $validatedData['assigned_date'] = null;
-            $validatedData['return_date'] = null;
-        }
+        Asset::create([
+            'name' => $request->name,
+            'serial_number' => $serialNumber, // Hasil generate
+            'category' => $request->category, // Bahasa Indonesia: Laptop, Monitor, dll
+            'location' => $request->location ?? 'Gudang Utama', // Default jika kosong
+            'status' => 'available',
+            'image' => $imageName,
+            'quantity' => $request->quantity,
+            'purchase_date' => $request->purchase_date ?? now(),
+        ]);
 
-        Asset::create($validatedData);
-
-        return redirect('/assets')->with('success', 'Aset baru berhasil ditambahkan!');
+        return redirect()->route('assets.index')->with('success', 'Aset berhasil ditambahkan dengan Serial Number: ' . $serialNumber);
     }
 
     /**

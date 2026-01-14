@@ -9,23 +9,44 @@ class AssetFactory extends Factory
 {
     public function definition(): array
     {
-        // Daftar Alat IT yang realistis
+        // Daftar Alat IT yang realistis dan mapping ke kategori
         $itItems = [
-            'Laptop Dell Latitude', 'MacBook Pro M1', 'Monitor LG 24 Inch', 
-            'Keyboard Mechanical Logitech', 'Mouse Wireless HP', 'Server Rack 4U',
-            'Cisco Switch 24 Port', 'Projector Epson', 'Printer Canon Pixma',
-            'iPad Air 5', 'Samsung Galaxy Tab', 'Webcam Logitech C920',
-            'Headset Jabra Evolve', 'Hardisk Eksternal 1TB', 'Kabel HDMI 10m'
+            'Laptop Dell Latitude' => 'Laptop',
+            'MacBook Pro M1' => 'Laptop',
+            'Monitor LG 24 Inch' => 'Monitor',
+            'Keyboard Mechanical Logitech' => 'Aksesoris Komputer',
+            'Mouse Wireless HP' => 'Aksesoris Komputer',
+            'Server Rack 4U' => 'Perangkat Jaringan',
+            'Cisco Switch 24 Port' => 'Perangkat Jaringan',
+            'Projector Epson' => 'Proyektor',
+            'Printer Canon Pixma' => 'Printer',
+            'iPad Air 5' => 'Tablet',
+            'Samsung Galaxy Tab' => 'Tablet',
+            'Webcam Logitech C920' => 'Aksesoris Komputer',
+            'Headset Jabra Evolve' => 'Aksesoris Audio',
+            'Hardisk Eksternal 1TB' => 'Penyimpanan Data',
+            'Kabel HDMI 10m' => 'Kabel dan Adaptor'
         ];
+
+        $itemName = fake()->randomElement(array_keys($itItems));
+        $kategori = $itItems[$itemName];
 
         $statuses = ['available', 'deployed', 'maintenance', 'broken'];
         $selectedStatus = fake()->randomElement($statuses);
 
         // Jika status deployed, harus ada user yang pegang. Jika available/rusak, user_id null.
         $userId = ($selectedStatus === 'deployed') ? User::inRandomOrder()->first()->id ?? null : null;
+        
+        // Data Lokasi
+        $lorongs = ['A', 'B', 'C', 'D'];
+        $raks = ['01', '02', '03', '04', '05'];
 
         return [
-            'name' => fake()->randomElement($itItems) . ' - ' . fake()->numerify('##'),
+            'name' => $itemName . ' - ' . fake()->numerify('##'),
+            'kategori_barang' => $kategori,
+            'rak' => fake()->randomElement($raks),
+            'lorong' => fake()->randomElement($lorongs),
+            'keterangan_lokasi' => 'Lantai ' . fake()->numberBetween(1, 4),
             'serial_number' => fake()->unique()->bothify('IT-????-#####'), // Contoh: IT-ABXY-12345
             'status' => $selectedStatus,
             'description' => fake()->sentence(10), // Deskripsi singkat

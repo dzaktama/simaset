@@ -64,6 +64,7 @@
                     <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Aset Info</th>
                     <th class="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase">QR Code</th>
                     <th class="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase">Stok</th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Kategori</th>
                     <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Kondisi</th>
                     <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
                     <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Aksi</th>
@@ -93,6 +94,7 @@
                         </div>
                     </td>
                     <td class="px-6 py-4 text-center"><span class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $asset->quantity > 0 ? 'bg-gray-100 text-gray-800' : 'bg-red-100 text-red-800' }}">{{ $asset->quantity }} Unit</span></td>
+                    <td class="px-6 py-4"><span class="text-sm text-gray-700">{{ $asset->kategori_barang ?? '-' }}</span></td>
                     <td class="px-6 py-4"><span class="text-sm text-gray-700">{{ $asset->condition_notes ?? 'Baik' }}</span></td>
                     <td class="px-6 py-4">
                         @if($asset->quantity == 0) <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Habis</span>
@@ -157,6 +159,7 @@
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div><p class="text-xs text-gray-500 uppercase font-bold">Kategori</p><p id="modalKategori" class="font-medium">-</p></div>
                             <div><p class="text-xs text-gray-500 uppercase font-bold">Kondisi</p><p id="modalCondition" class="font-medium">-</p></div>
                             <div><p class="text-xs text-gray-500 uppercase font-bold">Terdaftar</p><p id="modalCreatedAt" class="font-medium">-</p></div>
                         </div>
@@ -281,6 +284,7 @@
         document.getElementById('modalName').innerText = asset.name;
         document.getElementById('modalSN').innerText = asset.serial_number;
         document.getElementById('modalDescription').innerHTML = asset.description || '-'; // Reset deskripsi
+        document.getElementById('modalKategori').innerText = asset.kategori_barang || '-';
         document.getElementById('modalCondition').innerText = asset.condition_notes || 'Kondisi Baik';
         document.getElementById('modalQuantity').innerText = 'Stok: ' + asset.quantity + ' Unit';
         
