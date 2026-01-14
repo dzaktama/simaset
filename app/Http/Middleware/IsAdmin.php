@@ -10,17 +10,15 @@ class IsAdmin
 {
     /**
      * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Cek apakah user login dan role-nya admin
+        // Cek apakah user sudah login dan role-nya admin
         if (auth()->check() && auth()->user()->role === 'admin') {
             return $next($request);
         }
 
-        // Jika bukan admin, tendang ke dashboard atau halaman lain
-        return redirect('/dashboard')->with('error', 'Anda tidak memiliki akses ke halaman ini.');
+        // Jika bukan admin, lempar error 403 (Forbidden) atau redirect
+        abort(403, 'Akses Ditolak. Halaman ini khusus Administrator.');
     }
 }

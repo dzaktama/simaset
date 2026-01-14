@@ -7,7 +7,11 @@ use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
-    public function login()
+    /**
+     * Menampilkan Halaman Login (GET)
+     * Di route: [AuthController::class, 'showLoginForm']
+     */
+    public function showLoginForm() 
     {
         return view('auth.login', [ 
             'title' => 'Login',
@@ -15,30 +19,43 @@ class AuthController extends Controller
         ]);
     }
 
-    public function authenticate(Request $request)
+    /**
+     * Memproses Login (POST)
+     * Di route: [AuthController::class, 'login']
+     */
+    public function login(Request $request)
     {
         // [IMPROVISASI] Validasi Captcha
         $request->validate([
             'email' => 'required|email',
             'password' => 'required',
-            'captcha' => 'required|captcha'
+            // 'captcha' => 'required|captcha' // Hidupkan jika sudah install package captcha
         ], [
-            // Custom Error Message biar lebih ramah
-            'captcha.required' => 'Kode keamanan wajib diisi.',
-            'captcha.captcha' => 'Kode keamanan salah! Silakan coba lagi.'
+            // Custom Error Message
+            // 'captcha.required' => 'Kode keamanan wajib diisi.',
+            // 'captcha.captcha' => 'Kode keamanan salah! Silakan coba lagi.'
         ]);
 
         $credentials = $request->only('email', 'password');
 
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
-            return redirect()->intended('/dashboard');
+            
+            // Cek role untuk redirect yang sesuai
+            if (auth()->user()->role === 'admin') {
+                return redirect()->intended('/dashboard');
+            }
+            
+            return redirect()->intended('/home');
         }
 
         // Kalau password salah, input email jangan dihilangkan (UX)
         return back()->with('loginError', 'Login gagal! Email atau password salah.')->withInput($request->only('email'));
     }
 
+    /**
+     * Logout User
+     */
     public function logout(Request $request)
     {
         Auth::logout();

@@ -18,36 +18,16 @@ class AssetController extends Controller
     {
         $this->assetService = $assetService;
     }
+
     /**
      * Menampilkan Dashboard Utama
      */
-    public function locationMap()
-    {
-        // Ambil semua aset yang sudah diset Lorong dan Rak-nya
-        // Kita grouping: Lorong -> Rak -> Item
-        $mapData = Asset::select('id', 'name', 'serial_number', 'kategori_barang', 'lorong', 'rak', 'image', 'status')
-            ->whereNotNull('lorong')
-            ->whereNotNull('rak')
-            ->get()
-            ->groupBy('lorong')
-            ->map(function ($itemsInLorong) {
-                return $itemsInLorong->groupBy('rak');
-            });
-
-        // Hitung statistik ringkas untuk header
-        $totalLorong = $mapData->count();
-        $totalRak = $mapData->flatten(1)->count();
-
-        return view('assets.map', compact('mapData', 'totalLorong', 'totalRak'));
-    }
     public function dashboard()
     {
         $user = auth()->user();
 
         if ($user->role === 'admin') {
             // Ambil data untuk modal
-            $assets = Asset::with('holder')->latest();
-
             return view('home', [
                 'title' => 'Dashboard Admin',
                 'stats' => [
@@ -78,6 +58,29 @@ class AssetController extends Controller
                 'myActiveAssets' => Asset::where('user_id', $user->id)->latest()->take(3)->get()
             ]);
         }
+    }
+
+ 
+    public function locationMap()
+    {
+        // PERBAIKAN: Ganti 'kategori_barang' jadi 'category' sesuai database
+        $mapData = Asset::select('id', 'name', 'serial_number', 'category', 'lorong', 'rak', 'image', 'status')
+            ->whereNotNull('lorong')
+            ->whereNotNull('rak')
+            ->where('lorong', '!=', '') // Pastikan tidak kosong string
+            ->where('rak', '!=', '')
+            ->get()
+            ->groupBy('lorong')
+            ->map(function ($itemsInLorong) {
+                return $itemsInLorong->groupBy('rak');
+            });
+
+        // Hitung statistik ringkas untuk header
+        $totalLorong = $mapData->count();
+        // flatten(1) untuk menghitung total rak dari semua lorong
+        $totalRak = $mapData->flatten(1)->count();
+
+        return view('assets.map', compact('mapData', 'totalLorong', 'totalRak'));
     }
 
     /**
@@ -126,7 +129,6 @@ class AssetController extends Controller
 
     /**
      * Simpan Aset Baru (Admin Menambah Aset)
-     * CATATAN: Untuk pengajuan peminjaman karyawan, gunakan AssetRequestController::store()
      */
     public function store(Request $request)
     {
@@ -146,7 +148,10 @@ class AssetController extends Controller
         $lastAsset = Asset::where('serial_number', 'like', $prefix . '-%')
                           ->orderByRaw('CAST(SUBSTRING(serial_number, 5) AS UNSIGNED) DESC')
                           ->first();
+        
         $number = $lastAsset ? (int) substr($lastAsset->serial_number, 4) + 1 : 1;
+        
+        // PERBAIKAN: Hapus spasi di sini ($serialNumber bukan $ serialNumber)
         $serialNumber = $prefix . '-' . str_pad($number, 5, '0', STR_PAD_LEFT);
 
         // 3. Logic Upload Multi Image
@@ -177,6 +182,17 @@ class AssetController extends Controller
     }
 
     /**
+     * Tampilkan Detail Aset
+     */
+    public function show(Asset $asset)
+    {
+        return view('assets.detail', [
+            'title' => 'Detail Aset - ' . $asset->name,
+            'asset' => $asset
+        ]);
+    }
+
+    /**
      * Form Edit Aset
      */
     public function edit(Asset $asset) {
@@ -184,12 +200,14 @@ class AssetController extends Controller
     }
 
     /**
-     * Update Aset (Termasuk Smart Logic Status & Tanggal & Split Stock)
+     * Update Aset
      */
     public function update(Request $request, Asset $asset)
     {
+        // 1. Validasi (Perbaikan nama kolom category)
         $rules = [
             'name' => 'required|max:255',
+            'category' => 'required', // Wajib ada
             'status' => 'required',
             'quantity' => 'required|integer|min:0',
             'user_id' => 'nullable|exists:users,id',
@@ -199,10 +217,8 @@ class AssetController extends Controller
             'purchase_date' => 'nullable|date',
             'description' => 'nullable',
             'condition_notes' => 'nullable',
-            'kategori_barang' => 'nullable|string', // kategori barang
-            'rak' => 'nullable|string', // rak
-            'lorong' => 'nullable|string', // lorong
-            'keterangan_lokasi' => 'nullable|string', // keterangan lokasi
+            'rak' => 'nullable|string', 
+            'lorong' => 'nullable|string', 
             'image' => 'nullable|image|file|max:2048',
             'image2' => 'nullable|image|file|max:2048',
             'image3' => 'nullable|image|file|max:2048',
@@ -214,7 +230,7 @@ class AssetController extends Controller
 
         $validatedData = $request->validate($rules);
 
-        // Handle image uploads
+        // 2. Handle Upload Gambar
         $requestFiles = [];
         foreach (['image', 'image2', 'image3'] as $key) {
             if ($request->file($key)) {
@@ -228,7 +244,12 @@ class AssetController extends Controller
             $requestFiles
         );
 
-        // Format dates
+        // 3. Update Format Lokasi Gabungan (PENTING untuk display list lama)
+        $lorong = $request->lorong ?? '-';
+        $rak = $request->rak ?? '-';
+        $validatedData['location'] = "$lorong - Rak $rak";
+
+        // 4. Format Tanggal
         if (!empty($validatedData['assigned_date'])) {
             $validatedData['assigned_date'] = \Carbon\Carbon::parse($validatedData['assigned_date'])->format('Y-m-d H:i:s');
         }
@@ -236,14 +257,14 @@ class AssetController extends Controller
             $validatedData['return_date'] = \Carbon\Carbon::parse($validatedData['return_date'])->format('Y-m-d H:i:s');
         }
 
-        // Force null jika status available
+        // Logic Status Available
         if ($validatedData['status'] === 'available') {
             $validatedData['user_id'] = null;
             $validatedData['assigned_date'] = null;
             $validatedData['return_date'] = null;
         }
 
-        // LOGIC: Split Stock
+        // 5. Logic Split Stock (Jika aset dipecah)
         if ($request->user_id && $request->manual_quantity && $request->manual_quantity < $asset->quantity) {
             try {
                 $this->assetService->splitStock(
@@ -264,7 +285,7 @@ class AssetController extends Controller
             }
         }
 
-        // LOGIC: Status auto-adjustment
+        // Logic Status Otomatis
         if ($validatedData['status'] !== 'available') {
             if ($validatedData['user_id'] && $validatedData['status'] === 'available') {
                 $validatedData['status'] = 'deployed';
@@ -278,7 +299,7 @@ class AssetController extends Controller
             $validatedData['assigned_date'] = now();
         }
 
-        // Log status change
+        // Log History jika status berubah
         if ($asset->status !== $validatedData['status']) {
             AssetHistory::create([
                 'asset_id' => $asset->id,
@@ -288,6 +309,7 @@ class AssetController extends Controller
             ]);
         }
 
+        // 6. Simpan Update
         $asset->update($validatedData);
 
         return redirect('/assets')->with('success', 'Data aset berhasil diperbarui!');
@@ -315,8 +337,6 @@ class AssetController extends Controller
 
     /**
      * [SCAN QR CODE] Tampilkan Detail Aset dari QR
-     * Route ini dipanggil saat QR code di-scan
-     * Bisa langsung redirect atau tampilkan halaman detail
      */
     public function scanQr(Asset $asset)
     {
@@ -328,12 +348,9 @@ class AssetController extends Controller
 
     /**
      * Endpoint untuk data chart di dashboard
-     * range: daily | monthly | yearly
-     * Balik JSON: status counts + time series untuk assets created
      */
     public function chartsData(Request $request)
     {
-        // Santai aja, kita bikin data yang umum dibutuhkan: status counts + series waktu
         $range = $request->query('range', 'monthly'); // default monthly
 
         // Status counts sekarang
@@ -384,7 +401,6 @@ class AssetController extends Controller
 
     /**
      * Data peminjaman (approved + rejected requests) untuk chart
-     * range: hourly | daily | monthly | yearly
      */
     public function borrowStats(Request $request)
     {
@@ -398,13 +414,13 @@ class AssetController extends Controller
                 $hour = now()->subHours($i);
                 $series['labels'][] = $hour->format('H:i');
                 $series['approved'][] = \App\Models\AssetRequest::whereDate('created_at', $hour->format('Y-m-d'))
-                                                            ->whereHour('created_at', $hour->hour)
-                                                            ->where('status','approved')
-                                                            ->count();
+                                                                ->whereHour('created_at', $hour->hour)
+                                                                ->where('status','approved')
+                                                                ->count();
                 $series['rejected'][] = \App\Models\AssetRequest::whereDate('created_at', $hour->format('Y-m-d'))
-                                                            ->whereHour('created_at', $hour->hour)
-                                                            ->where('status','rejected')
-                                                            ->count();
+                                                                ->whereHour('created_at', $hour->hour)
+                                                                ->where('status','rejected')
+                                                                ->count();
             }
         } elseif ($range === 'daily') {
             // last 7 days
@@ -427,13 +443,13 @@ class AssetController extends Controller
                 $dt = now()->subMonths($m);
                 $series['labels'][] = $dt->format('M Y');
                 $series['approved'][] = \App\Models\AssetRequest::whereYear('created_at', $dt->year)
-                                            ->whereMonth('created_at', $dt->month)
-                                            ->where('status','approved')
-                                            ->count();
+                                                                ->whereMonth('created_at', $dt->month)
+                                                                ->where('status','approved')
+                                                                ->count();
                 $series['rejected'][] = \App\Models\AssetRequest::whereYear('created_at', $dt->year)
-                                            ->whereMonth('created_at', $dt->month)
-                                            ->where('status','rejected')
-                                            ->count();
+                                                                ->whereMonth('created_at', $dt->month)
+                                                                ->where('status','rejected')
+                                                                ->count();
             }
         }
 
@@ -451,7 +467,6 @@ class AssetController extends Controller
 
     /**
      * Detail items for a clicked chart point (drilldown)
-     * Query params: metric=assets|borrows, label=<label_string>, range=daily|monthly|yearly
      */
     public function chartDetails(Request $request)
     {
