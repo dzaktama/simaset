@@ -94,12 +94,13 @@ class BorrowingController extends Controller
         
         $totalDurasi = '-';
         if($end) {
-             // Syntax 3 bagian (Hari, Jam, Menit) agar detail
-            $totalDurasi = $start->diffForHumans($end, [
-                'parts' => 3, 
-                'join' => true, 
-                'syntax' => Carbon::DIFF_ABSOLUTE
-            ]);
+            // REVISI: Gunakan diffInDays untuk hari penuh, sisanya jam
+            // Agar tidak muncul "0.0001 jam"
+            $days = $start->diffInDays($end);
+            $hours = $start->copy()->addDays($days)->diffInHours($end);
+            
+            $totalDurasi = $days . ' Hari';
+            if ($hours > 0) $totalDurasi .= ' ' . $hours . ' Jam';
         }
 
         // Hitung Sisa Waktu / Keterlambatan
@@ -111,18 +112,15 @@ class BorrowingController extends Controller
             if ($now->greaterThan($end)) {
                 // Telat
                 $isOverdue = true;
-                $sisaWaktu = 'Terlambat ' . $end->diffForHumans($now, [
-                    'parts' => 2,
-                    'join' => true, 
-                    'syntax' => Carbon::DIFF_ABSOLUTE
-                ]);
+                // Hitung keterlambatan
+                $lateDays = $end->diffInDays($now);
+                $lateHours = $end->copy()->addDays($lateDays)->diffInHours($now);
+                $sisaWaktu = "Terlambat {$lateDays} Hari {$lateHours} Jam";
             } else {
                 // Masih jalan (Countdown)
-                $sisaWaktu = $now->diffForHumans($end, [
-                    'parts' => 3, 
-                    'join' => true, 
-                    'syntax' => Carbon::DIFF_ABSOLUTE
-                ]);
+                // Ini akan dihandle JavaScript real-time, tapi kita kirim data awal
+                $remainingDays = $now->diffInDays($end);
+                $sisaWaktu = "{$remainingDays} Hari lagi";
             }
         } elseif ($borrowing->returned_at) {
             $sisaWaktu = 'Selesai (Dikembalikan)';

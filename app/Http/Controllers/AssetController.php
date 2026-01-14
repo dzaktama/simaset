@@ -25,7 +25,7 @@ class AssetController extends Controller
     {
         // Ambil semua aset yang sudah diset Lorong dan Rak-nya
         // Kita grouping: Lorong -> Rak -> Item
-        $mapData = Asset::select('id', 'name', 'serial_number', 'category', 'lorong', 'rak', 'image', 'status')
+        $mapData = Asset::select('id', 'name', 'serial_number', 'kategori_barang', 'lorong', 'rak', 'image', 'status')
             ->whereNotNull('lorong')
             ->whereNotNull('rak')
             ->get()
@@ -132,13 +132,12 @@ class AssetController extends Controller
     {
         $request->validate([
             'name' => 'required',
-            'category' => 'required', // Pastikan input ada name="category" di view
-            // 'location' => 'required', // Sesuai migrasi baru
+            'kategori_barang' => 'required', // Sesuaikan dengan kolom database baru
             'image' => 'image|mimes:jpeg,png,jpg|max:2048',
             'quantity' => 'required|integer|min:1',
         ]);
 
-        // LOGIC SERIAL NUMBER OTOMATIS (Format: AAA-00001)
+        // LOGIC SERIAL NUMBER OTOMATIS (Format: AAA-00001) - REVISI
         // 1. Ambil 3 huruf pertama dari nama aset, uppercase
         $prefix = strtoupper(substr($request->name, 0, 3));
         
@@ -149,8 +148,9 @@ class AssetController extends Controller
 
         // 3. Tentukan nomor urut
         if ($lastAsset) {
-            // Pecah string LAP-00001, ambil angkanya saja
-            $lastNumber = (int) substr($lastAsset->serial_number, 4);
+            // Pecah string AAA-00001, ambil angkanya saja (mulai index 4)
+            // Contoh: MAC-00005 -> ambil 00005
+            $lastNumber = (int) substr($lastAsset->serial_number, -5);
             $newNumber = $lastNumber + 1;
         } else {
             $newNumber = 1;
@@ -169,8 +169,10 @@ class AssetController extends Controller
         Asset::create([
             'name' => $request->name,
             'serial_number' => $serialNumber, // Hasil generate
-            'category' => $request->category, // Bahasa Indonesia: Laptop, Monitor, dll
-            'location' => $request->location ?? 'Gudang Utama', // Default jika kosong
+            'kategori_barang' => $request->kategori_barang, // Bahasa Indonesia
+            'lorong' => $request->lorong,
+            'rak' => $request->rak,
+            'keterangan_lokasi' => $request->keterangan_lokasi,
             'status' => 'available',
             'image' => $imageName,
             'quantity' => $request->quantity,
