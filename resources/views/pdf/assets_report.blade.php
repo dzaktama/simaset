@@ -2,251 +2,258 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>{{ $title ?? 'Laporan Aset' }}</title>
+    <title>{{ $customTitle ?? 'Laporan Aset' }}</title>
     <style>
-        /* SETUP HALAMAN CETAK */
+        /* PENGATURAN KERTAS */
         @page {
+            margin: 10mm 15mm 15mm 15mm;
             size: A4 {{ $orientation ?? 'portrait' }};
-            margin: 10mm 15mm 15mm 15mm; 
         }
-
-        /* RESET & BASE STYLES */
         body {
-            font-family: 'Arial', sans-serif;
-            font-size: 11px;
-            color: #000;
-            background: #fff;
-            margin: 0;
-            padding: 20px;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-        }
-
-        /* SAAT DICETAK / DI PREVIEW IFRAME */
-        @media print {
-            body { padding: 0; }
-            .no-print { display: none; }
-            
-            .page-footer {
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                height: 30px;
-                border-top: 1px solid #000;
-                padding-top: 5px;
-                background: #fff;
-            }
-
-            thead { display: table-header-group; }
-            tfoot { display: table-row-group; }
-            tr { page-break-inside: avoid; }
-        }
-
-        /* HEADER LAPORAN */
-        .header-container {
-            display: flex;
-            align-items: center;
-            border-bottom: 2px solid #000;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 10px;
+            color: #333;
         }
         
-        .logo-wrapper { 
-            width: 120px; 
-            flex-shrink: 0; 
-        }
-        .logo-img { 
-            width: 100%; 
-            height: auto; 
-        }
-        .header-content { 
-            flex-grow: 1; 
-            text-align: center; 
-            padding-right: 120px; 
-        }
-        
-        .header-content h1 { margin: 0; font-size: 18px; font-weight: 800; text-transform: uppercase; }
-        .header-content h2 { margin: 4px 0; font-size: 12px; font-weight: bold; color: #333; }
-        .header-content p { margin: 0; font-size: 10px; color: #555; }
+        /* HEADER */
+        .header-table { width: 100%; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+        .header-table td { vertical-align: middle; }
+        .header-title h1 { margin: 0; font-size: 16px; text-transform: uppercase; font-weight: 800; }
+        .header-title h2 { margin: 2px 0; font-size: 11px; font-weight: bold; color: #555; }
+        .header-title p { margin: 0; font-size: 9px; }
 
         /* INFO BOX */
-        .meta-box {
-            border: 1px solid #ccc;
-            padding: 8px 12px;
+        .meta-info {
+            width: 100%;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            padding: 8px;
             margin-bottom: 15px;
-            display: flex;
-            justify-content: space-between;
-            font-size: 10px;
-            background-color: #f9fafb;
+            font-size: 9px;
         }
-        .meta-item { display: flex; flex-direction: column; }
-        .meta-label { font-weight: bold; color: #555; text-transform: uppercase; font-size: 8px; }
-        .meta-value { font-weight: bold; margin-top: 2px; }
+        .meta-table { width: 100%; }
+        .meta-table td { padding: 2px 5px; }
 
-        /* TABEL DATA */
-        table.data-table { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 40px; }
-        table.data-table th, table.data-table td { border: 1px solid #000; padding: 6px 8px; vertical-align: middle; text-align: left; }
-        table.data-table th { background-color: #eee; font-weight: bold; text-transform: uppercase; font-size: 9px; text-align: center; }
-        table.data-table tr:nth-child(even) { background-color: #fcfcfc; }
-
-        /* COMPONENTS */
-        .badge { padding: 2px 6px; border-radius: 3px; font-size: 9px; font-weight: bold; color: #fff; text-transform: uppercase; display: inline-block; min-width: 60px; text-align: center; }
-        .bg-available { background-color: #10b981; }
-        .bg-deployed { background-color: #3b82f6; }
-        .bg-maintenance { background-color: #f59e0b; }
-        .bg-broken { background-color: #ef4444; }
-        .asset-img { width: 40px; height: 40px; object-fit: cover; border: 1px solid #ccc; }
+        /* TABEL DATA UTAMA */
+        table.data {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table.data th, table.data td {
+            border: 1px solid #000;
+            padding: 5px;
+            vertical-align: middle;
+        }
+        table.data th {
+            background-color: #eee;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 8px;
+            text-align: center;
+        }
         
-        /* QR CODE STYLES */
-        .qr-code { width: 50px; height: 50px; object-fit: contain; }
+        /* Mencegah baris tabel terpotong saat ganti halaman */
+        tr { page-break-inside: avoid; }
 
-        /* PAGE NUMBERING */
-        @page {
-            @bottom-right {
-                content: "Halaman " counter(page);
-                font-size: 9px;
-            }
+        /* STATUS BADGE */
+        .badge {
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-size: 8px;
+            font-weight: bold;
+            border: 1px solid #ccc;
+            text-transform: uppercase;
+            display: inline-block;
+            text-align: center;
+            min-width: 50px;
         }
-        body { counter-reset: page 0; }
-        .page-number::after { 
-            counter-increment: page;
-            content: "Hal: " counter(page); 
+        .st-available { background: #d1fae5; color: #065f46; border-color: #a7f3d0; }
+        .st-deployed { background: #dbeafe; color: #1e40af; border-color: #bfdbfe; }
+        .st-maintenance { background: #fef9c3; color: #854d0e; border-color: #fde047; }
+        .st-broken { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+
+        /* FOOTER & PAGE NUMBER */
+        .footer {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            border-top: 1px solid #000; padding-top: 5px;
+            font-size: 8px; text-align: right; color: #555;
         }
+        .page-number:after { content: counter(page); }
+        
+        .text-center { text-align: center; }
+        .font-mono { font-family: 'Courier New', Courier, monospace; }
     </style>
 </head>
 <body>
 
-    <div class="page-footer no-print" style="display: flex; justify-content: space-between; font-size: 9px; color: #555;">
-        <div>Dicetak oleh: <strong>{{ auth()->user()->name ?? 'Admin' }}</strong></div>
-        <div>{{ config('app.name') }} &copy; {{ date('Y') }}</div>
+    {{-- PHP HELPER: Convert Image to Base64 --}}
+    @php
+        function imgToBase64($path) {
+            if (!file_exists($path)) return null;
+            $type = pathinfo($path, PATHINFO_EXTENSION);
+            $data = file_get_contents($path);
+            return 'data:image/' . $type . ';base64,' . base64_encode($data);
+        }
+        
+        $logoPath = public_path('img/logoVitechAsia.png');
+        $logoBase64 = imgToBase64($logoPath);
+    @endphp
+
+    {{-- HEADER --}}
+    <table class="header-table">
+        <tr>
+            <td width="80">
+                @if($logoBase64)
+                    <img src="{{ $logoBase64 }}" style="width: 80px; height: auto;">
+                @else
+                    <b>LOGO</b>
+                @endif
+            </td>
+            <td class="header-title" style="text-align: center; padding-right: 80px;">
+                <h1>{{ $customTitle ?? 'Laporan Inventaris Aset' }}</h1>
+                <h2>PT VITECH ASIA - INTEGRATED ASSET MANAGEMENT SYSTEM</h2>
+                <p>Dicetak: {{ date('d F Y, H:i') }} WIB | Oleh: {{ auth()->user()->name }}</p>
+            </td>
+        </tr>
+    </table>
+
+    {{-- META INFO --}}
+    <div class="meta-info">
+        <table class="meta-table">
+            <tr>
+                <td width="15%"><strong>Kategori Filter:</strong></td>
+                <td width="35%">{{ $filterCategory ?? 'Semua' }}</td>
+                <td width="15%"><strong>Status Filter:</strong></td>
+                <td width="35%">{{ $filterStatus ?? 'Semua' }}</td>
+            </tr>
+            <tr>
+                <td><strong>Pencarian:</strong></td>
+                <td>{{ $filterSearch ?? '-' }}</td>
+                <td><strong>Total Data:</strong></td>
+                <td>{{ count($assets) }} Unit</td>
+            </tr>
+        </table>
     </div>
 
-    <div class="header-container">
-        <div class="logo-wrapper">
-            {{-- Perbaikan: Handle Logo agar aman di PDF maupun Preview --}}
-            @if(isset($logoBase64) && !empty($logoBase64))
-                <img src="{{ $logoBase64 }}" class="logo-img" alt="Logo" style="width: 120px; height: auto;">
-            @else
-                <img src="{{ public_path('img/logoVitechAsia.png') }}" class="logo-img" alt="Logo" style="width: 120px; height: auto;">
-            @endif
-        </div>
-        <div class="header-content">
-            <h1>{{ $customTitle ?? 'Laporan Aset IT' }}</h1>
-            <h2>PT VITECH ASIA - INTEGRATED ASSET MANAGEMENT</h2>
-            <p>Tanggal: {{ $date ?? date('d/m/Y') }} | Pukul: {{ $printTime ?? date('H:i') }} WIB</p>
-        </div>
-    </div>
-
-    <div class="meta-box">
-        <div style="display:flex; gap: 30px;">
-            <div class="meta-item">
-                <span class="meta-label">Total Aset</span>
-                <span class="meta-value">{{ count($assets) }} Unit</span>
-            </div>
-            <div class="meta-item">
-                <span class="meta-label">Filter Status</span>
-                <span class="meta-value">{{ $filterStatus ?? 'Semua' }}</span>
-            </div>
-            <div class="meta-item">
-                <span class="meta-label">Pencarian</span>
-                {{-- PERBAIKAN: Gunakan null coalescing operator (??) agar tidak error undefined variable --}}
-                <span class="meta-value">{{ $filterSearch ?? '-' }}</span>
-            </div>
-        </div>
-        <div class="meta-item" style="text-align: right;">
-            <span class="meta-label">Catatan Admin</span>
-            <span class="meta-value" style="font-style: italic;">{{ Str::limit($adminNotes ?? '', 100) }}</span>
-        </div>
-    </div>
-
-    <table class="data-table">
+    {{-- TABEL DATA --}}
+    <table class="data">
         <thead>
             <tr>
-                <th style="width: 5%;">No</th>
-                @if(isset($showImages) && $showImages) <th style="width: 8%;">Foto</th> @endif
-                <th style="width: 25%;">Nama Aset / Spesifikasi</th>
-                <th style="width: 12%;">Serial Number</th>
-                <th style="width: 10%;">QR Code</th>
-                <th style="width: 8%;">Stok</th>
-                <th style="width: 12%;">Status</th>
-                <th style="width: 15%;">Lokasi</th>
+                <th width="20">No</th>
+                @if(isset($showImages) && $showImages) <th width="50">Foto</th> @endif
+                <th>Detail Aset (Nama & SN)</th>
+                <th width="80">Kategori</th>
+                <th>Lokasi</th>
+                <th width="70">Status & Stok</th>
+                <th width="50">QR Code</th>
             </tr>
         </thead>
         <tbody>
             @forelse($assets as $index => $asset)
             <tr>
-                <td style="text-align: center;">{{ $index + 1 }}</td>
+                <td class="text-center">{{ $index + 1 }}</td>
                 
+                {{-- FOTO ASET --}}
                 @if(isset($showImages) && $showImages)
-                <td style="text-align: center;">
-                    {{-- PERBAIKAN: Gunakan logika path yang aman --}}
-                    @if($asset->image)
-                        @php
-                            // Cek apakah file ada di storage public path
-                            $path = public_path('storage/' . $asset->image);
-                            // Jika tidak ada (misal di local dev kadang beda), coba storage_path
-                            if (!file_exists($path)) {
-                                $path = storage_path('app/public/' . $asset->image);
+                <td class="text-center">
+                    @php
+                        $assetImgBase64 = null;
+                        if($asset->image) {
+                            $fullPath = storage_path('app/public/' . $asset->image);
+                            if(!file_exists($fullPath)) {
+                                $fullPath = public_path('storage/' . $asset->image);
                             }
-                        @endphp
-                        
-                        @if(file_exists($path))
-                            <img src="{{ $path }}" class="asset-img" style="max-width: 50px; max-height: 50px;">
-                        @else
-                            <span style="font-size:8px; color:red;">Img Not Found</span>
-                        @endif
+                            $assetImgBase64 = imgToBase64($fullPath);
+                        }
+                    @endphp
+
+                    @if($assetImgBase64)
+                        <img src="{{ $assetImgBase64 }}" style="width: 40px; height: 40px; object-fit: cover; border: 1px solid #ccc;">
                     @else
-                        -
+                        <span style="color: #ccc; font-size: 8px;">-</span>
                     @endif
                 </td>
                 @endif
 
+                {{-- NAMA & SN --}}
                 <td>
-                    <div style="font-weight: bold;">{{ $asset->name }}</div>
-                    <div style="font-size: 8px; color: #555;">{{ Str::limit($asset->description, 50) }}</div>
-                </td>
-                <td style="font-family: monospace;">{{ $asset->serial_number }}</td>
-                <td style="text-align: center;">
-                    {{-- PERBAIKAN: Generate QR Langsung di View (Bukan dari Model Accessor yang Error) --}}
-                    @if(class_exists('SimpleSoftwareIO\QrCode\Facades\QrCode'))
-                        <img src="data:image/png;base64, {!! base64_encode(QrCode::format('png')->size(50)->margin(0)->generate(route('assets.scan', $asset->id))) !!} " class="qr-code" style="width: 40px; height: 40px;">
-                    @else
-                        -
+                    <strong style="font-size: 11px;">{{ $asset->name }}</strong><br>
+                    <span class="font-mono" style="font-size: 9px; color: #555;">{{ $asset->serial_number }}</span>
+                    @if($asset->status == 'deployed' && $asset->holder)
+                        <div style="margin-top: 3px; font-size: 8px; color: #1e40af;">
+                            <strong>User:</strong> {{ $asset->holder->name }}
+                        </div>
                     @endif
                 </td>
-                <td style="text-align: center; font-weight: bold;">{{ $asset->quantity }}</td>
-                <td style="text-align: center;">
+                
+                {{-- KATEGORI --}}
+                <td class="text-center">
+                    {{ $asset->category ?? '-' }}
+                </td>
+
+                {{-- LOKASI --}}
+                <td class="text-center">
+                    @if($asset->status == 'deployed')
+                        <span style="font-style: italic; color: #666;">Sedang Dipinjam</span>
+                    @else
+                        {{ $asset->lorong ?? '-' }} / {{ $asset->rak ?? '-' }}
+                    @endif
+                </td>
+
+                {{-- STATUS & STOK --}}
+                <td class="text-center">
                     @php
-                        $color = match($asset->status) {
-                            'available' => 'bg-available',
-                            'deployed' => 'bg-deployed',
-                            'maintenance' => 'bg-maintenance',
-                            'broken' => 'bg-broken',
-                            default => 'bg-gray'
+                        $stClass = match($asset->status) {
+                            'available' => 'st-available',
+                            'deployed' => 'st-deployed',
+                            'maintenance' => 'st-maintenance',
+                            'broken' => 'st-broken',
+                            default => ''
                         };
                     @endphp
-                    <span class="badge {{ $color }}">{{ ucfirst($asset->status) }}</span>
+                    <span class="badge {{ $stClass }}">{{ ucfirst($asset->status) }}</span>
+                    <div style="margin-top: 4px; font-size: 9px;">
+                        Stok: <b>{{ $asset->quantity }}</b>
+                    </div>
                     @if($asset->condition_notes)
-                        <div style="font-size: 7px; margin-top: 2px;">{{ Str::limit($asset->condition_notes, 15) }}</div>
+                    <div style="margin-top: 2px; font-size: 7px; font-style: italic; color: #666;">
+                        Cond: {{ Str::limit($asset->condition_notes, 10) }}
+                    </div>
                     @endif
                 </td>
-                <td>
-                    @if($asset->status == 'deployed' && $asset->holder)
-                        <strong>{{ $asset->holder->name }}</strong>
+
+                {{-- QR CODE (VERSI SVG: ANTI ERROR IMAGICK) --}}
+                <td class="text-center">
+                    @if(class_exists('SimpleSoftwareIO\QrCode\Facades\QrCode'))
+                        {{-- Gunakan format SVG yang ringan dan tidak butuh Imagick --}}
+                        <img src="data:image/svg+xml;base64, {!! base64_encode(\SimpleSoftwareIO\QrCode\Facades\QrCode::format('svg')->size(50)->margin(0)->generate(route('assets.scan', $asset->id))) !!}" style="width: 45px;">
                     @else
-                        {{-- Tampilkan lokasi gabungan jika ada, atau fallback ke Lorong/Rak --}}
-                        {{ $asset->location ?? (($asset->lorong ?? '-') . ' / ' . ($asset->rak ?? '-')) }}
+                        -
                     @endif
                 </td>
             </tr>
             @empty
             <tr>
-                <td colspan="{{ (isset($showImages) && $showImages) ? 8 : 7 }}" style="text-align: center; padding: 20px;">Data tidak ditemukan.</td>
+                <td colspan="{{ (isset($showImages) && $showImages) ? 7 : 6 }}" style="text-align: center; padding: 20px;">
+                    Data tidak ditemukan sesuai filter.
+                </td>
             </tr>
             @endforelse
         </tbody>
     </table>
+
+    {{-- FOOTER NOTE --}}
+    @if(isset($adminNotes) && $adminNotes != '-')
+    <div style="border: 1px dashed #999; padding: 8px; margin-bottom: 20px; font-size: 9px; background: #fff;">
+        <strong>Catatan Tambahan:</strong><br>
+        <span style="white-space: pre-line;">{{ $adminNotes }}</span>
+    </div>
+    @endif
+
+    <div class="footer">
+        Dicetak dari Sistem Manajemen Aset &bull; Halaman <span class="page-number"></span>
+    </div>
 
 </body>
 </html>

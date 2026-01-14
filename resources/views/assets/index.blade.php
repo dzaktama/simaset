@@ -58,17 +58,6 @@
         </form>
     </div>
 
-    {{-- Alert Messages --}}
-    @if(session()->has('success'))
-        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded shadow-sm flex justify-between items-center" role="alert">
-            <div class="flex items-center gap-2">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                <p>{{ session('success') }}</p>
-            </div>
-            <button onclick="this.parentElement.remove()" class="text-green-500 hover:text-green-700">&times;</button>
-        </div>
-    @endif
-
     {{-- Table Container --}}
     <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
         <div class="overflow-x-auto">
@@ -100,12 +89,6 @@
                                     <div>
                                         <div class="text-sm font-bold text-gray-900">{{ $asset->name }}</div>
                                         <div class="text-xs text-gray-500 font-mono mt-0.5">{{ $asset->serial_number }}</div>
-                                        
-                                        {{-- Link QR Scan (PERBAIKAN UTAMA: Tambah ID Aset) --}}
-                                        <a href="{{ route('assets.scan', $asset->id) }}" class="text-[10px] text-blue-500 hover:text-blue-700 flex items-center gap-1 mt-1">
-                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
-                                            Lihat QR
-                                        </a>
                                     </div>
                                 </div>
                             </td>
@@ -140,15 +123,37 @@
                             {{-- Kolom 4: Aksi --}}
                             <td class="px-6 py-4 text-center">
                                 <div class="flex items-center justify-center gap-2">
-                                    {{-- Tombol Detail (Panggil Modal) --}}
-                                    <button onclick="openDetailModal({{ json_encode($asset) }}, {{ json_encode($asset->holder) }})" class="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 hover:text-indigo-800 transition border border-indigo-200" title="Detail">
+                                    {{-- Generate QR Code Base64 untuk Modal --}}
+                                    @php
+                                        // Generate URL Scan
+                                        $scanUrl = route('assets.scan', $asset->id);
+                                        
+                                        // Default QR kosong
+                                        $qrCodeBase64 = '';
+
+                                        // Cek apakah Facade QR Code bisa dipanggil
+                                        try {
+                                            $qrCodeBase64 = 'data:image/png;base64,' . base64_encode(
+                                                \SimpleSoftwareIO\QrCode\Facades\QrCode::format('png')
+                                                    ->size(200)
+                                                    ->margin(1)
+                                                    ->generate($scanUrl)
+                                            );
+                                        } catch (\Exception $e) {
+                                            // Jika error (misal library belum install), biarkan kosong atau log error
+                                            // $qrCodeBase64 = ''; 
+                                        }
+                                    @endphp
+
+                                    {{-- Tombol Detail (Panggil Modal & Kirim QR Code) --}}
+                                    <button onclick="openDetailModal({{ json_encode($asset) }}, {{ json_encode($asset->holder) }}, '{{ $qrCodeBase64 }}')" class="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 hover:text-indigo-800 transition border border-indigo-200" title="Detail">
                                         Detail
                                     </button>
 
                                     @if(auth()->user()->role === 'admin')
                                         {{-- Tombol Edit --}}
                                         <a href="{{ route('assets.edit', $asset->id) }}" class="p-2 bg-yellow-50 text-yellow-600 rounded-lg hover:bg-yellow-100 border border-yellow-200 transition" title="Edit">
-                                            Edit
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                         </a>
 
                                         {{-- Tombol Delete --}}
@@ -156,7 +161,7 @@
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 border border-red-200 transition" title="Hapus">
-                                                Hapus
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                             </button>
                                         </form>
                                     @else
@@ -164,7 +169,7 @@
                                         @if($asset->quantity > 0 && $asset->status == 'available')
                                             <button onclick="openLoanModal({{ json_encode($asset) }})" class="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-xs font-bold">Pinjam</button>
                                         @elseif($asset->status == 'deployed')
-                                            <button onclick="openDetailModal({{ json_encode($asset) }}, {{ json_encode($asset->holder) }})" class="p-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition text-xs font-bold">Booking</button>
+                                            <button onclick="openDetailModal({{ json_encode($asset) }}, {{ json_encode($asset->holder) }}, '{{ $qrCodeBase64 }}')" class="p-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition text-xs font-bold">Booking</button>
                                         @else
                                             <button disabled class="p-2 bg-gray-100 text-gray-400 rounded-lg cursor-not-allowed border border-gray-200 text-xs">Pinjam</button>
                                         @endif
@@ -194,12 +199,11 @@
     </div>
 </div>
 
-{{-- ================================================================= --}}
 {{-- MODAL DETAIL --}}
 <div id="detailModal" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true">
     <div class="flex min-h-screen items-center justify-center p-4">
         <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity backdrop-blur-sm" onclick="closeDetailModal()"></div>
-        <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-3xl border border-gray-100">
+        <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-4xl border border-gray-100">
             
             {{-- Modal Header --}}
             <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
@@ -212,9 +216,10 @@
             <div class="bg-white px-6 py-6">
                 <div class="flex flex-col md:flex-row gap-8">
                     
-                    {{-- Carousel Foto --}}
-                    <div class="w-full md:w-5/12">
-                        <div class="relative w-full h-64 bg-gray-100 rounded-xl overflow-hidden border border-gray-200 shadow-inner group">
+                    {{-- AREA KIRI: Foto & QR Code --}}
+                    <div class="w-full md:w-5/12 flex flex-col gap-4">
+                        {{-- Carousel Foto --}}
+                        <div class="relative w-full h-56 bg-gray-100 rounded-xl overflow-hidden border border-gray-200 shadow-inner group">
                             <div id="carouselSlides" class="flex transition-transform duration-500 ease-out h-full w-full"></div>
                             
                             {{-- Navigasi Carousel --}}
@@ -226,34 +231,45 @@
                             </button>
                             <div id="carouselIndicators" class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 p-1 bg-black/20 rounded-full backdrop-blur-sm"></div>
                         </div>
+
+                        {{-- QR Code Box --}}
+                        <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center text-center">
+                            <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">QR Code Aset</p>
+                            <div class="bg-white p-2 rounded-lg border border-gray-100 shadow-sm relative">
+                                <img id="modalQR" src="" alt="QR Code" class="w-32 h-32 object-contain">
+                                <p id="qrErrorMsg" class="hidden text-xs text-red-500 mt-2">QR tidak tersedia</p>
+                            </div>
+                            <p class="text-[10px] text-gray-400 mt-2">Scan untuk melihat info cepat</p>
+                        </div>
                     </div>
 
-                    {{-- Informasi Detail --}}
-                    <div class="w-full md:w-7/12 space-y-4">
+                    {{-- AREA KANAN: Informasi Detail --}}
+                    <div class="w-full md:w-7/12 space-y-5">
                         <div class="border-b border-gray-100 pb-4">
-                            <h2 id="modalName" class="text-2xl font-bold text-gray-900 leading-tight">-</h2>
-                            <div class="flex flex-wrap items-center gap-2 mt-2">
+                            <h2 id="modalName" class="text-2xl font-bold text-gray-900 leading-tight mb-2">-</h2>
+                            <div class="flex flex-wrap items-center gap-2">
                                 <span id="modalSN" class="text-xs font-mono text-gray-600 bg-gray-100 px-2 py-1 rounded border border-gray-200">-</span>
                                 <span id="modalStatus" class="px-2 py-1 text-xs font-bold rounded-full bg-gray-200 text-gray-800 uppercase tracking-wider">-</span>
                                 <span id="modalQuantity" class="px-2 py-1 text-xs font-bold rounded-full bg-gray-100 text-gray-600 border border-gray-300">-</span>
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-y-4 gap-x-2 text-sm">
+                        <div class="grid grid-cols-2 gap-y-4 gap-x-4 text-sm">
                             <div><p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-0.5">Kategori</p><p id="modalKategori" class="font-medium text-gray-800">-</p></div>
                             <div><p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-0.5">Kondisi</p><p id="modalCondition" class="font-medium text-gray-800">-</p></div>
                             <div><p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-0.5">Terdaftar</p><p id="modalCreatedAt" class="font-medium text-gray-800">-</p></div>
+                            <div><p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-0.5">Lokasi</p><p id="modalLocation" class="font-medium text-gray-800">-</p></div>
                         </div>
 
                         <div>
                             <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1">Deskripsi</p>
-                            <p id="modalDescription" class="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100 leading-relaxed">-</p>
+                            <div id="modalDescription" class="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100 leading-relaxed max-h-32 overflow-y-auto custom-scrollbar">-</div>
                         </div>
+
+                        {{-- Status Container (Info Peminjam) --}}
+                        <div id="statusContainer" class="pt-2"></div>
                     </div>
                 </div>
-
-                {{-- Status Container (Info Peminjam) --}}
-                <div id="statusContainer" class="mt-6 pt-4 border-t border-gray-100"></div>
             </div>
             
             {{-- Footer Modal --}}
@@ -285,7 +301,7 @@
 
                 <div class="bg-white px-6 pt-6 pb-4">
                     <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-lg font-bold text-gray-800">Form Pengajuan</h3>
+                        <h3 class="text-lg font-bold text-gray-900">Form Pengajuan</h3>
                         <button type="button" onclick="closeLoanModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
                     </div>
 
@@ -368,17 +384,32 @@
     let currentAssetData = null;
     const authRole = "{{ auth()->user()->role }}";
 
-    function openDetailModal(asset, holder) {
+    // Update Function: Menerima qrCodeBase64
+    function openDetailModal(asset, holder, qrCodeBase64) {
         currentAssetData = asset;
         
-        // Populate Basic
+        // Populate Basic Info
         document.getElementById('modalName').innerText = asset.name;
         document.getElementById('modalSN').innerText = asset.serial_number;
         document.getElementById('modalDescription').innerHTML = asset.description || '<span class="text-gray-400 italic">Tidak ada deskripsi.</span>';
         document.getElementById('modalKategori').innerText = asset.category || '-';
         document.getElementById('modalCondition').innerText = asset.condition_notes || 'Kondisi Baik';
         document.getElementById('modalQuantity').innerText = 'Stok: ' + asset.quantity;
+        document.getElementById('modalLocation').innerText = (asset.lorong || '-') + ' / Rak ' + (asset.rak || '-');
         
+        // Populate QR Code (Logic Baru)
+        const qrImg = document.getElementById('modalQR');
+        const qrError = document.getElementById('qrErrorMsg');
+        
+        if(qrCodeBase64 && qrCodeBase64.length > 20) {
+            qrImg.src = qrCodeBase64;
+            qrImg.classList.remove('hidden');
+            qrError.classList.add('hidden');
+        } else {
+            qrImg.classList.add('hidden');
+            qrError.classList.remove('hidden');
+        }
+
         const cDate = new Date(asset.created_at);
         document.getElementById('modalCreatedAt').innerText = cDate.toLocaleDateString('id-ID', {day:'numeric',month:'short',year:'numeric'});
 
@@ -516,4 +547,4 @@
 
     function closeLoanModal(){ document.getElementById('loanModal').classList.add('hidden'); }
 </script>
-@endsection
+@endsection       
