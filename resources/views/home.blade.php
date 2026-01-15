@@ -3,32 +3,33 @@
 @section('container')
 <div class="mx-auto max-w-7xl px-4 py-8">
     
-    {{-- 1. Header Dashboard --}}
+    {{-- Header Dashboard --}}
     @include('dashboard.header')
 
     @if(auth()->user()->role === 'admin')
         {{-- === VIEW ADMIN === --}}
         
-        {{-- 2. Statistik Cards --}}
+        {{-- Statistik Cards --}}
         @include('dashboard.admin_stats')
 
-        {{-- 3. Grafik & Chart --}}
+        {{-- Grafik & Chart --}}
         @include('dashboard.admin_charts')
 
-        {{-- 4. Tabel Data --}}
+        {{-- Tabel Data --}}
         @include('dashboard.admin_tables')
 
-        {{-- 5. Modals --}}
+        {{-- Modals --}}
         @include('dashboard.modals')
 
     @else
         {{-- === VIEW USER === --}}
-        @include('dashboard.user_view')
+        {{-- File ini biasanya ada link ke 'assets.my' yang perlu diperbaiki --}}
+        @include('dashboard.user_view') 
     @endif
 
 </div>
 
-{{-- 6. Scripts --}}
+{{-- Scripts --}}
 @include('dashboard.scripts')
 
 @endsection

@@ -9,18 +9,10 @@ use App\Http\Controllers\BorrowingController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\AssetReturnController;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-*/
+// Halaman Welcome
+Route::get('/', function () { return view('welcome'); });
 
-// Halaman Welcome (Landing Page)
-Route::get('/', function () {
-    return view('welcome');
-});
-
-// AUTHENTICATION ROUTES
+// Authentication
 Route::controller(AuthController::class)->group(function () {
     Route::get('/login', 'showLoginForm')->name('login')->middleware('guest');
     Route::post('/login', 'login')->middleware('guest');
@@ -29,48 +21,41 @@ Route::controller(AuthController::class)->group(function () {
     Route::post('/logout', 'logout')->name('logout')->middleware('auth');
 });
 
-// DASHBOARD & MANAGED ROUTES (Perlu Login)
+// DASHBOARD & APPS (Auth Required)
 Route::middleware(['auth'])->group(function () {
     
-    // [PERBAIKAN] Ubah name('home') menjadi name('dashboard') agar sesuai dengan sidebar/layout
+    // [PENTING 1] Nama route harus 'dashboard' (bukan home)
     Route::get('/home', [AssetController::class, 'dashboard'])->name('dashboard');
 
-    // Chart Data Routes
+    // Chart Data
     Route::get('/charts/asset-stats', [AssetController::class, 'chartsData'])->name('charts.assets');
     Route::get('/charts/borrow-stats', [AssetController::class, 'borrowStats'])->name('charts.borrows');
 
-    // Manajemen Aset
-    Route::get('/assets/map', [AssetController::class, 'locationMap'])->name('assets.map'); // Peta Lokasi
-    Route::get('/assets/my', [AssetController::class, 'myAssets'])->name('assets.my'); // Aset Saya (User)
+    // [PENTING 2] Nama route harus 'assets.my' (konsisten dengan sidebar)
+    Route::get('/assets/my', [AssetController::class, 'myAssets'])->name('assets.my'); 
     
-    // QR Code Scan Helpers
+    // Manajemen Aset Lainnya
+    Route::get('/assets/map', [AssetController::class, 'locationMap'])->name('assets.map');
     Route::get('/assets/{id}/scan-qr-image', [AssetController::class, 'scanQrImage'])->name('assets.scan_image');
     Route::get('/assets/scan/{asset}', [AssetController::class, 'scanQr'])->name('assets.scan');
-
     Route::resource('assets', AssetController::class);
 
-    // Manajemen Peminjaman (Borrowing)
+    // Peminjaman
     Route::get('/borrowing/history', [BorrowingController::class, 'userHistory'])->name('borrowing.history');
     Route::resource('borrowing', BorrowingController::class);
-    
-    // Approval & Return (Admin Action)
     Route::post('/borrowing/{id}/approve', [BorrowingController::class, 'approve'])->name('borrowing.approve')->middleware('admin');
     Route::post('/borrowing/{id}/reject', [BorrowingController::class, 'reject'])->name('borrowing.reject')->middleware('admin');
     Route::post('/borrowing/{id}/return', [BorrowingController::class, 'returnAsset'])->name('borrowing.return');
 
-    // Pengembalian Aset (Returns Management)
+    // Pengembalian & Laporan
     Route::resource('returns', AssetReturnController::class)->only(['index', 'show', 'update']);
     Route::post('/returns/{return}/verify', [AssetReturnController::class, 'verify'])->name('returns.verify');
-
-    // Laporan (Reports)
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/pdf', [ReportController::class, 'exportPdf'])->name('reports.pdf');
-    
-    // Manajemen User (Hanya Admin)
+
+    // Admin Users & Posts
     Route::middleware(['admin'])->group(function () {
         Route::resource('users', UserController::class);
     });
-
-    // Blog / Post Internal
     Route::resource('posts', PostController::class);
 });
