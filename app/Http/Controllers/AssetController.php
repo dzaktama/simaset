@@ -9,7 +9,7 @@ use App\Models\AssetHistory;
 use App\Services\AssetService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use SimpleSoftwareIO\QrCode\Facades\QrCode; // Pastikan Facade ini di-import
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class AssetController extends Controller
 {
@@ -22,13 +22,36 @@ class AssetController extends Controller
 
     /**
      * Menampilkan Dashboard Utama
+     * [MODIFIKASI] Menambahkan Request untuk fitur Search Log
      */
-    public function dashboard()
+    public function dashboard(Request $request)
     {
         $user = auth()->user();
 
         if ($user->role === 'admin') {
-            // Ambil data untuk modal
+            
+            // --- LOGIC SEARCH & PAGINATION UNTUK LOG AKTIVITAS ---
+            $logQuery = AssetHistory::with(['user', 'asset']);
+
+            // Jika ada pencarian di log
+            if ($request->has('search_log') && $request->search_log != '') {
+                $search = $request->search_log;
+                $logQuery->where(function($q) use ($search) {
+                    $q->whereHas('user', function($u) use ($search) {
+                        $u->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('asset', function($a) use ($search) {
+                        $a->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhere('action', 'like', "%{$search}%")
+                    ->orWhere('notes', 'like', "%{$search}%");
+                });
+            }
+
+            // Ambil data dengan Pagination (10 per halaman agar rapi, tapi bisa akses semua)
+            // Kita pakai nama page 'history_page' agar tidak bentrok jika ada pagination lain
+            $activities = $logQuery->latest()->paginate(10, ['*'], 'history_page')->withQueryString();
+
             return view('home', [
                 'title' => 'Dashboard Admin',
                 'stats' => [
@@ -38,7 +61,6 @@ class AssetController extends Controller
                     'maintenance' => Asset::whereIn('status', ['maintenance', 'broken'])->count(),
                     'pending_requests' => AssetRequest::where('status', 'pending')->count(),
                 ],
-                // Data List untuk Modal
                 'listTotal' => Asset::with('holder')->latest()->get(),
                 'listAvailable' => Asset::where('status', 'available')->latest()->get(),
                 'listDeployed' => Asset::where('status', 'deployed')->with('holder')->latest()->get(),
@@ -47,10 +69,11 @@ class AssetController extends Controller
                 // Data Dashboard Lainnya
                 'listPending' => AssetRequest::with(['user', 'asset'])->where('status', 'pending')->latest()->get(),
                 'recentRequests' => AssetRequest::with(['user', 'asset'])->where('status', 'pending')->latest()->take(5)->get(),
-                'activities' => AssetHistory::with(['user', 'asset'])->latest()->take(6)->get()
+                
+                // [MODIFIKASI] Mengirim variabel activities yang sudah ada logic search-nya
+                'activities' => $activities 
             ]);
         } else {
-            // Dashboard User
             return view('home', [
                 'title' => 'Dashboard Karyawan',
                 'activeAssetsCount' => Asset::where('user_id', $user->id)->where('status', 'deployed')->count(),
@@ -63,11 +86,9 @@ class AssetController extends Controller
 
     /**
      * Menampilkan Peta Lokasi Aset
-     * [MODIFIKASI] Disesuaikan agar mengirim data flat untuk JS Map baru
      */
     public function locationMap()
     {
-        // Ambil semua aset yang memiliki lokasi
         $assets = Asset::select(
             'id', 'name', 'serial_number', 'category', 'lorong', 'rak', 
             'image', 'status', 'condition_notes', 'description'
@@ -78,7 +99,6 @@ class AssetController extends Controller
         ->where('rak', '!=', '')
         ->get();
 
-        // Kirim sebagai variabel $assets (bukan $mapData) agar kompatibel dengan view baru
         return view('assets.map', compact('assets'));
     }
 
@@ -90,19 +110,18 @@ class AssetController extends Controller
         $filters = [
             'search' => $request->search,
             'status' => $request->status ?? 'all',
-            'category' => $request->category ?? 'all', // Support filter kategori
+            'category' => $request->category ?? 'all',
             'sort' => $request->sort ?? 'latest'
         ];
 
         $assets = $this->assetService->buildAssetQuery($filters)->paginate(10)->withQueryString();
         
-        // [MODIFIKASI] Ambil Kategori Dinamis
         $categories = $this->assetService->getCategories();
 
         return view('assets.index', [
             'title' => 'Katalog Aset IT',
             'assets' => $assets,
-            'categories' => $categories // Pass ke view
+            'categories' => $categories
         ]);
     }
 
@@ -123,24 +142,21 @@ class AssetController extends Controller
     public function create()
     {
         $suggestedSN = $this->assetService->generateSerialNumber();
-        
-        // [MODIFIKASI] Ambil Kategori Dinamis
         $categories = $this->assetService->getCategories();
 
         return view('assets.create', [
             'title' => 'Input Aset Baru',
             'users' => User::all(),
             'suggestedSN' => $suggestedSN,
-            'categories' => $categories // Pass ke view
+            'categories' => $categories
         ]);
     }
 
     /**
-     * Simpan Aset Baru (Admin Menambah Aset)
+     * Simpan Aset Baru
      */
     public function store(Request $request)
     {
-        // 1. Validasi
         $request->validate([
             'name' => 'required|string|max:255',
             'category' => 'required',
@@ -151,7 +167,6 @@ class AssetController extends Controller
             'image3' => 'nullable|image|max:2048',
         ]);
 
-        // 2. Generate Serial Number
         $prefix = strtoupper(substr($request->name, 0, 3));
         $lastAsset = Asset::where('serial_number', 'like', $prefix . '-%')
                           ->orderByRaw('CAST(SUBSTRING(serial_number, 5) AS UNSIGNED) DESC')
@@ -160,25 +175,19 @@ class AssetController extends Controller
         $number = $lastAsset ? (int) substr($lastAsset->serial_number, 4) + 1 : 1;
         $serialNumber = $prefix . '-' . str_pad($number, 5, '0', STR_PAD_LEFT);
 
-        // 3. Logic Upload Multi Image
         $data = $request->except(['image', 'image2', 'image3']); 
         
-        // Gunakan service dummy untuk handle upload (karena method butuh instance asset, kita buat manual di sini atau pakai cara native controller)
-        // Agar konsisten dengan kode Anda sebelumnya, kita pakai native controller logic saja di sini:
         if ($request->hasFile('image')) $data['image'] = $request->file('image')->store('assets', 'public');
         if ($request->hasFile('image2')) $data['image2'] = $request->file('image2')->store('assets', 'public');
         if ($request->hasFile('image3')) $data['image3'] = $request->file('image3')->store('assets', 'public');
 
-        // Tambahkan data manual lainnya
         $data['serial_number'] = $serialNumber;
         $data['status'] = $request->status ?? 'available';
         
-        // Simpan lorong & rak (penting untuk Map)
         $data['lorong'] = $request->lorong;
         $data['rak'] = $request->rak;
-        $data['location'] = ($request->lorong ?? '-') . ' - Rak ' . ($request->rak ?? '-'); // Gabungan
+        $data['location'] = ($request->lorong ?? '-') . ' - Rak ' . ($request->rak ?? '-');
 
-        // 4. Simpan
         Asset::create($data);
 
         return redirect()->route('assets.index')->with('success', 'Aset berhasil disimpan! SN: ' . $serialNumber);
@@ -199,14 +208,13 @@ class AssetController extends Controller
      * Form Edit Aset
      */
     public function edit(Asset $asset) {
-        // [MODIFIKASI] Ambil Kategori Dinamis
         $categories = $this->assetService->getCategories();
 
         return view('assets.edit', [
             'title' => 'Edit Data Aset', 
             'asset' => $asset, 
             'users' => User::all(),
-            'categories' => $categories // Pass ke view
+            'categories' => $categories
         ]);
     }
 
@@ -215,7 +223,6 @@ class AssetController extends Controller
      */
     public function update(Request $request, Asset $asset)
     {
-        // 1. Validasi
         $rules = [
             'name' => 'required|max:255',
             'category' => 'required',
@@ -241,7 +248,6 @@ class AssetController extends Controller
 
         $validatedData = $request->validate($rules);
 
-        // 2. Handle Upload Gambar via Service
         $requestFiles = [];
         foreach (['image', 'image2', 'image3'] as $key) {
             if ($request->file($key)) {
@@ -255,12 +261,10 @@ class AssetController extends Controller
             $requestFiles
         );
 
-        // 3. Update Format Lokasi
         $lorong = $request->lorong ?? '-';
         $rak = $request->rak ?? '-';
         $validatedData['location'] = "$lorong - Rak $rak";
 
-        // 4. Format Tanggal
         if (!empty($validatedData['assigned_date'])) {
             $validatedData['assigned_date'] = \Carbon\Carbon::parse($validatedData['assigned_date'])->format('Y-m-d H:i:s');
         }
@@ -274,7 +278,6 @@ class AssetController extends Controller
             $validatedData['return_date'] = null;
         }
 
-        // 5. Logic Split Stock
         if ($request->user_id && $request->manual_quantity && $request->manual_quantity < $asset->quantity) {
             try {
                 $this->assetService->splitStock(
@@ -295,7 +298,6 @@ class AssetController extends Controller
             }
         }
 
-        // Logic Status Otomatis
         if ($validatedData['status'] !== 'available') {
             if ($validatedData['user_id'] && $validatedData['status'] === 'available') {
                 $validatedData['status'] = 'deployed';
@@ -309,7 +311,6 @@ class AssetController extends Controller
             $validatedData['assigned_date'] = now();
         }
 
-        // Log History
         if ($asset->status !== $validatedData['status']) {
             AssetHistory::create([
                 'asset_id' => $asset->id,
@@ -319,7 +320,6 @@ class AssetController extends Controller
             ]);
         }
 
-        // 6. Simpan Update
         $asset->update($validatedData);
 
         return redirect('/assets')->with('success', 'Data aset berhasil diperbarui!');
@@ -344,7 +344,7 @@ class AssetController extends Controller
     }
 
     /**
-     * [SCAN QR CODE] Tampilkan Detail Aset dari QR
+     * Scan QR
      */
     public function scanQr(Asset $asset)
     {
@@ -355,8 +355,7 @@ class AssetController extends Controller
     }
 
     /**
-     * [BARU] Helper untuk Scan QR Image (Return Text/HTML/Image)
-     * Digunakan oleh Peta Lokasi untuk menampilkan QR di Modal
+     * Scan QR Image (Helper)
      */
     public function scanQrImage($id)
     {
@@ -368,7 +367,7 @@ class AssetController extends Controller
     }
 
     /**
-     * Endpoint untuk data chart di dashboard
+     * Charts Data API
      */
     public function chartsData(Request $request)
     {
@@ -411,7 +410,7 @@ class AssetController extends Controller
     }
 
     /**
-     * Data peminjaman (approved + rejected requests) untuk chart
+     * Borrow Stats API
      */
     public function borrowStats(Request $request)
     {
@@ -488,13 +487,13 @@ class AssetController extends Controller
         } else {
             if ($range === 'daily') {
                 $date = \Carbon\Carbon::createFromFormat('d M', $label)->setYear(now()->year)->format('Y-m-d');
-                $reqs = \App\Models\AssetRequest::with('asset','user')->whereDate('created_at', $date)->where('status','approved')->get();
+                $reqs = AssetRequest::with('asset','user')->whereDate('created_at', $date)->where('status','approved')->get();
             } elseif ($range === 'yearly') {
                 $year = (int)$label;
-                $reqs = \App\Models\AssetRequest::with('asset','user')->whereYear('created_at', $year)->where('status','approved')->get();
+                $reqs = AssetRequest::with('asset','user')->whereYear('created_at', $year)->where('status','approved')->get();
             } else {
                 $dt = \Carbon\Carbon::createFromFormat('M Y', $label);
-                $reqs = \App\Models\AssetRequest::with('asset','user')->whereYear('created_at', $dt->year)->whereMonth('created_at', $dt->month)->where('status','approved')->get();
+                $reqs = AssetRequest::with('asset','user')->whereYear('created_at', $dt->year)->whereMonth('created_at', $dt->month)->where('status','approved')->get();
             }
 
             foreach ($reqs as $r) {

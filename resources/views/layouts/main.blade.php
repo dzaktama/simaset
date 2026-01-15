@@ -29,8 +29,8 @@
         @include('partials.sidebar')
 
         {{-- Main Content Wrapper --}}
-        {{-- md:pl-64 PENTING: Memberi ruang untuk sidebar fixed di desktop --}}
-        <div class="flex-1 flex flex-col min-w-0 md:pl-64 transition-all duration-300">
+        {{-- [PERBAIKAN] Ditambahkan id="main-content" untuk kontrol JS --}}
+        <div id="main-content" class="flex-1 flex flex-col min-w-0 md:pl-64 transition-all duration-300">
             
             {{-- Topbar Include --}}
             @include('partials.topbar')
@@ -67,13 +67,10 @@
         @csrf
     </form>
 
-    {{-- Script idle-logout: versi lebih aman pake fetch + CSRF header, ada fallback kalau error --}}
+    {{-- Script idle-logout --}}
     <script>
         (function () {
-            // Timeout default: 5 menit (ubah kalo mau testing cepat)
-            const IDLE_TIMEOUT = 5 * 60 * 1000; // ms
-            // Untuk test cepat, bisa ubah ke 15 * 1000 (15 detik)
-
+            const IDLE_TIMEOUT = 5 * 60 * 1000; // 5 menit
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
             let idleTimer = null;
 
@@ -83,8 +80,6 @@
             }
 
             async function doLogout() {
-                // Kita coba POST via fetch (supaya bisa tangani response 419),
-                // sertakan credentials supaya cookie session dikirim.
                 try {
                     const resp = await fetch('{{ route('logout') }}', {
                         method: 'POST',
@@ -97,41 +92,26 @@
                         body: JSON.stringify({})
                     });
 
-                    // Kalau berhasil atau redirect, pindah ke login
-                    if (resp.ok) {
-                        // berhasil logout, redirect ke login
+                    if (resp.ok || resp.status === 419 || resp.status === 403) {
                         window.location.href = '/login';
                         return;
                     }
 
-                    // Kalau server balik 419 (Page Expired) atau bukan ok, fallback ke GET login
-                    if (resp.status === 419 || resp.status === 403) {
-                        window.location.href = '/login';
-                        return;
-                    }
-
-                    // Fallback umum: submit form (ini akan pakai CSRF hidden input)
                     const form = document.getElementById('idle-logout-form');
                     if (form) form.submit();
                     else window.location.href = '/login';
                 } catch (err) {
-                    // Kalau fetch error (network/CSRF expired), fallback ke redirect login
-                    console.warn('Auto-logout: fetch error, redirecting to login', err);
                     window.location.href = '/login';
                 }
             }
 
-            // Event yang dianggap aktivitas user, reset timer kalau ada.
             const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
             activityEvents.forEach(evt => window.addEventListener(evt, resetTimer, true));
-
-            // Start timer pas halaman dibuka
             resetTimer();
         })();
     </script>
 
-            {{-- Chart.js CDN (dipakai di dashboard) --}}
-            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 </body>
 </html>

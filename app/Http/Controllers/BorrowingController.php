@@ -244,7 +244,7 @@ class BorrowingController extends Controller
     /**
      * Kembalikan aset (mark as returned)
      */
-    public function return(Request $request, $id)
+    public function returnAsset(Request $request, $id) // Perbaikan nama method agar sesuai route
     {
         $borrowing = AssetRequest::findOrFail($id);
 
