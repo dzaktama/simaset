@@ -2,7 +2,6 @@
 <div id="mobile-overlay" class="hidden fixed inset-0 z-40 bg-gray-900/50 backdrop-blur-sm md:hidden transition-opacity duration-300" onclick="toggleMobileSidebar()"></div>
 
 {{-- Sidebar Container --}}
-{{-- Class 'md:translate-x-0' membuat sidebar tampil default di desktop. Kita akan mainkan class ini di JS. --}}
 <aside id="sidebar-menu" class="fixed inset-y-0 left-0 z-50 bg-white border-r border-gray-200 transition-transform duration-300 transform -translate-x-full md:translate-x-0 flex flex-col shadow-xl w-64">
     
     {{-- 1. Header: Logo --}}
@@ -16,7 +15,7 @@
             </span>
         </div>
 
-        {{-- Close Button (Hanya tampil di Mobile) --}}
+        {{-- Close Button (Mobile) --}}
         <button onclick="toggleMobileSidebar()" class="absolute top-4 right-4 md:hidden text-gray-500 hover:text-red-500">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
@@ -30,11 +29,13 @@
         </div>
 
         <nav class="space-y-1">
+            {{-- Dashboard (Semua User) --}}
             <a href="{{ route('dashboard') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('dashboard') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
                 <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('dashboard') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
                 <span>Dashboard</span>
             </a>
 
+            {{-- MENU KHUSUS ADMIN --}}
             @if(auth()->user()->role === 'admin')
                 <div class="mt-6 mb-2 px-3"><div class="h-px bg-gray-200 mb-2"></div><p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Administrator</p></div>
 
@@ -42,6 +43,13 @@
                     <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->is('assets*') && !request()->routeIs('assets.map') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
                     <span>Data Aset IT</span>
                 </a>
+
+                {{-- [BARU] Manajemen Peminjaman (Admin) --}}
+                <a href="{{ route('borrowing.index') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('borrowing.index') || request()->routeIs('borrowing.show') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
+                    <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('borrowing.index') || request()->routeIs('borrowing.show') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+                    <span>Manajemen Peminjaman</span>
+                </a>
+
                 <a href="{{ route('assets.map') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('assets.map') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
                     <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('assets.map') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                     <span>Peta Lokasi</span>
@@ -54,21 +62,28 @@
                     <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('reports.*') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                     <span>Laporan & Audit</span>
                 </a>
-                <a href="{{ route('borrowing.index') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('borrowing.*') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
-                    <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('borrowing.*') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                    <span>Manajemen Peminjaman</span>
-                </a>
             @endif
 
+            {{-- MENU KHUSUS KARYAWAN --}}
             @if(auth()->user()->role !== 'admin')
                 <div class="mt-6 mb-2 px-3"><div class="h-px bg-gray-200 mb-2"></div><p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Karyawan</p></div>
+                
+                {{-- Aset Saya --}}
                 <a href="{{ route('assets.my') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('assets.my') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
                     <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('assets.my') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
                     <span>Aset Saya</span>
                 </a>
-                <a href="{{ route('assets.index') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->is('assets*') && !request()->routeIs('assets.my') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
-                    <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->is('assets*') && !request()->routeIs('assets.my') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+
+                {{-- [BARU] Pinjam Aset (Browse) --}}
+                <a href="{{ route('assets.index') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('assets.index') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
+                    <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('assets.index') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                     <span>Pinjam Aset Baru</span>
+                </a>
+
+                {{-- [BARU] Riwayat Peminjaman (History) --}}
+                <a href="{{ route('borrowing.history') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('borrowing.history') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
+                    <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('borrowing.history') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <span>Riwayat Peminjaman</span>
                 </a>
             @endif
         </nav>
@@ -87,7 +102,6 @@
 </aside>
 
 <script>
-    // Variabel Global
     let sidebarEl, mainContentEl, overlayEl;
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -95,36 +109,27 @@
         mainContentEl = document.getElementById('main-content');
         overlayEl = document.getElementById('mobile-overlay');
 
-        // Restore state dari localStorage
         const isClosed = localStorage.getItem('sidebarClosed') === 'true';
         if (isClosed && window.innerWidth >= 768) {
-            closeSidebarDesktop(); // Terapkan tutup total saat load
+            closeSidebarDesktop(); 
         }
     });
 
-    // 1. Toggle untuk Mobile (Layar Kecil) - Overlay logic
     function toggleMobileSidebar() {
         if (!sidebarEl) return;
         const isHidden = sidebarEl.classList.contains('-translate-x-full');
         
         if (isHidden) {
-            // Buka
             sidebarEl.classList.remove('-translate-x-full');
             overlayEl.classList.remove('hidden');
         } else {
-            // Tutup
             sidebarEl.classList.add('-translate-x-full');
             overlayEl.classList.add('hidden');
         }
     }
 
-    // 2. Toggle untuk Desktop (Layar Besar) - Push Logic
-    // Dipanggil oleh tombol di Topbar
     function toggleMinimize() {
-        // Cek apakah sidebar sedang tertutup (hidden di kiri)
-        // Di desktop, kita pakai logic: jika ada class '-translate-x-full', berarti tertutup.
         const isClosed = sidebarEl.classList.contains('-translate-x-full');
-
         if (isClosed) {
             openSidebarDesktop();
             localStorage.setItem('sidebarClosed', 'false');
@@ -136,25 +141,16 @@
 
     function closeSidebarDesktop() {
         if (!sidebarEl || !mainContentEl) return;
-        
-        // Geser sidebar ke kiri luar layar
         sidebarEl.classList.add('-translate-x-full');
-        // Hapus class pembuka default desktop
         sidebarEl.classList.remove('md:translate-x-0');
-        
-        // Hilangkan padding konten (jadi full width)
         mainContentEl.classList.remove('md:pl-64');
         mainContentEl.classList.add('md:pl-0');
     }
 
     function openSidebarDesktop() {
         if (!sidebarEl || !mainContentEl) return;
-
-        // Kembalikan sidebar ke posisi normal
         sidebarEl.classList.remove('-translate-x-full');
         sidebarEl.classList.add('md:translate-x-0');
-        
-        // Kembalikan padding konten
         mainContentEl.classList.remove('md:pl-0');
         mainContentEl.classList.add('md:pl-64');
     }

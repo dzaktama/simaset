@@ -11,7 +11,7 @@ class AssetRequest extends Model
 
     protected $guarded = ['id'];
     
-    // Agar otomatis ambil data user & asset pas dipanggil
+    // Eager load relasi secara default agar data user/asset selalu terbawa
     protected $with = ['user', 'asset'];
 
     protected $fillable = [

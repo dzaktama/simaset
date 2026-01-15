@@ -11,16 +11,16 @@ use App\Http\Controllers\AssetReturnController;
 
 /*
 |--------------------------------------------------------------------------
-| Web Routes
+| Web Routes (Fixed Security Logic)
 |--------------------------------------------------------------------------
 */
 
-// [PERBAIKAN] Ubah ini agar tidak menampilkan 'welcome' tapi langsung ke Login
+// 1. Halaman Utama -> Redirect ke Login
 Route::get('/', function () {
     return redirect()->route('login');
 });
 
-// AUTHENTICATION ROUTES
+// 2. Authentication Routes
 Route::controller(AuthController::class)->group(function () {
     Route::get('/login', 'showLoginForm')->name('login')->middleware('guest');
     Route::post('/login', 'login')->middleware('guest');
@@ -29,49 +29,58 @@ Route::controller(AuthController::class)->group(function () {
     Route::post('/logout', 'logout')->name('logout')->middleware('auth');
 });
 
-// DASHBOARD & MANAGED ROUTES (Perlu Login)
+// 3. Authenticated Routes (User & Admin bisa akses ini)
 Route::middleware(['auth'])->group(function () {
     
-    // [PENTING] Nama route 'dashboard' (sesuai sidebar)
+    // --- Dashboard ---
     Route::get('/home', [AssetController::class, 'dashboard'])->name('dashboard');
 
-    // Chart Data Routes
+    // --- Chart Data (API) ---
     Route::get('/charts/asset-stats', [AssetController::class, 'chartsData'])->name('charts.assets');
     Route::get('/charts/borrow-stats', [AssetController::class, 'borrowStats'])->name('charts.borrows');
 
-    // Manajemen Aset
-    Route::get('/assets/map', [AssetController::class, 'locationMap'])->name('assets.map'); // Peta Lokasi
-    Route::get('/assets/my', [AssetController::class, 'myAssets'])->name('assets.my'); // Aset Saya (User)
-    
-    // QR Code Scan Helpers
+    // --- Aset (User Access limited via Controller logic or View) ---
+    Route::get('/assets/map', [AssetController::class, 'locationMap'])->name('assets.map');
+    Route::get('/assets/my', [AssetController::class, 'myAssets'])->name('assets.my'); 
     Route::get('/assets/{id}/scan-qr-image', [AssetController::class, 'scanQrImage'])->name('assets.scan_image');
     Route::get('/assets/scan/{asset}', [AssetController::class, 'scanQr'])->name('assets.scan');
-
+    // Resource aset tetap ada, tapi delete/edit/create dibatasi di view/controller admin
     Route::resource('assets', AssetController::class);
 
-    // Manajemen Peminjaman (Borrowing)
+    // --- PEMINJAMAN (LOGIC BARU: User Biasa) ---
+    // User boleh Submit Request (Store)
+    Route::post('/borrowing', [BorrowingController::class, 'store'])->name('borrowing.store');
+    // User boleh Lihat History Sendiri
     Route::get('/borrowing/history', [BorrowingController::class, 'userHistory'])->name('borrowing.history');
-    Route::resource('borrowing', BorrowingController::class);
+    // User boleh Lihat Detail Peminjaman
+    Route::get('/borrowing/{id}', [BorrowingController::class, 'show'])->name('borrowing.show');
     
-    // Approval & Return (Admin Action)
-    Route::post('/borrowing/{id}/approve', [BorrowingController::class, 'approve'])->name('borrowing.approve')->middleware('admin');
-    Route::post('/borrowing/{id}/reject', [BorrowingController::class, 'reject'])->name('borrowing.reject')->middleware('admin');
+    // --- Pengembalian (Return) ---
+    // User bisa mengajukan/melihat pengembalian (tergantung implementasi controller)
+    Route::resource('returns', AssetReturnController::class)->only(['index', 'show', 'update', 'store']);
     Route::post('/borrowing/{id}/return', [BorrowingController::class, 'returnAsset'])->name('borrowing.return');
 
-    // Pengembalian Aset (Returns Management)
-    // Menambahkan 'store' agar user bisa mengajukan pengembalian
-    Route::resource('returns', AssetReturnController::class)->only(['index', 'show', 'update', 'store']);
-    
-    // Verifikasi Pengembalian (Admin)
-    Route::post('/returns/{return}/verify', [AssetReturnController::class, 'verify'])->name('returns.verify');
-
-    // Laporan (Reports)
-    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
-    Route::get('/reports/pdf', [ReportController::class, 'exportPdf'])->name('reports.pdf');
-    
-    // Manajemen User (Hanya Admin)
+    // --- ADMIN ONLY ROUTES ---
+    // Semua fitur sensitif masuk ke sini agar User Nakal tidak bisa tembus lewat URL
     Route::middleware(['admin'])->group(function () {
+        
+        // Manajemen User
         Route::resource('users', UserController::class);
+
+        // Manajemen Peminjaman (Full Access)
+        // Halaman Index (Daftar Semua Pinjaman) HANYA untuk Admin
+        Route::get('/borrowing-management', [BorrowingController::class, 'index'])->name('borrowing.index');
+        
+        // Approval Actions
+        Route::post('/borrowing/{id}/approve', [BorrowingController::class, 'approve'])->name('borrowing.approve');
+        Route::post('/borrowing/{id}/reject', [BorrowingController::class, 'reject'])->name('borrowing.reject');
+        
+        // Verifikasi Pengembalian
+        Route::post('/returns/{return}/verify', [AssetReturnController::class, 'verify'])->name('returns.verify');
+
+        // Laporan
+        Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/pdf', [ReportController::class, 'exportPdf'])->name('reports.pdf');
     });
 
     // Blog / Post Internal

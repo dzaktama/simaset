@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $title ?? 'SIMASET Vitech Asia' }}</title>
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title><?php echo e($title ?? 'SIMASET Vitech Asia'); ?></title>
+    <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
     
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css', 'resources/js/app.js']); ?>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
@@ -23,66 +23,66 @@
 
     <div class="min-h-screen relative flex">
         
-        @include('partials.sidebar')
+        <?php echo $__env->make('partials.sidebar', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
         <div id="main-content" class="flex-1 flex flex-col min-w-0 md:pl-64 transition-all duration-300">
             
-            @include('partials.topbar')
+            <?php echo $__env->make('partials.topbar', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
             <main class="flex-1 py-8">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
                     
-                    {{-- 1. ALERT SUKSES --}}
-                    @if(session()->has('success'))
+                    
+                    <?php if(session()->has('success')): ?>
                         <div class="mb-6 rounded-lg bg-green-50 p-4 border-l-4 border-green-500 shadow-sm flex items-start animate-fade-in-down">
                             <svg class="h-5 w-5 text-green-500 mt-0.5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            <div><h3 class="text-sm font-bold text-green-800">Berhasil</h3><p class="text-sm text-green-700 mt-1">{{ session('success') }}</p></div>
+                            <div><h3 class="text-sm font-bold text-green-800">Berhasil</h3><p class="text-sm text-green-700 mt-1"><?php echo e(session('success')); ?></p></div>
                         </div>
-                    @endif
+                    <?php endif; ?>
 
-                    {{-- 2. ALERT ERROR (LOGIC/CONTROLLER) - INI YANG KEMARIN HILANG --}}
-                    @if(session()->has('error'))
+                    
+                    <?php if(session()->has('error')): ?>
                         <div class="mb-6 rounded-lg bg-red-50 p-4 border-l-4 border-red-500 shadow-sm flex items-start animate-fade-in-down">
                             <svg class="h-5 w-5 text-red-500 mt-0.5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                             <div>
                                 <h3 class="text-sm font-bold text-red-800">Gagal</h3>
-                                <p class="text-sm text-red-700 mt-1">{{ session('error') }}</p>
+                                <p class="text-sm text-red-700 mt-1"><?php echo e(session('error')); ?></p>
                             </div>
                         </div>
-                    @endif
+                    <?php endif; ?>
 
-                    {{-- 3. ALERT ERROR VALIDASI FORM (MISAL: TANGGAL SALAH) --}}
-                    @if ($errors->any())
+                    
+                    <?php if($errors->any()): ?>
                         <div class="mb-6 rounded-lg bg-red-50 p-4 border-l-4 border-red-500 shadow-sm animate-fade-in-down">
                             <div class="flex items-start">
                                 <svg class="h-5 w-5 text-red-500 mt-0.5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                 <div>
                                     <h3 class="text-sm font-bold text-red-800">Terdapat Kesalahan Input</h3>
                                     <ul class="mt-2 list-disc list-inside text-sm text-red-700">
-                                        @foreach ($errors->all() as $error)
-                                            <li>{{ $error }}</li>
-                                        @endforeach
+                                        <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                            <li><?php echo e($error); ?></li>
+                                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                     </ul>
                                 </div>
                             </div>
                         </div>
-                    @endif
+                    <?php endif; ?>
 
-                    @if(session()->has('loginError'))
+                    <?php if(session()->has('loginError')): ?>
                         <div class="mb-6 rounded-lg bg-red-50 p-4 border-l-4 border-red-500 shadow-sm flex items-start animate-fade-in-down">
                             <svg class="h-5 w-5 text-red-500 mt-0.5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            <div><h3 class="text-sm font-bold text-red-800">Error</h3><p class="text-sm text-red-700 mt-1">{{ session('loginError') }}</p></div>
+                            <div><h3 class="text-sm font-bold text-red-800">Error</h3><p class="text-sm text-red-700 mt-1"><?php echo e(session('loginError')); ?></p></div>
                         </div>
-                    @endif
+                    <?php endif; ?>
 
-                    @yield('container')
+                    <?php echo $__env->yieldContent('container'); ?>
                     
                 </div>
             </main>
         </div>
     </div>
 
-    <form id="idle-logout-form" action="{{ route('logout') }}" method="POST" style="display:none;">@csrf</form>
+    <form id="idle-logout-form" action="<?php echo e(route('logout')); ?>" method="POST" style="display:none;"><?php echo csrf_field(); ?></form>
 
     <script>
         (function () {
@@ -107,4 +107,4 @@
     </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </body>
-</html>
+</html><?php /**PATH C:\laragon\www\simaset_fix\resources\views/layouts/main.blade.php ENDPATH**/ ?>
