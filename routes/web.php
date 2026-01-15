@@ -4,10 +4,10 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\AssetRequestController;
+use App\Http\Controllers\PostController;
 use App\Http\Controllers\BorrowingController;
 use App\Http\Controllers\ReportController;
-use App\Http\Controllers\PostController;
+use App\Http\Controllers\AssetReturnController;
 
 /*
 |--------------------------------------------------------------------------
@@ -15,62 +15,62 @@ use App\Http\Controllers\PostController;
 |--------------------------------------------------------------------------
 */
 
-// Halaman awal redirect ke Login
+// Halaman Welcome (Landing Page)
 Route::get('/', function () {
-    return redirect()->route('login');
+    return view('welcome');
 });
 
-// Guest Routes (Belum Login)
-Route::middleware('guest')->group(function () {
-    Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::get('/register', [AuthController::class, 'showRegistrationForm'])->name('register');
-    Route::post('/register', [AuthController::class, 'register']);
+// AUTHENTICATION ROUTES
+Route::controller(AuthController::class)->group(function () {
+    Route::get('/login', 'showLoginForm')->name('login')->middleware('guest');
+    Route::post('/login', 'login')->middleware('guest');
+    Route::get('/register', 'showRegisterForm')->name('register')->middleware('guest');
+    Route::post('/register', 'register')->middleware('guest');
+    Route::post('/logout', 'logout')->name('logout')->middleware('auth');
 });
 
-// Authenticated Routes (Sudah Login)
-Route::middleware('auth')->group(function () {
+// DASHBOARD & MANAGED ROUTES (Perlu Login)
+Route::middleware(['auth'])->group(function () {
     
-    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-    
-    // Dashboard
-    Route::get('/dashboard', [AssetController::class, 'dashboard'])->name('dashboard');
-    Route::get('/home', [AssetController::class, 'dashboard'])->name('home'); // Alias
+    // [PERBAIKAN] Ubah name('home') menjadi name('dashboard') agar sesuai dengan sidebar/layout
+    Route::get('/home', [AssetController::class, 'dashboard'])->name('dashboard');
 
-    // --- FITUR ASET ---
-    // PENTING: Route 'map' harus DI ATAS resource 'assets' agar tidak dianggap sebagai ID
-    Route::get('/assets/map', [AssetController::class, 'locationMap'])->name('assets.map'); 
-    Route::get('/assets/my-assets', [AssetController::class, 'myAssets'])->name('assets.my_assets');
+    // Chart Data Routes
+    Route::get('/charts/asset-stats', [AssetController::class, 'chartsData'])->name('charts.assets');
+    Route::get('/charts/borrow-stats', [AssetController::class, 'borrowStats'])->name('charts.borrows');
+
+    // Manajemen Aset
+    Route::get('/assets/map', [AssetController::class, 'locationMap'])->name('assets.map'); // Peta Lokasi
+    Route::get('/assets/my', [AssetController::class, 'myAssets'])->name('assets.my'); // Aset Saya (User)
+    
+    // QR Code Scan Helpers
+    Route::get('/assets/{id}/scan-qr-image', [AssetController::class, 'scanQrImage'])->name('assets.scan_image');
     Route::get('/assets/scan/{asset}', [AssetController::class, 'scanQr'])->name('assets.scan');
-    
-    // Resource Controller untuk Aset
+
     Route::resource('assets', AssetController::class);
 
-    // --- FITUR PEMINJAMAN (Borrowing) ---
-    Route::get('/borrowing', [BorrowingController::class, 'index'])->name('borrowing.index');
-    Route::get('/borrowing/create', [BorrowingController::class, 'create'])->name('borrowing.create');
-    Route::post('/borrowing', [BorrowingController::class, 'store'])->name('borrowing.store');
+    // Manajemen Peminjaman (Borrowing)
     Route::get('/borrowing/history', [BorrowingController::class, 'userHistory'])->name('borrowing.history');
-    Route::get('/borrowing/{id}', [BorrowingController::class, 'show'])->name('borrowing.show');
+    Route::resource('borrowing', BorrowingController::class);
     
-    // Action Khusus Peminjaman
-    Route::post('/borrowing/{id}/approve', [BorrowingController::class, 'approve'])->name('borrowing.approve');
-    Route::post('/borrowing/{id}/reject', [BorrowingController::class, 'reject'])->name('borrowing.reject');
+    // Approval & Return (Admin Action)
+    Route::post('/borrowing/{id}/approve', [BorrowingController::class, 'approve'])->name('borrowing.approve')->middleware('admin');
+    Route::post('/borrowing/{id}/reject', [BorrowingController::class, 'reject'])->name('borrowing.reject')->middleware('admin');
     Route::post('/borrowing/{id}/return', [BorrowingController::class, 'returnAsset'])->name('borrowing.return');
-    Route::post('/borrowing/{id}/quick-approve', [BorrowingController::class, 'quickApprove'])->name('borrowing.quick_approve');
 
-    // --- FITUR REPORT & CHARTS ---
+    // Pengembalian Aset (Returns Management)
+    Route::resource('returns', AssetReturnController::class)->only(['index', 'show', 'update']);
+    Route::post('/returns/{return}/verify', [AssetReturnController::class, 'verify'])->name('returns.verify');
+
+    // Laporan (Reports)
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/pdf', [ReportController::class, 'exportPdf'])->name('reports.pdf');
-    Route::get('/api/charts/data', [AssetController::class, 'chartsData'])->name('api.charts.data');
-    Route::get('/api/charts/borrow-stats', [AssetController::class, 'borrowStats'])->name('api.charts.borrow_stats');
-
-    // --- KHUSUS ADMIN ---
-    // Menggunakan alias 'is_admin' yang baru
-    Route::middleware('is_admin')->group(function () {
+    
+    // Manajemen User (Hanya Admin)
+    Route::middleware(['admin'])->group(function () {
         Route::resource('users', UserController::class);
     });
 
-    // Blog / Post (Opsional)
+    // Blog / Post Internal
     Route::resource('posts', PostController::class);
 });

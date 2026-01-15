@@ -37,23 +37,19 @@
                         </label>
                         <div class="mt-1 flex rounded-md shadow-sm">
                             <span class="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-100 px-3 text-gray-500 sm:text-sm">#</span>
+                            {{-- Kita tampilkan placeholder saja karena SN digenerate di backend berdasarkan Nama Aset --}}
                             <input type="text" value="Otomatis oleh Sistem" readonly class="block w-full flex-1 rounded-none rounded-r-md border-gray-300 bg-gray-50 text-gray-500 sm:text-sm cursor-not-allowed">
                         </div>
                     </div>
 
-                    {{-- Kategori --}}
+                    {{-- [MODIFIKASI] Kategori Dinamis --}}
                     <div>
                         <label class="block text-sm font-semibold text-gray-700">Kategori <span class="text-red-500">*</span></label>
                         <select name="category" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm border p-2.5 @error('category') border-red-500 @enderror">
                             <option value="">-- Pilih Kategori --</option>
-                            <option value="Laptop" {{ old('category') == 'Laptop' ? 'selected' : '' }}>Laptop</option>
-                            <option value="Monitor" {{ old('category') == 'Monitor' ? 'selected' : '' }}>Monitor</option>
-                            <option value="PC" {{ old('category') == 'PC' ? 'selected' : '' }}>PC / Komputer</option>
-                            <option value="Printer" {{ old('category') == 'Printer' ? 'selected' : '' }}>Printer</option>
-                            <option value="Proyektor" {{ old('category') == 'Proyektor' ? 'selected' : '' }}>Proyektor</option>
-                            <option value="Aksesoris" {{ old('category') == 'Aksesoris' ? 'selected' : '' }}>Aksesoris</option>
-                            <option value="Furniture" {{ old('category') == 'Furniture' ? 'selected' : '' }}>Furniture</option>
-                            <option value="Lainnya" {{ old('category') == 'Lainnya' ? 'selected' : '' }}>Lainnya</option>
+                            @foreach($categories as $cat)
+                                <option value="{{ $cat }}" {{ old('category') == $cat ? 'selected' : '' }}>{{ $cat }}</option>
+                            @endforeach
                         </select>
                         @error('category') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
@@ -81,7 +77,7 @@
                         </select>
                     </div>
 
-                    {{-- LOKASI (PERBAIKAN: Dropdown Area & Rak) --}}
+                    {{-- LOKASI (Dropdown Area & Rak) --}}
                     <div class="grid grid-cols-2 gap-4 pt-2 border-t border-dashed">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700">Lorong / Area</label>

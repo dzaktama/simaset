@@ -14,6 +14,45 @@ use BaconQrCode\Writer;
 class AssetService
 {
     /**
+     * [BARU] Mendapatkan daftar kategori aset (Standar + Database)
+     * Agar dropdown selalu konsisten dan dinamis.
+     */
+    public function getCategories()
+    {
+        // 1. Daftar Kategori Standar (Bahasa Indonesia)
+        $standardCategories = [
+            'Laptop',
+            'PC Desktop',
+            'Monitor',
+            'Printer',
+            'Proyektor',
+            'Scanner',
+            'Aksesoris Komputer',
+            'Perangkat Jaringan', // Network Device
+            'Server',
+            'Furniture',
+            'Kendaraan',
+            'Elektronik Lainnya',
+            'Lainnya'
+        ];
+
+        // 2. Ambil kategori unik yang SUDAH ADA di database (jaga-jaga ada kategori lama/custom)
+        $existingCategories = Asset::select('category')
+            ->distinct()
+            ->whereNotNull('category')
+            ->pluck('category')
+            ->toArray();
+
+        // 3. Gabungkan dan Hapus Duplikat
+        $allCategories = array_unique(array_merge($standardCategories, $existingCategories));
+
+        // 4. Urutkan Abjad A-Z
+        sort($allCategories);
+
+        return $allCategories;
+    }
+
+    /**
      * Generate Serial Number Otomatis (INV-YYYYMM-0001)
      */
     public function generateSerialNumber(): string
@@ -46,11 +85,6 @@ class AssetService
     /**
      * Split Stock (Pecah Aset)
      * Logic: Stok awal dipecah, satu bagian ke user, sisa di gudang
-     * 
-     * Contoh:
-     *   - Aset A punya stok 100
-     *   - Admin: ambil 30 untuk User X (dikeploykan)
-     *   - Hasil: Aset A stok 70 (available), Aset A-S123 stok 30 (deployed ke User X)
      */
     public function splitStock(
         Asset $asset,
@@ -115,11 +149,6 @@ class AssetService
 
     /**
      * Create Asset Request (Pengajuan Peminjaman)
-     * Digunakan oleh Karyawan untuk request aset
-     * 
-     * Validasi:
-     *   - Jika booking: aset harus status 'deployed' (lagi dipinjam orang)
-     *   - Jika pinjam biasa: stok harus cukup & status 'available'
      */
     public function createAssetRequest(
         int $userId,
@@ -179,8 +208,6 @@ class AssetService
 
     /**
      * Approve Asset Request (Admin menyetujui)
-     * - Kurangi stok sesuai quantity yang di-request
-     * - Update status asset ke deployed jika stok habis, atau tetap available jika masih ada sisa
      */
     public function approveAssetRequest(AssetRequest $assetRequest): void
     {
@@ -240,7 +267,6 @@ class AssetService
 
     /**
      * Build Asset Query dengan Filter
-     * Centralize search, status filter, dan sorting logic
      */
     public function buildAssetQuery(array $filters = [])
     {
@@ -252,13 +278,19 @@ class AssetService
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('serial_number', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhere('category', 'like', "%{$search}%"); // Added Category Search
             });
         }
 
         // Status filter
         if (!empty($filters['status']) && $filters['status'] !== 'all') {
             $query->where('status', $filters['status']);
+        }
+
+        // [BARU] Filter Kategori
+        if (!empty($filters['category']) && $filters['category'] !== 'all') {
+            $query->where('category', $filters['category']);
         }
 
         // Sorting (by name, stock, date, atau STATUS)
@@ -340,7 +372,7 @@ class AssetService
     public function generateQrCodeDataUrl(Asset $asset): string
     {
         // URL detail aset yang akan di-encode di QR code
-        $detailUrl = route('assets.scan', ['id' => $asset->id]);
+        $detailUrl = route('assets.scan', ['id' => $asset->id]); // Asumsikan route 'assets.scan' ada
         
         try {
             // Generate QR code menggunakan bacon/bacon-qr-code
@@ -361,5 +393,4 @@ class AssetService
             return $qrCodeUrl;
         }
     }
-
 }
