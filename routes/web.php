@@ -15,9 +15,9 @@ use App\Http\Controllers\AssetReturnController;
 |--------------------------------------------------------------------------
 */
 
-// Halaman Welcome (Landing Page)
+// [PERBAIKAN] Ubah ini agar tidak menampilkan 'welcome' tapi langsung ke Login
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('login');
 });
 
 // AUTHENTICATION ROUTES
@@ -59,7 +59,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/borrowing/{id}/return', [BorrowingController::class, 'returnAsset'])->name('borrowing.return');
 
     // Pengembalian Aset (Returns Management)
-    // [PERBAIKAN] Menambahkan 'store' agar user bisa mengajukan pengembalian
+    // Menambahkan 'store' agar user bisa mengajukan pengembalian
     Route::resource('returns', AssetReturnController::class)->only(['index', 'show', 'update', 'store']);
     
     // Verifikasi Pengembalian (Admin)
