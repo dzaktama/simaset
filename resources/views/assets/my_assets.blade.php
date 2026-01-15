@@ -1,10 +1,10 @@
 @extends('layouts.main')
 
 @section('container')
-<div class="max-w-7xl mx-auto">
-    <div class="mb-6">
-        <h2 class="text-2xl font-bold text-gray-900">Aset Saya</h2>
-        <p class="text-gray-600 text-sm mt-1">Daftar inventaris yang saat ini menjadi tanggung jawab Anda.</p>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Aset Saya</h1>
+        <p class="mt-2 text-gray-600">Daftar inventaris yang saat ini menjadi tanggung jawab Anda.</p>
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -79,15 +79,7 @@
                                         Detail
                                     </button>
 
-                                    {{-- 2. Logic Tombol Kembalikan --}}
-                                    {{-- Cek apakah aset ini sudah ada request return yg pending --}}
-                                    @php
-                                        // Cek logic return berdasarkan asset_id dan user yang sedang login
-                                        // Asumsi Model AssetReturn punya relasi ke AssetRequest atau Asset
-                                        // Disini kita cek manual dulu
-                                        // $item adalah AssetRequest (peminjaman aktif)
-                                    @endphp
-
+                                    {{-- 2. Tombol Kembalikan --}}
                                     @php
                                         $imgUrl = $item->asset->image ? asset('storage/' . $item->asset->image) : null;
                                         $assignedDate = $item->borrowed_at;
@@ -197,7 +189,7 @@
         <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm" onclick="closeReturnModal()"></div>
         
         <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md">
-            {{-- Form POST ke route borrowing.return (sesuai logic Controller baru) --}}
+            {{-- PERBAIKAN: Form POST ke route borrowing.return --}}
             <form id="returnForm" method="POST" action=""> 
                 @csrf
                 {{-- Header --}}
@@ -219,8 +211,6 @@
                             <p id="returnAssetSN" class="text-xs text-gray-500 font-mono truncate">SN-XXXXXX</p>
                         </div>
                     </div>
-                    
-                    {{-- Tidak butuh hidden input ID lagi karena dikirim lewat URL action --}}
                     
                     <div class="space-y-4">
                         <div>
@@ -301,8 +291,8 @@
 
     // --- LOGIC RETURN ASET ---
     function openReturnModal(reqId, assetName, assetSN, assetImgUrl, assignedDateRaw) {
-        // Update Action URL Form Dinamis
-        // Route: borrowing.return -> /borrowing/{id}/return
+        // PERBAIKAN: Action URL diarahkan ke route borrowing.return
+        // Route: Route::post('/borrowing/{id}/return', ...)
         const form = document.getElementById('returnForm');
         form.action = `/borrowing/${reqId}/return`;
 

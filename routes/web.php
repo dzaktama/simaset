@@ -3,86 +3,72 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AssetController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\PostController;
 use App\Http\Controllers\BorrowingController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\ReportController;
-use App\Http\Controllers\AssetReturnController;
 
 /*
 |--------------------------------------------------------------------------
-| Web Routes (Fixed Security Logic)
+| Web Routes
 |--------------------------------------------------------------------------
 */
 
-// 1. Halaman Utama -> Redirect ke Login
-Route::get('/', function () {
-    return redirect()->route('login');
-});
+// --- AUTHENTICATION ---
+Route::get('/', [AuthController::class, 'index'])->name('login');
+Route::post('/login', [AuthController::class, 'authenticate']);
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-// 2. Authentication Routes
-Route::controller(AuthController::class)->group(function () {
-    Route::get('/login', 'showLoginForm')->name('login')->middleware('guest');
-    Route::post('/login', 'login')->middleware('guest');
-    Route::get('/register', 'showRegisterForm')->name('register')->middleware('guest');
-    Route::post('/register', 'register')->middleware('guest');
-    Route::post('/logout', 'logout')->name('logout')->middleware('auth');
-});
-
-// 3. Authenticated Routes (User & Admin bisa akses ini)
+// --- ROUTES UNTUK USER YANG SUDAH LOGIN ---
 Route::middleware(['auth'])->group(function () {
     
-    // --- Dashboard ---
-    Route::get('/home', [AssetController::class, 'dashboard'])->name('dashboard');
+    // Dashboard (Admin & User logic di dalam controller)
+    Route::get('/dashboard', [AssetController::class, 'dashboard'])->name('dashboard');
 
-    // --- Chart Data (API) ---
-    Route::get('/charts/asset-stats', [AssetController::class, 'chartsData'])->name('charts.assets');
-    Route::get('/charts/borrow-stats', [AssetController::class, 'borrowStats'])->name('charts.borrows');
-
-    // --- Aset (User Access limited via Controller logic or View) ---
-    Route::get('/assets/map', [AssetController::class, 'locationMap'])->name('assets.map');
-    Route::get('/assets/my', [AssetController::class, 'myAssets'])->name('assets.my'); 
-    Route::get('/assets/{id}/scan-qr-image', [AssetController::class, 'scanQrImage'])->name('assets.scan_image');
-    Route::get('/assets/scan/{asset}', [AssetController::class, 'scanQr'])->name('assets.scan');
-    // Resource aset tetap ada, tapi delete/edit/create dibatasi di view/controller admin
-    Route::resource('assets', AssetController::class);
-
-    // --- PEMINJAMAN (LOGIC BARU: User Biasa) ---
-    // User boleh Submit Request (Store)
-    Route::post('/borrowing', [BorrowingController::class, 'store'])->name('borrowing.store');
-    // User boleh Lihat History Sendiri
-    Route::get('/borrowing/history', [BorrowingController::class, 'userHistory'])->name('borrowing.history');
-    // User boleh Lihat Detail Peminjaman
-    Route::get('/borrowing/{id}', [BorrowingController::class, 'show'])->name('borrowing.show');
+    // --- FITUR ASET (USER) ---
+    Route::get('/assets', [AssetController::class, 'index'])->name('assets.index');
+    Route::get('/assets/my', [AssetController::class, 'myAssets'])->name('assets.my');
+    Route::get('/assets/{asset}', [AssetController::class, 'show'])->name('assets.show');
     
-    // --- Pengembalian (Return) ---
-    // User bisa mengajukan/melihat pengembalian (tergantung implementasi controller)
-    Route::resource('returns', AssetReturnController::class)->only(['index', 'show', 'update', 'store']);
+    // --- FITUR PEMINJAMAN (USER) ---
+    Route::post('/borrowing/store', [BorrowingController::class, 'store'])->name('borrowing.store');
+    Route::get('/borrowing/history', [BorrowingController::class, 'userHistory'])->name('borrowing.history');
+    Route::get('/borrowing/{id}', [BorrowingController::class, 'show'])->name('borrowing.show'); // Detail Peminjaman
+    
+    // User Return (Mengembalikan aset sendiri)
+    // Note: Kita gunakan POST sesuai form di view
     Route::post('/borrowing/{id}/return', [BorrowingController::class, 'returnAsset'])->name('borrowing.return');
 
-    // --- ADMIN ONLY ROUTES ---
-    // Semua fitur sensitif masuk ke sini agar User Nakal tidak bisa tembus lewat URL
-    Route::middleware(['admin'])->group(function () {
-        
-        // Manajemen User
-        Route::resource('users', UserController::class);
+    // QR Code & Map
+    Route::get('/scan/{asset}', [AssetController::class, 'scanQr'])->name('assets.scan');
+    Route::get('/assets/{id}/qr', [AssetController::class, 'scanQrImage'])->name('assets.qr_image');
+    Route::get('/map', [AssetController::class, 'locationMap'])->name('assets.map');
+});
 
-        // Manajemen Peminjaman (Full Access)
-        // Halaman Index (Daftar Semua Pinjaman) HANYA untuk Admin
-        Route::get('/borrowing-management', [BorrowingController::class, 'index'])->name('borrowing.index');
-        
-        // Approval Actions
-        Route::post('/borrowing/{id}/approve', [BorrowingController::class, 'approve'])->name('borrowing.approve');
-        Route::post('/borrowing/{id}/reject', [BorrowingController::class, 'reject'])->name('borrowing.reject');
-        
-        // Verifikasi Pengembalian
-        Route::post('/returns/{return}/verify', [AssetReturnController::class, 'verify'])->name('returns.verify');
+// --- ROUTES KHUSUS ADMIN ---
+Route::middleware(['auth', 'admin'])->group(function () {
 
-        // Laporan
-        Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
-        Route::get('/reports/pdf', [ReportController::class, 'exportPdf'])->name('reports.pdf');
-    });
+    // --- MANAJEMEN ASET (CRUD) ---
+    Route::get('/assets/create', [AssetController::class, 'create'])->name('assets.create');
+    Route::post('/assets', [AssetController::class, 'store'])->name('assets.store');
+    Route::get('/assets/{asset}/edit', [AssetController::class, 'edit'])->name('assets.edit');
+    Route::put('/assets/{asset}', [AssetController::class, 'update'])->name('assets.update');
+    Route::delete('/assets/{asset}', [AssetController::class, 'destroy'])->name('assets.destroy');
 
-    // Blog / Post Internal
-    Route::resource('posts', PostController::class);
+    // --- MANAJEMEN PEMINJAMAN (ADMIN) ---
+    Route::get('/borrowing', [BorrowingController::class, 'index'])->name('borrowing.index');
+    
+    // [PENTING] Route Actions untuk Admin (Approve/Reject)
+    Route::post('/borrowing/{id}/approve', [BorrowingController::class, 'approve'])->name('borrowing.approve');
+    Route::post('/borrowing/{id}/reject', [App\Http\Controllers\BorrowingController::class, 'reject'])->name('borrowing.reject');
+
+    // --- MANAJEMEN USER ---
+    Route::resource('users', UserController::class);
+
+    // --- LAPORAN ---
+    Route::get('/reports', [BorrowingController::class, 'report'])->name('reports.index');
+    Route::get('/reports/export', [BorrowingController::class, 'exportExcel'])->name('reports.export');
+    
+    // API Chart Data
+    Route::get('/api/charts/assets', [AssetController::class, 'chartsData']);
+    Route::get('/api/charts/borrowing', [AssetController::class, 'borrowStats']);
 });
