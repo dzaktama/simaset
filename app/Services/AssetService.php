@@ -270,7 +270,7 @@ class AssetService
      */
     public function buildAssetQuery(array $filters = [])
     {
-        $query = Asset::with(['holder', 'latestApprovedRequest']);
+        $query = Asset::with(['activeRequest.user']);
 
         // Search
         if (!empty($filters['search'])) {

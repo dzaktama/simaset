@@ -4,12 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\User; // Tambahan biar User::class terbaca
 
 class Asset extends Model
 {
     use HasFactory;
 
-    // 1. IZINKAN SEMUA KOLOM PENTING (Termasuk Tanggal Baru)
+    // 1. IZINKAN SEMUA KOLOM PENTING (Sesuai kode Mas)
     protected $fillable = [
         'name',
         'serial_number',
@@ -21,25 +22,35 @@ class Asset extends Model
         'purchase_date',
         'status',
         'image',
-        'image2',          // TAMBAHAN
-        'image3',          // TAMBAHAN
+        'image2',          
+        'image3',          
         'description',
-        'condition_notes'  // TAMBAHAN
+        'condition_notes'  
     ];
 
-    // 2. FORMAT TANGGAL AGAR BISA OLAH JAM/MENIT
+    // 2. FORMAT TANGGAL
     protected $casts = [
         'purchase_date' => 'date',
         'assigned_date' => 'datetime',
         'return_date' => 'datetime',
     ];
-// Relasi untuk mengambil request yang sedang aktif (status 'approved' / deployed)
+
+    // --- [INI YANG DITAMBAHKAN AGAR TIDAK ERROR] ---
+    // Fungsi ini wajib ada karena Controller memanggil ->with('holder')
+    public function holder()
+    {
+        // Asumsi ada kolom user_id di tabel assets untuk pemegang saat ini
+        return $this->belongsTo(User::class, 'user_id');
+    }
+    // -----------------------------------------------
+
+    // Relasi untuk mengambil request yang sedang aktif
     public function activeRequest()
     {
         return $this->hasOne(AssetRequest::class)->where('status', 'approved')->latest();
     }
+
     // 3. SCOPE FILTER 
-    // Method ini menangani logika pencarian dan filter status di halaman index
     public function scopeFilter($query, array $filters)
     {
         // Filter Pencarian (Search)
@@ -58,16 +69,33 @@ class Asset extends Model
         });
     }
 
-    // 4. RELASI KE PEMEGANG ASET (USER)
-    public function holder()
+    // 4. ATRIBUT BARU: AMBIL DATA PEMINJAM (HOLDER) DARI RELASI
+    public function getHolderAttribute()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        // Cek jika ada `activeRequest` yang sudah di-load
+        if ($this->relationLoaded('activeRequest') && $this->activeRequest) {
+            return $this->activeRequest->user;
+        }
+        // Fallback jika tidak di-load
+        return $this->activeRequest()->first()->user ?? null;
     }
 
-    // 5. RELASI KE REQUEST TERAKHIR (Untuk Cek History)
-    public function latestApprovedRequest()
+    // 5. ATRIBUT BARU: AMBIL TANGGAL PINJAM DARI RELASI
+    public function getAssignedDateAttribute()
     {
-        return $this->hasOne(AssetRequest::class)->where('status', 'approved')->latest();
+        if ($this->relationLoaded('activeRequest') && $this->activeRequest) {
+            return $this->activeRequest->borrowed_at;
+        }
+        return $this->activeRequest()->first()->borrowed_at ?? null;
+    }
+
+    // 6. ATRIBUT BARU: AMBIL TANGGAL KEMBALI DARI RELASI
+    public function getReturnDateAttribute()
+    {
+        if ($this->relationLoaded('activeRequest') && $this->activeRequest) {
+            return $this->activeRequest->return_date;
+        }
+        return $this->activeRequest()->first()->return_date ?? null;
     }
 
     /**

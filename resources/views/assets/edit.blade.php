@@ -48,15 +48,35 @@
                     <input type="date" name="purchase_date" class="block w-full mt-1 text-sm border-gray-300 rounded-md focus:border-indigo-400 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" value="{{ old('purchase_date', $asset->purchase_date ? \Carbon\Carbon::parse($asset->purchase_date)->format('Y-m-d') : '') }}">
                 </label>
 
-                {{-- Lokasi --}}
+                {{-- [BAGIAN INI YANG DIUBAH JADI DROPDOWN] --}}
+                {{-- Lokasi (Lorong & Rak) --}}
                 <div class="grid grid-cols-2 gap-4">
+                    {{-- Dropdown Lorong A-Z --}}
                     <label class="block text-sm">
                         <span class="text-gray-700">Lorong</span>
-                        <input type="text" name="lorong" class="block w-full mt-1 text-sm border-gray-300 rounded-md" value="{{ old('lorong', $asset->lorong) }}" placeholder="Contoh: L1">
+                        <select name="lorong" class="block w-full mt-1 text-sm border-gray-300 rounded-md focus:border-indigo-400 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                            <option value="" disabled>Pilih Area</option>
+                            @foreach(range('A', 'Z') as $char)
+                                @php $val = "Area $char"; @endphp
+                                <option value="{{ $val }}" {{ old('lorong', $asset->lorong) == $val ? 'selected' : '' }}>
+                                    {{ $val }}
+                                </option>
+                            @endforeach
+                        </select>
                     </label>
+
+                    {{-- Dropdown Rak 1-50 --}}
                     <label class="block text-sm">
                         <span class="text-gray-700">Rak</span>
-                        <input type="text" name="rak" class="block w-full mt-1 text-sm border-gray-300 rounded-md" value="{{ old('rak', $asset->rak) }}" placeholder="Contoh: R3">
+                        <select name="rak" class="block w-full mt-1 text-sm border-gray-300 rounded-md focus:border-indigo-400 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                            <option value="" disabled>Pilih Rak</option>
+                            @for($i = 1; $i <= 50; $i++)
+                                @php $val = "R-" . sprintf('%02d', $i); @endphp
+                                <option value="{{ $val }}" {{ old('rak', $asset->rak) == $val ? 'selected' : '' }}>
+                                    {{ $val }} (Rak {{ $i }})
+                                </option>
+                            @endfor
+                        </select>
                     </label>
                 </div>
 
@@ -71,8 +91,7 @@
                     </select>
                 </label>
 
-                {{-- [MODIFIKASI] Form Peminjam (Muncul jika Deployed) --}}
-                {{-- Kita gunakan class hidden by default, tapi di remove lewat JS saat load jika status deployed --}}
+                {{-- Form Peminjam (Muncul jika Deployed) --}}
                 <div id="user_field" class="block text-sm {{ $asset->status == 'deployed' ? '' : 'hidden' }} transition-all duration-300">
                     <span class="text-gray-700 font-semibold text-indigo-600">Peminjam (Override)</span>
                     <select name="user_id" class="block w-full mt-1 text-sm border-gray-300 rounded-md focus:border-indigo-400 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
@@ -87,7 +106,6 @@
                         *Mengubah user di sini akan memindahkan kepemilikan aset ini secara paksa.
                     </p>
                     
-                    {{-- Input Manual Qty untuk Split (Opsional, jika admin mau mecah stok) --}}
                     @if($asset->quantity > 1)
                         <div class="mt-3 p-3 bg-yellow-50 rounded border border-yellow-200">
                             <span class="text-xs font-bold text-yellow-700 block mb-1">Opsi Pecah Stok (Opsional)</span>
@@ -178,13 +196,10 @@
         } else {
             userField.classList.add('hidden');
             dateFields.classList.add('hidden');
-            
-            // Reset selection jika status bukan deployed (opsional, biar ga sengaja kesimpan)
-            // document.querySelector('select[name="user_id"]').value = ""; 
         }
     }
 
-    // Jalankan saat halaman dimuat untuk handle kondisi awal (misal saat edit data yg sudah deployed)
+    // Jalankan saat halaman dimuat
     document.addEventListener('DOMContentLoaded', function() {
         toggleUserField();
     });
