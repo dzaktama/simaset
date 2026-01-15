@@ -1,6 +1,4 @@
-@extends('layouts.main')
-
-@section('container')
+<?php $__env->startSection('container'); ?>
 <div class="max-w-7xl mx-auto">
     <div class="mb-6">
         <h2 class="text-2xl font-bold text-gray-900">Aset Saya</h2>
@@ -8,18 +6,18 @@
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        @if($myAssets->isEmpty())
+        <?php if($myAssets->isEmpty()): ?>
             <div class="p-12 text-center flex flex-col items-center">
                 <div class="bg-indigo-50 p-4 rounded-full mb-4">
                     <svg class="h-10 w-10 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
                 </div>
                 <h3 class="text-lg font-medium text-gray-900">Belum ada aset</h3>
                 <p class="text-gray-500 mt-1">Anda belum meminjam aset apapun saat ini.</p>
-                <a href="{{ route('assets.index') }}" class="mt-5 inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition">
+                <a href="<?php echo e(route('assets.index')); ?>" class="mt-5 inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition">
                     Pinjam Aset Baru
                 </a>
             </div>
-        @else
+        <?php else: ?>
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
@@ -31,91 +29,93 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 bg-white">
-                        @foreach($myAssets as $item)
-                        {{-- Mengirim object asset (dari relasi) + data assignment date ke fungsi modal --}}
-                        <tr class="hover:bg-gray-50 transition cursor-pointer group" onclick="openDetailModal({{ json_encode($item->asset) }}, '{{ $item->borrowed_at }}')">
-                            {{-- Info Aset --}}
+                        <?php $__currentLoopData = $myAssets; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        
+                        <tr class="hover:bg-gray-50 transition cursor-pointer group" onclick="openDetailModal(<?php echo e(json_encode($item->asset)); ?>, '<?php echo e($item->borrowed_at); ?>')">
+                            
                             <td class="px-6 py-4">
                                 <div class="flex items-center">
                                     <div class="h-12 w-12 flex-shrink-0 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden relative">
-                                        @if($item->asset->image)
-                                            <img class="h-full w-full object-cover" src="{{ asset('storage/' . $item->asset->image) }}" alt="Foto Aset">
-                                        @else
+                                        <?php if($item->asset->image): ?>
+                                            <img class="h-full w-full object-cover" src="<?php echo e(asset('storage/' . $item->asset->image)); ?>" alt="Foto Aset">
+                                        <?php else: ?>
                                             <div class="flex h-full w-full items-center justify-center text-gray-400">
                                                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                                             </div>
-                                        @endif
+                                        <?php endif; ?>
                                     </div>
                                     <div class="ml-4">
-                                        <div class="text-sm font-bold text-gray-900 group-hover:text-indigo-600 transition">{{ $item->asset->name }}</div>
-                                        <div class="text-xs text-gray-500 font-mono mt-0.5">{{ $item->asset->serial_number }}</div>
-                                        <div class="text-xs text-gray-400 mt-0.5">Qty: {{ $item->quantity }}</div>
+                                        <div class="text-sm font-bold text-gray-900 group-hover:text-indigo-600 transition"><?php echo e($item->asset->name); ?></div>
+                                        <div class="text-xs text-gray-500 font-mono mt-0.5"><?php echo e($item->asset->serial_number); ?></div>
+                                        <div class="text-xs text-gray-400 mt-0.5">Qty: <?php echo e($item->quantity); ?></div>
                                     </div>
                                 </div>
                             </td>
 
-                            {{-- Lokasi & Kategori --}}
+                            
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900">{{ $item->asset->category ?? '-' }}</div>
-                                <div class="text-xs text-gray-500">{{ $item->asset->location ?? 'Umum' }}</div>
+                                <div class="text-sm text-gray-900"><?php echo e($item->asset->category ?? '-'); ?></div>
+                                <div class="text-xs text-gray-500"><?php echo e($item->asset->location ?? 'Umum'); ?></div>
                             </td>
 
-                            {{-- Tanggal Pinjam --}}
+                            
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm font-medium text-gray-900">
-                                    {{ \Carbon\Carbon::parse($item->borrowed_at)->translatedFormat('d M Y') }}
+                                    <?php echo e(\Carbon\Carbon::parse($item->borrowed_at)->translatedFormat('d M Y')); ?>
+
                                 </div>
                                 <div class="text-xs text-gray-500">
-                                    {{ \Carbon\Carbon::parse($item->borrowed_at)->diffForHumans() }}
+                                    <?php echo e(\Carbon\Carbon::parse($item->borrowed_at)->diffForHumans()); ?>
+
                                 </div>
                             </td>
 
-                            {{-- Tombol Aksi --}}
+                            
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" onclick="event.stopPropagation()">
                                 <div class="flex justify-end gap-2">
-                                    {{-- 1. Tombol Detail --}}
-                                    <button onclick="openDetailModal({{ json_encode($item->asset) }}, '{{ $item->borrowed_at }}')" 
+                                    
+                                    <button onclick="openDetailModal(<?php echo e(json_encode($item->asset)); ?>, '<?php echo e($item->borrowed_at); ?>')" 
                                             class="text-gray-600 hover:text-indigo-600 bg-white hover:bg-gray-50 border border-gray-300 px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm">
                                         Detail
                                     </button>
 
-                                    {{-- 2. Logic Tombol Kembalikan --}}
-                                    {{-- Cek apakah aset ini sudah ada request return yg pending --}}
-                                    @php
+                                    
+                                    
+                                    <?php
                                         // Cek logic return berdasarkan asset_id dan user yang sedang login
                                         // Asumsi Model AssetReturn punya relasi ke AssetRequest atau Asset
                                         // Disini kita cek manual dulu
                                         // $item adalah AssetRequest (peminjaman aktif)
-                                    @endphp
+                                    ?>
 
-                                    @php
+                                    <?php
                                         $imgUrl = $item->asset->image ? asset('storage/' . $item->asset->image) : null;
                                         $assignedDate = $item->borrowed_at;
-                                    @endphp
+                                    ?>
                                     
-                                    {{-- Kirim ID Request Peminjaman ($item->id) bukan ID Aset --}}
-                                    <button onclick="openReturnModal({{ $item->id }}, '{{ $item->asset->name }}', '{{ $item->asset->serial_number }}', '{{ $imgUrl }}', '{{ $assignedDate }}')"
+                                    
+                                    <button onclick="openReturnModal(<?php echo e($item->id); ?>, '<?php echo e($item->asset->name); ?>', '<?php echo e($item->asset->serial_number); ?>', '<?php echo e($imgUrl); ?>', '<?php echo e($assignedDate); ?>')"
                                             class="text-white bg-indigo-600 hover:bg-indigo-700 border border-transparent px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm flex items-center">
                                         Kembalikan
                                     </button>
                                 </div>
                             </td>
                         </tr>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </tbody>
                 </table>
             </div>
-        @endif
+        <?php endif; ?>
     </div>
 </div>
 
-{{-- ================= MODAL DETAIL ASET LENGKAP ================= --}}
+
 <div id="myAssetDetailModal" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true">
     <div class="flex min-h-screen items-center justify-center p-4">
         <div class="fixed inset-0 bg-gray-900 bg-opacity-60 transition-opacity backdrop-blur-sm" onclick="closeMyAssetDetail()"></div>
         
         <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
-            {{-- Header Modal --}}
+            
             <div class="bg-indigo-600 px-6 py-4 flex justify-between items-center">
                 <h3 class="text-lg font-bold text-white flex items-center gap-2">
                     <svg class="h-5 w-5 text-indigo-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -126,10 +126,10 @@
                 </button>
             </div>
 
-            {{-- Body Modal --}}
+            
             <div class="bg-white px-6 py-6">
                 <div class="flex flex-col md:flex-row gap-6">
-                    {{-- Bagian Gambar --}}
+                    
                     <div class="w-full md:w-1/3">
                         <div class="aspect-square rounded-xl bg-gray-100 border border-gray-200 overflow-hidden relative shadow-inner">
                             <img id="detailImg" src="" class="w-full h-full object-cover" onerror="this.style.display='none'">
@@ -144,7 +144,7 @@
                         </div>
                     </div>
 
-                    {{-- Bagian Informasi --}}
+                    
                     <div class="w-full md:w-2/3 space-y-4">
                         <div>
                             <h2 id="detailAssetName" class="text-2xl font-bold text-gray-900 leading-tight">Nama Aset</h2>
@@ -191,23 +191,23 @@
     </div>
 </div>
 
-{{-- ================= MODAL FORM PENGEMBALIAN ================= --}}
+
 <div id="returnModal" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true">
     <div class="flex min-h-screen items-center justify-center p-4">
         <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm" onclick="closeReturnModal()"></div>
         
         <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md">
-            {{-- Form POST ke route borrowing.return (sesuai logic Controller baru) --}}
+            
             <form id="returnForm" method="POST" action=""> 
-                @csrf
-                {{-- Header --}}
+                <?php echo csrf_field(); ?>
+                
                 <div class="bg-white px-6 pt-6 pb-2">
                     <h3 class="text-xl font-bold text-gray-900">Form Pengembalian Aset</h3>
                     <p class="text-sm text-gray-500 mt-1">Pastikan kondisi barang sesuai sebelum dikembalikan.</p>
                 </div>
 
                 <div class="px-6 py-4">
-                    {{-- Preview Barang --}}
+                    
                     <div class="flex items-center gap-4 bg-indigo-50 p-4 rounded-xl border border-indigo-100 mb-6">
                         <div class="h-14 w-14 rounded-lg bg-white border border-indigo-200 flex-shrink-0 overflow-hidden flex items-center justify-center">
                             <img id="returnAssetImg" src="" class="w-full h-full object-cover hidden">
@@ -220,12 +220,12 @@
                         </div>
                     </div>
                     
-                    {{-- Tidak butuh hidden input ID lagi karena dikirim lewat URL action --}}
+                    
                     
                     <div class="space-y-4">
                         <div>
                             <label class="block text-sm font-bold text-gray-700 mb-1">Tanggal Pengembalian</label>
-                            <input type="date" name="return_date" value="{{ date('Y-m-d') }}" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" required>
+                            <input type="date" name="return_date" value="<?php echo e(date('Y-m-d')); ?>" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" required>
                         </div>
                         
                         <div>
@@ -245,7 +245,7 @@
                     </div>
                 </div>
 
-                {{-- Footer Tombol --}}
+                
                 <div class="bg-gray-50 px-6 py-4 flex flex-row-reverse gap-3">
                     <button type="submit" class="w-full sm:w-auto inline-flex justify-center rounded-lg border border-transparent px-5 py-2.5 bg-indigo-600 text-sm font-bold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
                         Ajukan Pengembalian
@@ -336,4 +336,5 @@
         document.getElementById('returnModal').classList.add('hidden'); 
     }
 </script>
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.main', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\laragon\www\simaset_fix\resources\views/assets/my_assets.blade.php ENDPATH**/ ?>

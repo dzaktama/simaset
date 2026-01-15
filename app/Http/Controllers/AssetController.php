@@ -8,6 +8,7 @@ use App\Models\AssetRequest;
 use App\Models\AssetHistory;
 use App\Services\AssetService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
@@ -22,7 +23,7 @@ class AssetController extends Controller
 
     /**
      * Menampilkan Dashboard Utama
-     * [MODIFIKASI] Menambahkan Request untuk fitur Search Log
+     * [MODIFIKASI] Menggabungkan Logic Admin Search Log & Logic Karyawan Baru
      */
     public function dashboard(Request $request)
     {
@@ -30,10 +31,9 @@ class AssetController extends Controller
 
         if ($user->role === 'admin') {
             
-            // --- LOGIC SEARCH & PAGINATION UNTUK LOG AKTIVITAS ---
+            // --- LOGIC ADMIN (DIPERTAHANKAN) ---
             $logQuery = AssetHistory::with(['user', 'asset']);
 
-            // Jika ada pencarian di log
             if ($request->has('search_log') && $request->search_log != '') {
                 $search = $request->search_log;
                 $logQuery->where(function($q) use ($search) {
@@ -48,9 +48,16 @@ class AssetController extends Controller
                 });
             }
 
-            // Ambil data dengan Pagination (10 per halaman agar rapi, tapi bisa akses semua)
-            // Kita pakai nama page 'history_page' agar tidak bentrok jika ada pagination lain
             $activities = $logQuery->latest()->paginate(10, ['*'], 'history_page')->withQueryString();
+
+            // Kategori Chart
+            $categories = Asset::select('category', DB::raw('count(*) as total'))
+                ->groupBy('category')
+                ->pluck('total', 'category')
+                ->toArray();
+            
+            // Hitung Broken Assets
+            $brokenAssets = Asset::whereIn('status', ['broken', 'missing'])->count();
 
             return view('home', [
                 'title' => 'Dashboard Admin',
@@ -66,20 +73,51 @@ class AssetController extends Controller
                 'listDeployed' => Asset::where('status', 'deployed')->with('holder')->latest()->get(),
                 'listMaintenance' => Asset::whereIn('status', ['maintenance', 'broken'])->with('holder')->latest()->get(),
                 
-                // Data Dashboard Lainnya
                 'listPending' => AssetRequest::with(['user', 'asset'])->where('status', 'pending')->latest()->get(),
                 'recentRequests' => AssetRequest::with(['user', 'asset'])->where('status', 'pending')->latest()->take(5)->get(),
                 
-                // [MODIFIKASI] Mengirim variabel activities yang sudah ada logic search-nya
-                'activities' => $activities 
+                'activities' => $activities,
+                'categories' => $categories,
+                'totalAssets' => Asset::count(), // Tambahan variabel direct
+                'deployedAssets' => Asset::where('status', 'deployed')->count(),
+                'maintenanceAssets' => Asset::where('status', 'maintenance')->count(),
+                'brokenAssets' => $brokenAssets,
+                'recentActivities' => AssetHistory::with(['asset', 'user'])->latest()->take(5)->get() // Versi simple untuk view baru
             ]);
+
         } else {
+            // --- LOGIC KARYAWAN (DIPERBAIKI) ---
+            
+            // 1. Hitung Total Unit yang Sedang Dipinjam (Dari AssetRequest)
+            $myAssetsCount = AssetRequest::where('user_id', $user->id)
+                ->where('status', 'approved')
+                ->whereNull('returned_at')
+                ->sum('quantity');
+
+            // 2. Hitung Permintaan Pending
+            $pendingRequests = AssetRequest::where('user_id', $user->id)
+                ->where('status', 'pending')
+                ->count();
+
+            // 3. Ambil 5 Riwayat Terakhir (untuk Tabel Dashboard Baru)
+            $recentActivities = AssetRequest::with('asset')
+                ->where('user_id', $user->id)
+                ->latest()
+                ->take(5)
+                ->get();
+
+            // Variabel lama (myActiveAssets) tetap dikirim untuk kompatibilitas view lama jika ada
+            $myActiveAssets = Asset::where('user_id', $user->id)->latest()->take(3)->get(); 
+
             return view('home', [
                 'title' => 'Dashboard Karyawan',
-                'activeAssetsCount' => Asset::where('user_id', $user->id)->where('status', 'deployed')->count(),
-                'pendingRequestsCount' => AssetRequest::where('user_id', $user->id)->where('status', 'pending')->count(),
-                'myRequests' => AssetRequest::with('asset')->where('user_id', $user->id)->latest()->take(5)->get(),
-                'myActiveAssets' => Asset::where('user_id', $user->id)->latest()->take(3)->get()
+                'myAssetsCount' => $myAssetsCount, // Variabel Baru (Correct Logic)
+                'activeAssetsCount' => $myAssetsCount, // Variabel Lama (Alias)
+                'pendingRequests' => $pendingRequests, // Variabel Baru
+                'pendingRequestsCount' => $pendingRequests, // Variabel Lama (Alias)
+                'recentActivities' => $recentActivities, // Untuk Tabel Baru
+                'myRequests' => $recentActivities, // Variabel Lama (Alias)
+                'myActiveAssets' => $myActiveAssets // Tetap dikirim jaga-jaga
             ]);
         }
     }
@@ -126,13 +164,22 @@ class AssetController extends Controller
     }
 
     /**
-     * Menampilkan Halaman 'Aset Saya' (Karyawan)
+     * Halaman Aset Saya (FIXED: Baca dari tabel Peminjaman)
      */
     public function myAssets()
     {
+        // Ambil data dari tabel AssetRequest (Peminjaman Aktif)
+        // Syarat: User yang login + Status Approved + Belum dikembalikan
+        $myAssets = AssetRequest::with('asset')
+            ->where('user_id', auth()->id())
+            ->where('status', 'approved')
+            ->whereNull('returned_at')
+            ->latest('borrowed_at')
+            ->get();
+
         return view('assets.my_assets', [
-            'title' => 'Aset Saya',
-            'assets' => Asset::where('user_id', auth()->id())->latest()->get()
+            'myAssets' => $myAssets,
+            'title' => 'Aset Saya'
         ]);
     }
 
@@ -188,7 +235,15 @@ class AssetController extends Controller
         $data['rak'] = $request->rak;
         $data['location'] = ($request->lorong ?? '-') . ' - Rak ' . ($request->rak ?? '-');
 
-        Asset::create($data);
+        $asset = Asset::create($data);
+
+        // Catat History
+        AssetHistory::create([
+            'asset_id' => $asset->id,
+            'user_id' => auth()->id(),
+            'action' => 'created',
+            'notes' => 'Aset baru ditambahkan ke sistem'
+        ]);
 
         return redirect()->route('assets.index')->with('success', 'Aset berhasil disimpan! SN: ' . $serialNumber);
     }
@@ -200,7 +255,8 @@ class AssetController extends Controller
     {
         return view('assets.detail', [
             'title' => 'Detail Aset - ' . $asset->name,
-            'asset' => $asset
+            'asset' => $asset,
+            'history' => $asset->histories()->latest()->get()
         ]);
     }
 
@@ -338,6 +394,9 @@ class AssetController extends Controller
         if ($asset->image2) Storage::disk('public')->delete($asset->image2);
         if ($asset->image3) Storage::disk('public')->delete($asset->image3);
 
+        // Hapus history terkait
+        AssetHistory::where('asset_id', $asset->id)->delete(); 
+        
         $asset->delete();
 
         return redirect('/assets')->with('success', 'Aset berhasil dihapus.');
@@ -367,7 +426,7 @@ class AssetController extends Controller
     }
 
     /**
-     * Charts Data API
+     * Charts Data API (DIPERTAHANKAN)
      */
     public function chartsData(Request $request)
     {
@@ -410,7 +469,7 @@ class AssetController extends Controller
     }
 
     /**
-     * Borrow Stats API
+     * Borrow Stats API (DIPERTAHANKAN)
      */
     public function borrowStats(Request $request)
     {
@@ -459,7 +518,7 @@ class AssetController extends Controller
     }
 
     /**
-     * Detail items for a clicked chart point (drilldown)
+     * Chart Details (DIPERTAHANKAN)
      */
     public function chartDetails(Request $request)
     {
