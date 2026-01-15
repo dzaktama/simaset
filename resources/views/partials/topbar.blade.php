@@ -1,117 +1,71 @@
-<!DOCTYPE html>
-<html lang="id" class="h-full bg-gray-50">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $title ?? 'SIMASET Vitech Asia' }}</title>
-    {{-- CSRF token buat dipake di JS kalau perlu (fetch/ajax) --}}
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    
-    {{-- Scripts & Styles --}}
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
-    
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        /* Custom Scrollbar untuk Sidebar */
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #1f2937; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #6b7280; }
-    </style>
-</head>
-<body class="h-full antialiased">
+{{-- Topbar Navigation --}}
+<header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
 
-    <div class="min-h-screen relative flex">
-        
-        {{-- Sidebar Include --}}
-        @include('partials.sidebar')
+            {{-- Mobile menu button --}}
+            <div class="flex items-center md:hidden">
+                <button id="mobile-menu-button" onclick="toggleMobileSidebar()" class="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 p-2 rounded-md">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+            </div>
 
-        {{-- Main Content Wrapper --}}
-        {{-- [PERBAIKAN] Ditambahkan id="main-content" untuk kontrol JS --}}
-        <div id="main-content" class="flex-1 flex flex-col min-w-0 md:pl-64 transition-all duration-300">
-            
-            {{-- Topbar Include --}}
-            @include('partials.topbar')
-
-            {{-- Konten Utama --}}
-            <main class="flex-1 py-8">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-                    
-                    {{-- Flash Messages --}}
-                    @if(session()->has('success'))
-                        <div class="mb-6 rounded-lg bg-green-50 p-4 border-l-4 border-green-500 shadow-sm flex items-start animate-fade-in-down">
-                            <svg class="h-5 w-5 text-green-500 mt-0.5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            <div><h3 class="text-sm font-bold text-green-800">Berhasil</h3><p class="text-sm text-green-700 mt-1">{{ session('success') }}</p></div>
-                        </div>
-                    @endif
-
-                    @if(session()->has('loginError'))
-                        <div class="mb-6 rounded-lg bg-red-50 p-4 border-l-4 border-red-500 shadow-sm flex items-start animate-fade-in-down">
-                            <svg class="h-5 w-5 text-red-500 mt-0.5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            <div><h3 class="text-sm font-bold text-red-800">Error</h3><p class="text-sm text-red-700 mt-1">{{ session('loginError') }}</p></div>
-                        </div>
-                    @endif
-
-                    {{-- Isi Halaman --}}
-                    @yield('container')
-                    
+            {{-- Page Title / Breadcrumb --}}
+            <div class="flex-1 md:flex md:items-center md:justify-between">
+                <div class="flex items-center">
+                    {{-- Desktop hamburger button --}}
+                    <button id="desktop-menu-button" onclick="toggleMinimize()" class="hidden md:flex text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 p-2 rounded-md mr-3">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                    <h1 class="text-xl font-semibold text-gray-900">{{ $title ?? 'Dashboard' }}</h1>
                 </div>
-            </main>
+
+                {{-- User Menu --}}
+                <div class="flex items-center space-x-4">
+                    {{-- Notifications --}}
+                    <button class="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 p-2 rounded-md relative">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM15 7v5h5l-5 5v-5z" />
+                        </svg>
+                        <span class="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">3</span>
+                    </button>
+
+                    {{-- User Dropdown --}}
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center space-x-3 text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 p-2 rounded-md">
+                            <div class="flex-shrink-0">
+                                <div class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
+                                    <span class="text-sm font-medium text-white">{{ substr(auth()->user()->name, 0, 1) }}</span>
+                                </div>
+                            </div>
+                            <div class="hidden md:block text-left">
+                                <div class="text-sm font-medium text-gray-900">{{ auth()->user()->name }}</div>
+                                <div class="text-xs text-gray-500">{{ ucfirst(auth()->user()->role) }}</div>
+                            </div>
+                            <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+
+                        {{-- Dropdown Menu --}}
+                        <div x-show="open" @click.away="open = false" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="transform opacity-0 scale-95" x-transition:enter-end="transform opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="transform opacity-100 scale-100" x-transition:leave-end="transform opacity-0 scale-95" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50">
+                            <div class="py-1">
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile Settings</a>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Change Password</a>
+                                <div class="border-t border-gray-100"></div>
+                                <form method="POST" action="{{ route('logout') }}" class="block">
+                                    @csrf
+                                    <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-
-    
-    <form id="idle-logout-form" action="{{ route('logout') }}" method="POST" style="display:none;">
-        @csrf
-    </form>
-
-    {{-- Script idle-logout --}}
-    <script>
-        (function () {
-            const IDLE_TIMEOUT = 5 * 60 * 1000; // 5 menit
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            let idleTimer = null;
-
-            function resetTimer() {
-                if (idleTimer) clearTimeout(idleTimer);
-                idleTimer = setTimeout(doLogout, IDLE_TIMEOUT);
-            }
-
-            async function doLogout() {
-                try {
-                    const resp = await fetch('{{ route('logout') }}', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRF-TOKEN': csrfToken || ''
-                        },
-                        credentials: 'same-origin',
-                        body: JSON.stringify({})
-                    });
-
-                    if (resp.ok || resp.status === 419 || resp.status === 403) {
-                        window.location.href = '/login';
-                        return;
-                    }
-
-                    const form = document.getElementById('idle-logout-form');
-                    if (form) form.submit();
-                    else window.location.href = '/login';
-                } catch (err) {
-                    window.location.href = '/login';
-                }
-            }
-
-            const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
-            activityEvents.forEach(evt => window.addEventListener(evt, resetTimer, true));
-            resetTimer();
-        })();
-    </script>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-</body>
-</html>
+</header>

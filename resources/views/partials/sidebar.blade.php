@@ -11,7 +11,7 @@
         <div class="flex flex-col items-center justify-center transition-all duration-300 logo-container gap-1">
             {{-- Logo Gambar --}}
             <img id="logo-img" class="h-8 w-auto object-contain transition-all duration-300" src="{{ asset('img/logoVitechAsia.png') }}" alt="Logo">
-            
+
             {{-- Teks Logo --}}
             <span class="font-bold text-gray-800 text-sm tracking-wide sidebar-text whitespace-nowrap transition-opacity duration-300">
                 SIMASET
@@ -97,7 +97,7 @@
 
 <script>
     // Variabel Global (Akan diisi saat DOM Ready)
-    let sidebarEl, mainContentEl, overlayEl, textEls, headerEls, logoImgEl, logoHeaderEl;
+    let sidebarEl, mainContentEl, overlayEl, textEls, headerEls, logoImgEl, logoHeaderEl, desktopButtonEl;
 
     // 1. Inisialisasi saat halaman selesai dimuat
     document.addEventListener('DOMContentLoaded', () => {
@@ -108,6 +108,7 @@
         headerEls = document.querySelectorAll('.section-header');
         logoImgEl = document.getElementById('logo-img');
         logoHeaderEl = document.getElementById('logo-header');
+        desktopButtonEl = document.getElementById('desktop-menu-button');
 
         // Restore state dari localStorage
         const isMinimized = localStorage.getItem('sidebarMinimized') === 'true';
@@ -132,7 +133,7 @@
     // 3. Fungsi Toggle Minimize Desktop
     function toggleMinimize() {
         if (!sidebarEl) return;
-        const isCurrentlyMinimized = sidebarEl.classList.contains('w-20');
+        const isCurrentlyMinimized = sidebarEl.classList.contains('-translate-x-full') || sidebarEl.classList.contains('w-20');
         const newState = !isCurrentlyMinimized;
         applyMinimize(newState);
         localStorage.setItem('sidebarMinimized', newState);
@@ -144,17 +145,24 @@
 
         if (minimize) {
             // -- Mode MINIMIZED --
-            sidebarEl.classList.remove('w-64');
-            sidebarEl.classList.add('w-20');
-            
-            // Adjust Content Padding (Hapus space kosong)
-            mainContentEl.classList.remove('md:pl-64');
-            mainContentEl.classList.add('md:pl-20');
+            // Hide sidebar completely on desktop
+            if (window.innerWidth >= 768) {
+                sidebarEl.classList.add('-translate-x-full');
+                mainContentEl.classList.remove('md:pl-64');
+                mainContentEl.classList.add('md:pl-0');
+                if (desktopButtonEl) desktopButtonEl.classList.remove('hidden');
+            } else {
+                // Mobile: keep narrow width
+                sidebarEl.classList.remove('w-64');
+                sidebarEl.classList.add('w-20');
+                mainContentEl.classList.remove('md:pl-64');
+                mainContentEl.classList.add('md:pl-20');
+            }
 
             // Sembunyikan Teks & Header
             textEls.forEach(el => el.classList.add('hidden'));
             headerEls.forEach(el => el.classList.add('hidden'));
-            
+
             // Kecilkan Logo
             if(logoImgEl) {
                 logoImgEl.classList.remove('h-8');
@@ -167,12 +175,19 @@
 
         } else {
             // -- Mode EXPANDED --
-            sidebarEl.classList.remove('w-20');
-            sidebarEl.classList.add('w-64');
-            
-            // Adjust Content Padding
-            mainContentEl.classList.remove('md:pl-20');
-            mainContentEl.classList.add('md:pl-64');
+            // Show sidebar on desktop
+            if (window.innerWidth >= 768) {
+                sidebarEl.classList.remove('-translate-x-full');
+                mainContentEl.classList.remove('md:pl-0');
+                mainContentEl.classList.add('md:pl-64');
+                if (desktopButtonEl) desktopButtonEl.classList.add('hidden');
+            } else {
+                // Mobile: restore width
+                sidebarEl.classList.remove('w-20');
+                sidebarEl.classList.add('w-64');
+                mainContentEl.classList.remove('md:pl-20');
+                mainContentEl.classList.add('md:pl-64');
+            }
 
             // Tampilkan Teks & Header
             setTimeout(() => {
