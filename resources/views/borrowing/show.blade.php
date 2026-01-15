@@ -2,38 +2,36 @@
 
 @section('container')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Header -->
     <div class="mb-8">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
-    <div>
-        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Detail Peminjaman</h1>
-        <p class="text-gray-600 mt-1 sm:mt-2">#{{ $borrowing->id }}</p>
-    </div>
-    
-    {{-- Tombol Kembali --}}
-    <a href="{{ route('borrowing.index') }}" class="text-blue-600 hover:text-blue-900 flex items-center gap-2 self-start sm:self-center">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-        </svg>
-        Kembali
-    </a>
-</div>
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Detail Peminjaman</h1>
+                <p class="text-gray-600 mt-1 sm:mt-2">#{{ $borrowing->id }}</p>
+            </div>
+            
+            {{-- Tombol Kembali --}}
+            <a href="{{ route('borrowing.index') }}" class="text-blue-600 hover:text-blue-900 flex items-center gap-2 self-start sm:self-center">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                Kembali
+            </a>
+        </div>
 
-        <!-- Status Badge -->
         <div>
-            @if($borrowing_status === 'active')
+            @if($borrowing->status === 'active' || ($borrowing->status === 'approved' && !$borrowing->returned_at))
                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
                     <span class="w-2 h-2 bg-green-600 rounded-full mr-2 animate-pulse"></span>
-                    Peminjaman Aktif
+                    Peminjaman Aktif (Disetujui)
                 </span>
-            @elseif($borrowing_status === 'returned')
+            @elseif($borrowing->status === 'returned' || $borrowing->returned_at)
                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
                     <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                     </svg>
                     Sudah Dikembalikan
                 </span>
-            @elseif($borrowing_status === 'rejected')
+            @elseif($borrowing->status === 'rejected')
                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
                     <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
@@ -52,9 +50,7 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Main Content (2 columns) -->
         <div class="lg:col-span-2 space-y-6">
-            <!-- Peminjam Card -->
             <div class="bg-white rounded-lg shadow overflow-hidden border-l-4 border-indigo-600">
                 <div class="px-6 py-4 bg-gradient-to-r from-indigo-50 to-transparent border-b border-gray-200">
                     <h2 class="text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -93,7 +89,6 @@
                 </div>
             </div>
 
-            <!-- Aset Card -->
             <div class="bg-white rounded-lg shadow overflow-hidden border-l-4 border-green-600">
                 <div class="px-6 py-4 bg-gradient-to-r from-green-50 to-transparent border-b border-gray-200">
                     <h2 class="text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -140,8 +135,7 @@
                 </div>
             </div>
 
-            <!-- Timeline Card -->
-            {{-- TIMELINE BARU (SHOPEEFOOD STYLE) --}}
+            {{-- TIMELINE BARU --}}
             <div class="bg-white rounded-lg shadow overflow-hidden border-l-4 border-blue-600">
                 <div class="px-6 py-4 bg-gradient-to-r from-blue-50 to-transparent border-b border-gray-200">
                     <h2 class="text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -174,9 +168,9 @@
                             <p class="font-bold {{ $isApproved ? 'text-gray-900' : 'text-gray-500' }}">Disetujui Admin</p>
                             @if($borrowing->status == 'pending')
                                 <p class="text-xs text-gray-400 mb-2">Menunggu persetujuan...</p>
-                                {{-- TOMBOL SHORTCUT --}}
+                                {{-- TOMBOL SHORTCUT (FIXED ROUTE) --}}
                                 @if(auth()->user()->role == 'admin')
-                                    <form action="{{ route('borrowing.quick_approve', $borrowing->id) }}" method="POST">
+                                    <form action="{{ route('borrowing.approve', $borrowing->id) }}" method="POST" onsubmit="return confirm('Setujui permintaan ini?')">
                                         @csrf
                                         <button type="submit" class="bg-blue-600 text-white text-xs px-3 py-1 rounded hover:bg-blue-700 transition">Setujui Sekarang</button>
                                     </form>
@@ -195,7 +189,9 @@
                         </div>
                         <div>
                             <p class="font-bold {{ $isActive ? 'text-gray-900' : 'text-gray-500' }}">Barang Digunakan</p>
-                            @if($isActive) <p class="text-sm text-gray-500">Estimasi: {{ $totalDurasi }}</p> @endif
+                            @if($isActive)
+                                <p class="text-sm text-gray-500">Estimasi: {{ $totalDurasi ?? '-' }}</p>
+                            @endif
                         </div>
                     </div>
 
@@ -213,7 +209,6 @@
                 </div>
             </div>
 
-            <!-- Alasan Peminjaman -->
             @if($borrowing->reason)
                 <div class="bg-white rounded-lg shadow overflow-hidden border-l-4 border-purple-600">
                     <div class="px-6 py-4 bg-gradient-to-r from-purple-50 to-transparent border-b border-gray-200">
@@ -230,8 +225,7 @@
                 </div>
             @endif
 
-            <!-- Catatan Pengembalian -->
-            @if($borrowing->return_notes && $borrowing_status === 'returned')
+            @if($borrowing->return_notes && ($borrowing->status === 'returned' || $borrowing->returned_at))
                 <div class="bg-blue-50 rounded-lg shadow overflow-hidden border-l-4 border-blue-600">
                     <div class="px-6 py-4 border-b border-blue-200">
                         <h2 class="text-lg font-bold text-blue-900 flex items-center gap-2">
@@ -248,10 +242,14 @@
             @endif
         </div>
 
-        <!-- Sidebar (1 column) -->
         <div class="space-y-6">
-            <!-- Duration Card -->
-            {{-- KARTU DURASI (LOGIC FIX) --}}
+            @php 
+                // Cek status terlambat
+                $isOverdue = false;
+                if ($borrowing->status == 'approved' && !$borrowing->returned_at && $borrowing->return_date) {
+                    $isOverdue = now()->greaterThan($borrowing->return_date);
+                }
+            @endphp
             <div class="bg-gradient-to-br {{ $isOverdue ? 'from-red-500 to-red-600' : 'from-blue-500 to-blue-600' }} rounded-lg shadow p-6 text-white">
                 <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -260,12 +258,11 @@
                 
                 <div class="text-center">
                     <div class="text-2xl font-bold font-mono">
-                        {{-- Menggunakan Variabel PHP dari Controller --}}
-                        {{ $borrowing->status == 'approved' && !$borrowing->returned_at ? $sisaWaktu : $totalDurasi }}
+                        {{ $borrowing->status == 'approved' && !$borrowing->returned_at ? ($sisaWaktu ?? '-') : ($totalDurasi ?? '-') }}
                     </div>
                     <p class="text-white text-opacity-80 text-sm mt-2">
                         @if($borrowing->status == 'approved' && !$borrowing->returned_at)
-                             Batas Kembali: {{ \Carbon\Carbon::parse($borrowing->return_date)->translatedFormat('d M Y') }}
+                             Batas Kembali: {{ $borrowing->return_date ? \Carbon\Carbon::parse($borrowing->return_date)->translatedFormat('d M Y') : 'Tidak ditentukan' }}
                         @else
                              Durasi Peminjaman
                         @endif
@@ -273,32 +270,36 @@
                 </div>
             </div>
 
-            <!-- ID Card -->
             <div class="bg-white rounded-lg shadow p-6 border-l-4 border-gray-400">
                 <p class="text-sm text-gray-600 mb-1">ID Peminjaman</p>
                 <p class="text-2xl font-bold text-gray-900 font-mono">#{{ $borrowing->id ?? '-' }}</p>
             </div>
 
-            <!-- Quantity Card -->
             <div class="bg-white rounded-lg shadow p-6 border-l-4 border-indigo-400">
                 <p class="text-sm text-gray-600 mb-1">Jumlah Dipinjam</p>
                 <p class="text-2xl font-bold text-gray-900">{{ $borrowing->quantity ?? '-' }} Unit</p>
             </div>
 
-            <!-- Status Badge Large -->
             <div class="bg-white rounded-lg shadow p-6">
                 <p class="text-sm text-gray-600 mb-3">Status Saat Ini</p>
-                @if($borrowing_status === 'active')
+                @if($borrowing->status === 'active' || ($borrowing->status === 'approved' && !$borrowing->returned_at))
                     <span class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-100 text-green-800 font-semibold">
                         <span class="w-3 h-3 bg-green-600 rounded-full animate-pulse"></span>
                         Aktif
                     </span>
-                @elseif($borrowing_status === 'returned')
+                @elseif($borrowing->status === 'returned' || $borrowing->returned_at)
                     <span class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-100 text-blue-800 font-semibold">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                         </svg>
                         Dikembalikan
+                    </span>
+                @elseif($borrowing->status === 'rejected')
+                    <span class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-100 text-red-800 font-semibold">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                        </svg>
+                        Ditolak
                     </span>
                 @else
                     <span class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-yellow-100 text-yellow-800 font-semibold">
@@ -311,20 +312,20 @@
                 @endif
             </div>
 
-            <!-- Action Button -->
-            @if($borrowing_status === 'active')
-                <button type="button" onclick="openReturnModal()" class="w-full bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3"></path>
-                    </svg>
-                    Kembalikan Aset
-                </button>
+            @if(($borrowing->status === 'active' || $borrowing->status === 'approved') && !$borrowing->returned_at)
+                @if(auth()->user()->role === 'admin' || auth()->id() === $borrowing->user_id)
+                    <button type="button" onclick="openReturnModal()" class="w-full bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3"></path>
+                        </svg>
+                        Kembalikan Aset
+                    </button>
+                @endif
             @endif
         </div>
     </div>
 </div>
 
-<!-- Return Modal -->
 <div id="returnModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
         <div class="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4 flex items-center justify-between">
@@ -341,11 +342,11 @@
             </button>
         </div>
 
-        <form id="returnForm" method="POST" action="/borrowing/{{ $borrowing->id }}/return" class="p-6">
+        <form id="returnForm" method="POST" action="{{ route('borrowing.return', $borrowing->id) }}" class="p-6">
             @csrf
-            @method('PUT')
-
-            <!-- Condition Selection -->
+            {{-- Note: Jika route menggunakan POST, biarkan method POST. Jika di route pakai PUT/PATCH, tambahkan @method('PUT') --}}
+            {{-- Berdasarkan route list: Route::post('/borrowing/{id}/return'...) jadi method POST --}}
+            
             <div class="mb-6">
                 <label class="block text-sm font-semibold text-gray-900 mb-3">Kondisi Aset</label>
                 <div class="space-y-3">
@@ -373,13 +374,11 @@
                 </div>
             </div>
 
-            <!-- Notes -->
             <div class="mb-6">
                 <label class="block text-sm font-semibold text-gray-900 mb-2">Catatan</label>
                 <textarea name="notes" rows="4" placeholder="Jelaskan kondisi aset atau kerusakan yang ditemukan..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"></textarea>
             </div>
 
-            <!-- Buttons -->
             <div class="flex gap-3">
                 <button type="button" onclick="closeReturnModal()" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition">
                     Batal
@@ -407,6 +406,5 @@
             closeReturnModal();
         }
     });
-
-    </script>
+</script>
 @endsection

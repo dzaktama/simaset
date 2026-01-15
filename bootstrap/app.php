@@ -12,9 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         
-        // Mendaftarkan Alias Middleware
+        // [PERBAIKAN] Ubah 'is_admin' menjadi 'admin' agar sesuai dengan routes/web.php
         $middleware->alias([
-            'is_admin' => \App\Http\Middleware\IsAdmin::class,
+            'admin' => \App\Http\Middleware\IsAdmin::class,
         ]);
 
     })

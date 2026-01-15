@@ -47,10 +47,10 @@ class BorrowingController extends Controller
             $query->oldest('created_at');
         }
 
-
-        // Ambil data dan hitung status dinamis (agar sama dengan detail)
+        // Ambil data
         $borrowings = $query->paginate(15)->appends($request->query());
-        // Map status logic ke setiap item
+        
+        // Map status logic
         $borrowings->getCollection()->transform(function($item) {
             $status = 'pending';
             if ($item->status === 'rejected') {
@@ -85,40 +85,32 @@ class BorrowingController extends Controller
     {
         $borrowing = AssetRequest::with(['user', 'asset'])->findOrFail($id);
 
-        // ---[BAGIAN BARU: PERBAIKAN LOGIC DURASI]---
-        Carbon::setLocale('id'); // Paksa bahasa Indonesia
+        Carbon::setLocale('id'); 
         
-        // Hitung Total Durasi (Rencana Pinjam)
+        // Hitung Total Durasi
         $start = Carbon::parse($borrowing->created_at);
         $end   = $borrowing->return_date ? Carbon::parse($borrowing->return_date) : null;
         
         $totalDurasi = '-';
         if($end) {
-            // REVISI: Gunakan diffInDays untuk hari penuh, sisanya jam
-            // Agar tidak muncul "0.0001 jam"
             $days = $start->diffInDays($end);
             $hours = $start->copy()->addDays($days)->diffInHours($end);
-            
             $totalDurasi = $days . ' Hari';
             if ($hours > 0) $totalDurasi .= ' ' . $hours . ' Jam';
         }
 
-        // Hitung Sisa Waktu / Keterlambatan
+        // Hitung Sisa Waktu
         $sisaWaktu = '';
         $isOverdue = false;
         $now = Carbon::now();
 
         if ($borrowing->status === 'approved' && !$borrowing->returned_at && $end) {
             if ($now->greaterThan($end)) {
-                // Telat
                 $isOverdue = true;
-                // Hitung keterlambatan
                 $lateDays = $end->diffInDays($now);
                 $lateHours = $end->copy()->addDays($lateDays)->diffInHours($now);
                 $sisaWaktu = "Terlambat {$lateDays} Hari {$lateHours} Jam";
             } else {
-                // Masih jalan (Countdown)
-                // Ini akan dihandle JavaScript real-time, tapi kita kirim data awal
                 $remainingDays = $now->diffInDays($end);
                 $sisaWaktu = "{$remainingDays} Hari lagi";
             }
@@ -126,13 +118,11 @@ class BorrowingController extends Controller
             $sisaWaktu = 'Selesai (Dikembalikan)';
         }
 
-        // Ambil history
         $history = AssetHistory::where('asset_id', $borrowing->asset_id)
             ->latest()
             ->take(10)
             ->get();
 
-        // Status Logic (Biarkan sama, cuma dirapikan)
         $status = 'pending';
         if ($borrowing->status === 'rejected') $status = 'rejected';
         elseif ($borrowing->status === 'approved' && $borrowing->returned_at) $status = 'returned';
@@ -142,35 +132,83 @@ class BorrowingController extends Controller
             'borrowing' => $borrowing,
             'borrowing_status' => $status,
             'history' => $history,
-            'totalDurasi' => $totalDurasi, // Kirim ke view
-            'sisaWaktu' => $sisaWaktu,     // Kirim ke view
-            'isOverdue' => $isOverdue      // Kirim ke view
+            'totalDurasi' => $totalDurasi,
+            'sisaWaktu' => $sisaWaktu,
+            'isOverdue' => $isOverdue
         ]);
     }
 
-    // ---[FITUR BARU: QUICK APPROVE]---
+    /**
+     * [BARU] Approve Peminjaman
+     * Mengurangi stok dan update status
+     */
+    public function approve($id)
+    {
+        $request = AssetRequest::with('asset')->findOrFail($id);
+        
+        if ($request->status !== 'pending') {
+            return back()->with('error', 'Permintaan sudah diproses sebelumnya.');
+        }
+
+        // Cek stok
+        if ($request->asset->quantity < $request->quantity) {
+            return back()->with('error', 'Gagal! Stok aset tidak mencukupi.');
+        }
+
+        // Kurangi Stok
+        $request->asset->decrement('quantity', $request->quantity ?? 1);
+
+        // Update Request
+        $request->status = 'approved';
+        // $request->approved_at = now(); // Jika ada kolom ini
+        $request->save();
+
+        // Catat History
+        AssetHistory::create([
+            'asset_id' => $request->asset_id,
+            'user_id' => auth()->id(),
+            'action' => 'approved', 
+            'notes' => 'Peminjaman disetujui Admin. Stok berkurang.',
+            'date' => now()
+        ]);
+
+        return back()->with('success', 'Peminjaman berhasil disetujui!');
+    }
+
+    /**
+     * [BARU] Reject Peminjaman
+     */
+    public function reject(Request $request, $id)
+    {
+        $assetRequest = AssetRequest::findOrFail($id);
+        
+        if ($assetRequest->status !== 'pending') {
+            return back()->with('error', 'Permintaan sudah diproses sebelumnya.');
+        }
+
+        $request->validate([
+            'admin_note' => 'required|string'
+        ]);
+
+        $assetRequest->update([
+            'status' => 'rejected',
+            'admin_note' => $request->admin_note
+        ]);
+
+        AssetHistory::create([
+            'asset_id' => $assetRequest->asset_id,
+            'user_id' => auth()->id(),
+            'action' => 'rejected',
+            'notes' => 'Permintaan ditolak: ' . $request->admin_note
+        ]);
+
+        return back()->with('success', 'Permintaan berhasil ditolak.');
+    }
+
+    // Method quickApprove lama (bisa dihapus atau dibiarkan sebagai alias)
     public function quickApprove($id)
     {
-        $request = AssetRequest::findOrFail($id);
-        
-        if($request->status == 'pending') {
-            $request->status = 'approved';
-            $request->admin_note = 'Disetujui Cepat via Timeline';
-            $request->approved_at = now(); // Catat waktu setuju
-            $request->save();
-            
-            // Catat History
-            AssetHistory::create([
-                'asset_id' => $request->asset_id,
-                'user_id' => auth()->id(),
-                'action' => 'check_out', 
-                'notes' => 'Peminjaman disetujui admin (Quick Action)',
-                'date' => now()
-            ]);
-            
-            return back()->with('success', 'Peminjaman berhasil disetujui!');
-        }
-        return back()->with('error', 'Status tidak valid');
+        return $this->approve($id);
     }
 
     /**
@@ -220,11 +258,13 @@ class BorrowingController extends Controller
             'returned_at' => Carbon::now(),
             'condition' => $request->condition,
             'return_notes' => $request->notes,
-            'status' => 'approved' // Mark as completed
+            // Status tetap approved atau bisa diubah ke returned tergantung logika app Anda
+            // Biasanya 'approved' + 'returned_at' != null menandakan sudah kembali
         ]);
 
-        // Update asset status
-        $borrowing->asset->update(['status' => 'available']);
+        // Kembalikan Stok Aset (Increment)
+        $borrowing->asset->increment('quantity', $borrowing->quantity ?? 1);
+        $borrowing->asset->update(['status' => 'available']); // Pastikan status available
 
         // Create history record
         AssetHistory::create([
