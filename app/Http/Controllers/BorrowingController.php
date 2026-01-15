@@ -79,6 +79,41 @@ class BorrowingController extends Controller
     }
 
     /**
+     * Simpan Pengajuan Peminjaman (Store)
+     * [PERBAIKAN] Menambahkan 'request_date'
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'asset_id' => 'required|exists:assets,id',
+            'quantity' => 'required|integer|min:1',
+            'return_date' => 'nullable|date|after_or_equal:today',
+            'reason' => 'required|string|max:255',
+        ]);
+
+        $asset = Asset::findOrFail($request->asset_id);
+
+        // Cek ketersediaan stok
+        if ($asset->quantity < $request->quantity) {
+            return back()->with('error', 'Maaf, stok aset tidak mencukupi untuk jumlah yang diminta.')->withInput();
+        }
+
+        // Simpan Permintaan ke Database
+        AssetRequest::create([
+            'user_id' => auth()->id(),
+            'asset_id' => $request->asset_id,
+            'quantity' => $request->quantity,
+            'request_date' => now(), // [TAMBAHAN] Wajib diisi sesuai error log
+            'return_date' => $request->return_date,
+            'reason' => $request->reason,
+            'status' => 'pending', 
+        ]);
+
+        // Redirect ke halaman Riwayat Peminjaman User
+        return redirect()->route('borrowing.history')->with('success', 'Pengajuan peminjaman berhasil dikirim. Menunggu persetujuan admin.');
+    }
+
+    /**
      * Detail peminjaman
      */
     public function show($id)
@@ -139,8 +174,7 @@ class BorrowingController extends Controller
     }
 
     /**
-     * [BARU] Approve Peminjaman
-     * Mengurangi stok dan update status
+     * Approve Peminjaman
      */
     public function approve($id)
     {
@@ -160,7 +194,7 @@ class BorrowingController extends Controller
 
         // Update Request
         $request->status = 'approved';
-        // $request->approved_at = now(); // Jika ada kolom ini
+        $request->approved_at = now(); // Catat waktu approve
         $request->save();
 
         // Catat History
@@ -176,7 +210,7 @@ class BorrowingController extends Controller
     }
 
     /**
-     * [BARU] Reject Peminjaman
+     * Reject Peminjaman
      */
     public function reject(Request $request, $id)
     {
@@ -205,7 +239,6 @@ class BorrowingController extends Controller
         return back()->with('success', 'Permintaan berhasil ditolak.');
     }
 
-    // Method quickApprove lama (bisa dihapus atau dibiarkan sebagai alias)
     public function quickApprove($id)
     {
         return $this->approve($id);
@@ -214,22 +247,30 @@ class BorrowingController extends Controller
     /**
      * Riwayat peminjaman user tertentu
      */
-    public function userHistory($userId)
+    public function userHistory($userId = null)
     {
-        $user = \App\Models\User::findOrFail($userId);
+        // Jika userId null (dipanggil via route tanpa param), gunakan auth user
+        $targetUserId = $userId ?: auth()->id();
+
+        // Security check: cegah user biasa melihat history orang lain
+        if (auth()->user()->role !== 'admin' && auth()->id() != $targetUserId) {
+             abort(403, 'Unauthorized action.');
+        }
+
+        $user = \App\Models\User::findOrFail($targetUserId);
         
-        $borrowings = AssetRequest::where('user_id', $userId)
+        $borrowings = AssetRequest::where('user_id', $targetUserId)
             ->with('asset')
             ->latest()
             ->paginate(20);
 
         $stats = [
-            'total_borrowings' => AssetRequest::where('user_id', $userId)->count(),
-            'active_borrowings' => AssetRequest::where('user_id', $userId)
+            'total_borrowings' => AssetRequest::where('user_id', $targetUserId)->count(),
+            'active_borrowings' => AssetRequest::where('user_id', $targetUserId)
                 ->where('status', 'approved')
                 ->where('returned_at', null)
                 ->count(),
-            'returned_borrowings' => AssetRequest::where('user_id', $userId)
+            'returned_borrowings' => AssetRequest::where('user_id', $targetUserId)
                 ->where('returned_at', '!=', null)
                 ->count(),
         ];
@@ -244,7 +285,7 @@ class BorrowingController extends Controller
     /**
      * Kembalikan aset (mark as returned)
      */
-    public function returnAsset(Request $request, $id) // Perbaikan nama method agar sesuai route
+    public function returnAsset(Request $request, $id) 
     {
         $borrowing = AssetRequest::findOrFail($id);
 
@@ -258,13 +299,14 @@ class BorrowingController extends Controller
             'returned_at' => Carbon::now(),
             'condition' => $request->condition,
             'return_notes' => $request->notes,
-            // Status tetap approved atau bisa diubah ke returned tergantung logika app Anda
-            // Biasanya 'approved' + 'returned_at' != null menandakan sudah kembali
         ]);
 
-        // Kembalikan Stok Aset (Increment)
+        // Kembalikan Stok Aset
         $borrowing->asset->increment('quantity', $borrowing->quantity ?? 1);
-        $borrowing->asset->update(['status' => 'available']); // Pastikan status available
+        
+        // Update status aset jadi available jika sebelumnya deployed dan stok > 0
+        // (Opsional, tergantung logika bisnis: apakah aset otomatis available)
+        $borrowing->asset->update(['status' => 'available']); 
 
         // Create history record
         AssetHistory::create([
@@ -284,15 +326,12 @@ class BorrowingController extends Controller
     {
         $query = AssetRequest::with(['user', 'asset']);
 
-        // Date filter
         if ($request->date_from) {
             $query->whereDate('created_at', '>=', $request->date_from);
         }
         if ($request->date_to) {
             $query->whereDate('created_at', '<=', $request->date_to);
         }
-
-        // Status filter
         if ($request->status && $request->status !== 'all') {
             if ($request->status === 'active') {
                 $query->where('status', 'approved')->where('returned_at', null);
@@ -300,22 +339,18 @@ class BorrowingController extends Controller
                 $query->where('returned_at', '!=', null);
             }
         }
-
-        // User filter
         if ($request->user_id) {
             $query->where('user_id', $request->user_id);
         }
 
         $borrowings = $query->latest()->get();
 
-        // Summary
         $summary = [
             'total' => $borrowings->count(),
             'active' => $borrowings->where('status', 'approved')->where('returned_at', null)->count(),
             'returned' => $borrowings->where('returned_at', '!=', null)->count(),
         ];
 
-        // Users for filter dropdown
         $users = \App\Models\User::orderBy('name')->get();
 
         return view('borrowing.report', [
@@ -333,7 +368,6 @@ class BorrowingController extends Controller
     {
         $query = AssetRequest::with(['user', 'asset']);
 
-        // Apply same filters as report
         if ($request->date_from) {
             $query->whereDate('created_at', '>=', $request->date_from);
         }
@@ -353,7 +387,6 @@ class BorrowingController extends Controller
 
         $borrowings = $query->latest()->get();
 
-        // Create CSV
         $filename = 'laporan-peminjaman-' . date('Y-m-d-H-i-s') . '.csv';
         
         header('Content-Type: text/csv; charset=UTF-8');
@@ -362,25 +395,12 @@ class BorrowingController extends Controller
         header('Expires: 0');
 
         $output = fopen('php://output', 'w');
-        
-        // BOM untuk UTF-8 di Excel
         fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
 
-        // Headers
         fputcsv($output, [
-            'No',
-            'Peminjam',
-            'Email',
-            'Aset',
-            'Tanggal Peminjaman',
-            'Tanggal Kembali',
-            'Status',
-            'Kondisi',
-            'Durasi (Hari)',
-            'Catatan'
+            'No', 'Peminjam', 'Email', 'Aset', 'Tanggal Peminjaman', 'Tanggal Kembali', 'Status', 'Kondisi', 'Durasi (Hari)', 'Catatan'
         ], ';');
 
-        // Data rows
         foreach ($borrowings as $index => $borrowing) {
             $duration = '-';
             if ($borrowing->returned_at) {
@@ -406,12 +426,8 @@ class BorrowingController extends Controller
         exit;
     }
 
-    /**
-     * API endpoint untuk statistik
-     */
     public function stats()
     {
-        // Top borrowed items
         $topItems = AssetRequest::with('asset')
             ->selectRaw('asset_id, count(*) as count')
             ->where('status', 'approved')
@@ -426,7 +442,6 @@ class BorrowingController extends Controller
                 ];
             });
 
-        // Top borrowers
         $topBorrowers = AssetRequest::with('user')
             ->selectRaw('user_id, count(*) as count')
             ->where('status', 'approved')
@@ -443,9 +458,7 @@ class BorrowingController extends Controller
 
         return response()->json([
             'total_borrowings' => AssetRequest::where('status', 'approved')->count(),
-            'active_borrowings' => AssetRequest::where('status', 'approved')
-                ->where('returned_at', null)
-                ->count(),
+            'active_borrowings' => AssetRequest::where('status', 'approved')->where('returned_at', null)->count(),
             'returned_borrowings' => AssetRequest::where('returned_at', '!=', null)->count(),
             'top_items' => $topItems,
             'top_borrowers' => $topBorrowers
