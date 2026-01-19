@@ -11,16 +11,16 @@ use App\Http\Controllers\AssetReturnController;
 
 /*
 |--------------------------------------------------------------------------
-| Web Routes (Fixed Security Logic)
+| Web Routes (Fixed & Compatible)
 |--------------------------------------------------------------------------
 */
 
-// 1. Halaman Utama -> Redirect ke Login
+// 1. Redirect
 Route::get('/', function () {
     return redirect()->route('login');
 });
 
-// 2. Authentication Routes
+// 2. Auth
 Route::controller(AuthController::class)->group(function () {
     Route::get('/login', 'showLoginForm')->name('login')->middleware('guest');
     Route::post('/login', 'login')->middleware('guest');
@@ -29,73 +29,59 @@ Route::controller(AuthController::class)->group(function () {
     Route::post('/logout', 'logout')->name('logout')->middleware('auth');
 });
 
-// 3. Authenticated Routes (User & Admin bisa akses ini)
+// 3. Authenticated (User & Admin)
 Route::middleware(['auth'])->group(function () {
     
-    // --- Dashboard ---
+    // Dashboard & Umum
     Route::get('/home', [AssetController::class, 'dashboard'])->name('dashboard');
-
-    // --- Chart Data (API) ---
     Route::get('/charts/asset-stats', [AssetController::class, 'chartsData'])->name('charts.assets');
     Route::get('/charts/borrow-stats', [AssetController::class, 'borrowStats'])->name('charts.borrows');
 
-    // --- Aset (User Access limited via Controller logic or View) ---
+    // Aset (User View Only, Admin Full Access handled in Controller/View)
     Route::get('/assets/map', [AssetController::class, 'locationMap'])->name('assets.map');
     Route::get('/assets/my', [AssetController::class, 'myAssets'])->name('assets.my'); 
     Route::get('/assets/{id}/scan-qr-image', [AssetController::class, 'scanQrImage'])->name('assets.scan_image');
     Route::get('/assets/scan/{asset}', [AssetController::class, 'scanQr'])->name('assets.scan');
-    // Resource aset tetap ada, tapi delete/edit/create dibatasi di view/controller admin
     Route::resource('assets', AssetController::class);
 
-    // --- PEMINJAMAN (LOGIC BARU: User Biasa) ---
-    // User boleh Submit Request (Store)
+    // ====================================================
+    // PEMINJAMAN (BORROWING)
+    // ====================================================
+    
+    // A. Rute User (Store & History)
     Route::post('/borrowing', [BorrowingController::class, 'store'])->name('borrowing.store');
-    // User boleh Lihat History Sendiri
     Route::get('/borrowing/history', [BorrowingController::class, 'userHistory'])->name('borrowing.history');
-    // User boleh Lihat Detail Peminjaman
+    Route::post('/borrowing/{id}/return-user', [BorrowingController::class, 'returnAsset'])->name('borrowing.return_user');
+
+    // B. Rute Shared / Admin (Index, Show, Approve, Reject)
+    // Kita taruh di luar grup 'admin' prefix URL, tapi diproteksi middleware di Controller atau Logic
+    // Tujuannya agar nama rute tetap 'borrowing.index', 'borrowing.show' dsb.
+    
+    // List Peminjaman (Admin Only di Controller)
+    Route::get('/borrowing', [BorrowingController::class, 'index'])->name('borrowing.index');
+    
+    // Detail Peminjaman (Admin & User Pemilik di Controller)
     Route::get('/borrowing/{id}', [BorrowingController::class, 'show'])->name('borrowing.show');
     
-    // --- Pengembalian (Return) ---
-    // User bisa mengajukan/melihat pengembalian (tergantung implementasi controller)
-    Route::resource('returns', AssetReturnController::class)->only(['index', 'show', 'update', 'store']);
+    // Approve & Reject (Admin Only)
+    // PERHATIAN: Ini rute yang dipanggil oleh form di admin_tables.blade.php & show.blade.php
+    Route::post('/borrowing/{id}/approve', [BorrowingController::class, 'approve'])->name('borrowing.approve');
+    Route::post('/borrowing/{id}/reject', [BorrowingController::class, 'reject'])->name('borrowing.reject');
     Route::post('/borrowing/{id}/return', [BorrowingController::class, 'returnAsset'])->name('borrowing.return');
 
-    // --- ADMIN ONLY ROUTES ---
-    // Semua fitur sensitif masuk ke sini agar User Nakal tidak bisa tembus lewat URL
+    // Returns Resource
+    Route::resource('returns', AssetReturnController::class)->only(['index', 'show', 'update', 'store']);
+    Route::post('/returns/{return}/verify', [AssetReturnController::class, 'verify'])->name('returns.verify');
+
+    // ====================================================
+    // KHUSUS ADMIN (User Management & Report)
+    // ====================================================
     Route::middleware(['admin'])->group(function () {
-        
-        // Manajemen User
         Route::resource('users', UserController::class);
-
-        // ... (Route admin lainnya di atas, biarkan saja) ...
-
-    // ==========================================
-    // MANAJEMEN PEMINJAMAN (ADMIN)
-    // ==========================================
-    
-    // 1. Halaman List & Filter
-    Route::get('/borrowing', [App\Http\Controllers\BorrowingController::class, 'index'])->name('borrowing.index');
-    
-    // 2. Halaman Detail
-    Route::get('/borrowing/{id}', [App\Http\Controllers\BorrowingController::class, 'show'])->name('borrowing.show');
-    
-    // 3. Proses Approve
-    Route::post('/borrowing/{id}/approve', [App\Http\Controllers\BorrowingController::class, 'approve'])->name('borrowing.approve');
-    
-    // 4. Proses Reject (INI WAJIB ADA AGAR TIDAK 404)
-    Route::post('/borrowing/{id}/reject', [App\Http\Controllers\BorrowingController::class, 'reject'])->name('borrowing.reject');
-
-    // 5. Proses Return (Admin Mengembalikan)
-    Route::post('/borrowing/{id}/return', [App\Http\Controllers\BorrowingController::class, 'returnAsset'])->name('borrowing.return');
-        
-        // Verifikasi Pengembalian
-        Route::post('/returns/{return}/verify', [AssetReturnController::class, 'verify'])->name('returns.verify');
-
-        // Laporan
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/pdf', [ReportController::class, 'exportPdf'])->name('reports.pdf');
     });
 
-    // Blog / Post Internal
+    // Blog
     Route::resource('posts', PostController::class);
 });

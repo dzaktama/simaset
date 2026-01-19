@@ -2,6 +2,19 @@
 
 @section('container')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    {{-- Alert Messages --}}
+    @if(session('success'))
+        <div class="mb-4 p-4 text-green-700 bg-green-100 rounded-lg border border-green-200">
+            {{ session('success') }}
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="mb-4 p-4 text-red-700 bg-red-100 rounded-lg border border-red-200">
+            {{ session('error') }}
+        </div>
+    @endif
+
     <div class="mb-8">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
             <div>
@@ -9,7 +22,7 @@
                 <p class="text-gray-600 mt-1 sm:mt-2">#{{ $borrowing->id }}</p>
             </div>
             
-            {{-- Tombol Kembali (SUDAH DIPERBAIKI) --}}
+            {{-- Tombol Kembali --}}
             <a href="{{ auth()->user()->role === 'admin' ? route('borrowing.index') : route('borrowing.history') }}" 
                class="text-blue-600 hover:text-blue-900 flex items-center gap-2 self-start sm:self-center transition-colors duration-200">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -163,21 +176,22 @@
                     <div class="flex gap-4 mb-8">
                         @php $isApproved = $borrowing->status == 'approved' || $borrowing->returned_at; @endphp
                         <div class="w-8 h-8 rounded-full {{ $isApproved ? 'bg-blue-500' : ($borrowing->status == 'rejected' ? 'bg-red-500' : 'bg-gray-300') }} border-2 border-white shadow flex items-center justify-center shrink-0">
-                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            @if($borrowing->status == 'rejected')
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            @else
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            @endif
                         </div>
                         <div class="w-full">
-                            <p class="font-bold {{ $isApproved ? 'text-gray-900' : 'text-gray-500' }}">Disetujui Admin</p>
+                            <p class="font-bold {{ $isApproved || $borrowing->status == 'rejected' ? 'text-gray-900' : 'text-gray-500' }}">
+                                {{ $borrowing->status == 'rejected' ? 'Ditolak Admin' : 'Disetujui Admin' }}
+                            </p>
                             @if($borrowing->status == 'pending')
                                 <p class="text-xs text-gray-400 mb-2">Menunggu persetujuan...</p>
-                                {{-- TOMBOL SHORTCUT (FIXED ROUTE) --}}
-                                @if(auth()->user()->role == 'admin')
-                                    <form action="{{ route('borrowing.approve', $borrowing->id) }}" method="POST" onsubmit="return confirm('Setujui permintaan ini?')">
-                                        @csrf
-                                        <button type="submit" class="bg-blue-600 text-white text-xs px-3 py-1 rounded hover:bg-blue-700 transition">Setujui Sekarang</button>
-                                    </form>
-                                @endif
                             @elseif($isApproved)
-                                <p class="text-sm text-gray-500">{{ \Carbon\Carbon::parse($borrowing->updated_at)->translatedFormat('d F Y, H:i') }}</p>
+                                <p class="text-sm text-gray-500">{{ \Carbon\Carbon::parse($borrowing->approved_at ?? $borrowing->updated_at)->translatedFormat('d F Y, H:i') }}</p>
+                            @elseif($borrowing->status == 'rejected')
+                                <p class="text-sm text-red-500 italic mt-1">"{{ $borrowing->admin_note }}"</p>
                             @endif
                         </div>
                     </div>
@@ -313,9 +327,34 @@
                 @endif
             </div>
 
+            {{-- [FITUR BARU] MENU TINDAKAN ADMIN --}}
+            @if(auth()->user()->role === 'admin' && $borrowing->status === 'pending')
+                <div class="bg-white rounded-lg shadow p-6 border-t-4 border-yellow-500">
+                    <h3 class="text-gray-900 font-bold mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                        Tindakan Admin
+                    </h3>
+                    <div class="flex flex-col gap-3">
+                        <form action="{{ route('borrowing.approve', $borrowing->id) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="w-full bg-green-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-green-700 transition flex items-center justify-center gap-2" onclick="return confirm('Setujui peminjaman ini? Stok akan berkurang.')">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                Setujui Permintaan
+                            </button>
+                        </form>
+                        
+                        <button type="button" onclick="openRejectModal()" class="w-full bg-red-600 text-white px-4 py-3 rounded-lg font-semibold hover:bg-red-700 transition flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            Tolak Permintaan
+                        </button>
+                    </div>
+                </div>
+            @endif
+
+            {{-- TOMBOL RETURN UNTUK ADMIN / USER --}}
             @if(($borrowing->status === 'active' || $borrowing->status === 'approved') && !$borrowing->returned_at)
                 @if(auth()->user()->role === 'admin' || auth()->id() === $borrowing->user_id)
-                    <button type="button" onclick="openReturnModal()" class="w-full bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition flex items-center justify-center gap-2">
+                    <button type="button" onclick="openReturnModal()" class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-lg">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3"></path>
                         </svg>
@@ -327,16 +366,17 @@
     </div>
 </div>
 
+{{-- MODAL RETURN (PENGEMBALIAN) --}}
 <div id="returnModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
-        <div class="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4 flex items-center justify-between">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full animate-fade-in-down">
+        <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-center justify-between rounded-t-lg">
             <h3 class="text-lg font-bold text-white flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3"></path>
                 </svg>
                 Kembalikan Aset
             </h3>
-            <button type="button" onclick="closeReturnModal()" class="text-white hover:text-red-100">
+            <button type="button" onclick="closeReturnModal()" class="text-white hover:text-blue-100">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
@@ -375,15 +415,53 @@
 
             <div class="mb-6">
                 <label class="block text-sm font-semibold text-gray-900 mb-2">Catatan</label>
-                <textarea name="notes" rows="4" placeholder="Jelaskan kondisi aset atau kerusakan yang ditemukan..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"></textarea>
+                <textarea name="notes" rows="3" placeholder="Jelaskan kondisi aset atau kerusakan yang ditemukan..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"></textarea>
             </div>
 
             <div class="flex gap-3">
                 <button type="button" onclick="closeReturnModal()" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition">
                     Batal
                 </button>
+                <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition">
+                    Konfirmasi
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{{-- MODAL REJECT (PENOLAKAN) --}}
+<div id="rejectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full animate-fade-in-down">
+        <div class="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4 flex items-center justify-between rounded-t-lg">
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+                Tolak Peminjaman
+            </h3>
+            <button type="button" onclick="closeRejectModal()" class="text-white hover:text-red-100">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+
+        <form id="rejectForm" method="POST" action="{{ route('borrowing.reject', $borrowing->id) }}" class="p-6">
+            @csrf
+            
+            <div class="mb-6">
+                <label class="block text-sm font-semibold text-gray-900 mb-2">Alasan Penolakan <span class="text-red-500">*</span></label>
+                <textarea name="admin_note" rows="4" placeholder="Contoh: Stok sedang menipis, atau keperluan kurang jelas..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none" required></textarea>
+                <p class="text-xs text-gray-500 mt-1">Alasan ini akan dapat dilihat oleh peminjam.</p>
+            </div>
+
+            <div class="flex gap-3">
+                <button type="button" onclick="closeRejectModal()" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition">
+                    Batal
+                </button>
                 <button type="submit" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition">
-                    Konfirmasi Kembalikan
+                    Konfirmasi Tolak
                 </button>
             </div>
         </form>
@@ -391,6 +469,7 @@
 </div>
 
 <script>
+    // === RETURN MODAL ===
     function openReturnModal() {
         document.getElementById('returnModal').classList.remove('hidden');
     }
@@ -399,11 +478,25 @@
         document.getElementById('returnModal').classList.add('hidden');
     }
 
+    // === REJECT MODAL ===
+    function openRejectModal() {
+        document.getElementById('rejectModal').classList.remove('hidden');
+    }
+
+    function closeRejectModal() {
+        document.getElementById('rejectModal').classList.add('hidden');
+    }
+
     // Close modal when clicking outside
-    document.getElementById('returnModal')?.addEventListener('click', function(e) {
-        if (e.target === this) {
+    window.onclick = function(event) {
+        let returnModal = document.getElementById('returnModal');
+        let rejectModal = document.getElementById('rejectModal');
+        if (event.target == returnModal) {
             closeReturnModal();
         }
-    });
+        if (event.target == rejectModal) {
+            closeRejectModal();
+        }
+    }
 </script>
 @endsection
