@@ -92,7 +92,7 @@
     updateClock();
 
     // 6. Chart Logic (KODE ASLI ANDA - TIDAK DIUBAH)
-    @if(auth()->user()->role === 'admin')
+    @if(in_array(session('impersonate_role', auth()->user()->role), ['admin', 'super_admin']))
     (function(){
         const borrowCanvas = document.getElementById('borrowTrendChart');
         const assetCanvas = document.getElementById('assetAdditionChart');

@@ -6,7 +6,7 @@
     {{-- Header Dashboard --}}
     @include('dashboard.header')
 
-    @if(auth()->user()->role === 'admin')
+    @if(in_array(session('impersonate_role', auth()->user()->role), ['admin', 'super_admin']))
         {{-- === VIEW ADMIN === --}}
         
         {{-- Statistik Cards --}}
