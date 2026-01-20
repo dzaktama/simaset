@@ -2,13 +2,11 @@
 
 @section('container')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Header -->
     <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-900">Manajemen Peminjaman</h1>
         <p class="mt-2 text-gray-600">Kelola semua permintaan peminjaman aset</p>
     </div>
 
-    <!-- Statistics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow p-6 text-white">
             <div class="flex items-center justify-between">
@@ -59,10 +57,8 @@
         </div>
     </div>
 
-    <!-- Filter Section -->
     <div class="bg-white rounded-lg shadow mb-6 p-6">
         <form method="GET" action="{{ route('borrowing.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <!-- Search Input -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Cari Peminjam / Aset</label>
                 <div class="relative">
@@ -73,7 +69,6 @@
                 </div>
             </div>
 
-            <!-- Status Filter -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
                 <select name="borrowing_status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
@@ -84,7 +79,6 @@
                 </select>
             </div>
 
-            <!-- Sort -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Urutkan</label>
                 <select name="sort" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
@@ -93,7 +87,6 @@
                 </select>
             </div>
 
-            <!-- Buttons -->
             <div class="flex items-end gap-2">
                 <button type="submit" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,7 +103,6 @@
         </form>
     </div>
 
-    <!-- Table Responsive -->
     <div class="bg-white rounded-lg shadow overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50 border-b border-gray-200">
@@ -126,6 +118,7 @@
             <tbody class="bg-white divide-y divide-gray-200">
                 @forelse($borrowings as $borrowing)
                     <tr class="hover:bg-gray-50 transition">
+                        {{-- Kolom Peminjam --}}
                         <td class="px-4 py-4 whitespace-nowrap">
                             <div class="flex items-center">
                                 <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
@@ -139,6 +132,8 @@
                                 </div>
                             </div>
                         </td>
+
+                        {{-- Kolom Aset --}}
                         <td class="px-4 py-4 whitespace-nowrap">
                             <div class="flex items-center gap-2">
                                 <div class="h-8 w-8 rounded bg-indigo-100 flex items-center justify-center">
@@ -149,9 +144,13 @@
                                 <span class="text-sm font-medium text-gray-900">{{ $borrowing->asset->name ?? 'N/A' }}</span>
                             </div>
                         </td>
+
+                        {{-- Kolom Tanggal Peminjaman (FIX TIMEZONE WIB) --}}
                         <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {{ $borrowing->request_date ? \Carbon\Carbon::parse($borrowing->request_date)->format('d M Y H:i') : ($borrowing->created_at ? \Carbon\Carbon::parse($borrowing->created_at)->format('d M Y H:i') : '-') }}
+                            {{ $borrowing->request_date ? \Carbon\Carbon::parse($borrowing->request_date)->setTimezone('Asia/Jakarta')->format('d M Y H:i') : ($borrowing->created_at ? \Carbon\Carbon::parse($borrowing->created_at)->setTimezone('Asia/Jakarta')->format('d M Y H:i') : '-') }} WIB
                         </td>
+
+                        {{-- Kolom Durasi (FIX MINUS & FORMAT) --}}
                         <td class="px-4 py-4 whitespace-nowrap">
                             @if($borrowing->borrowing_status === 'active')
                                 <div class="text-sm">
@@ -159,26 +158,39 @@
                                 </div>
                                 <script>
                                     (function() {
+                                        // Gunakan ISO String agar JS parsing waktu dengan benar
                                         const startDate = new Date('{{ $borrowing->request_date ? \Carbon\Carbon::parse($borrowing->request_date)->toIso8601String() : ($borrowing->created_at ? \Carbon\Carbon::parse($borrowing->created_at)->toIso8601String() : '') }}');
                                         const durationEl = document.getElementById('duration-{{ $borrowing->id }}');
+                                        
                                         function updateDuration() {
                                             const now = new Date();
-                                            const diffMs = now - startDate;
+                                            // Gunakan Math.abs agar tidak muncul minus
+                                            const diffMs = Math.abs(now - startDate);
+                                            
                                             const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
                                             const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                                             const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                                            durationEl.textContent = days + 'd ' + hours + 'h ' + minutes + 'm';
+                                            
+                                            durationEl.textContent = days + ' Hari ' + hours + ' Jam ' + minutes + ' Menit';
                                         }
                                         updateDuration();
                                         setInterval(updateDuration, 60000);
                                     })();
                                 </script>
-                            @elseif($borrowing->borrowing_status === 'returned' && $borrowing->returned_at && $borrowing->created_at)
-                                <span class="text-sm text-gray-900">{{ \Carbon\Carbon::parse($borrowing->returned_at)->diffInDays(\Carbon\Carbon::parse($borrowing->created_at)) }} hari</span>
+                            @elseif($borrowing->borrowing_status === 'returned' && $borrowing->returned_at)
+                                {{-- Hitung durasi total untuk yang sudah kembali --}}
+                                @php
+                                    $start = \Carbon\Carbon::parse($borrowing->borrowed_at ?? $borrowing->created_at);
+                                    $end = \Carbon\Carbon::parse($borrowing->returned_at);
+                                    $diff = $start->diff($end);
+                                @endphp
+                                <span class="text-sm text-gray-900">{{ $diff->d }} Hari {{ $diff->h }} Jam {{ $diff->i }} Menit</span>
                             @else
                                 <span class="text-sm text-gray-500">-</span>
                             @endif
                         </td>
+
+                        {{-- Kolom Status --}}
                         <td class="px-4 py-4 whitespace-nowrap">
                             @if($borrowing->borrowing_status === 'active')
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -208,6 +220,8 @@
                                 </span>
                             @endif
                         </td>
+
+                        {{-- Kolom Aksi --}}
                         <td class="px-4 py-4 whitespace-nowrap text-sm text-center">
                             <div class="flex justify-center gap-2">
                                 <a href="{{ route('borrowing.show', $borrowing->id) }}" class="text-blue-600 hover:text-blue-900 transition font-medium">
@@ -235,13 +249,11 @@
         </table>
     </div>
 
-    <!-- Pagination -->
     <div class="mt-6">
         {{ $borrowings->links() }}
     </div>
 </div>
 
-<!-- Return Modal -->
 <div id="returnModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
         <div class="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4 flex items-center justify-between">
@@ -262,7 +274,6 @@
             @csrf
             @method('PUT')
 
-            <!-- Condition Selection -->
             <div class="mb-6">
                 <label class="block text-sm font-semibold text-gray-900 mb-3">Kondisi Aset</label>
                 <div class="space-y-3">
@@ -290,13 +301,11 @@
                 </div>
             </div>
 
-            <!-- Notes -->
             <div class="mb-6">
                 <label class="block text-sm font-semibold text-gray-900 mb-2">Catatan</label>
                 <textarea name="notes" rows="4" placeholder="Jelaskan kondisi aset atau kerusakan yang ditemukan..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"></textarea>
             </div>
 
-            <!-- Buttons -->
             <div class="flex gap-3">
                 <button type="button" onclick="closeReturnModal()" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition">
                     Batal
@@ -315,7 +324,9 @@
     function openReturnModal(borrowingId) {
         currentBorrowingId = borrowingId;
         const form = document.getElementById('returnForm');
-        form.action = `/borrowing/${borrowingId}/return`;
+        // Fix rute agar sesuai web.php
+        const baseUrl = window.location.origin;
+        form.action = `${baseUrl}/borrowing/${borrowingId}/return`;
         form.reset();
         document.getElementById('returnModal').classList.remove('hidden');
     }

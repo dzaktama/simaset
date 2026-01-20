@@ -45,11 +45,21 @@ class BorrowingController extends Controller
             $query->whereNotNull('returned_at');
         } elseif ($request->borrowing_status === 'rejected') {
             $query->where('status', 'rejected');
+        } elseif ($request->borrowing_status === 'pending') {
+            $query->where('status', 'pending');
         }
 
-        $borrowings = $query->latest('created_at')->paginate(15)->appends($request->query());
+        // Urutan
+        $sort = $request->get('sort', 'newest');
+        if ($sort === 'oldest') {
+            $query->oldest('created_at');
+        } else {
+            $query->latest('created_at');
+        }
+
+        $borrowings = $query->paginate(15)->appends($request->query());
         
-        // Transform data untuk view
+        // Transform data untuk view (Helper Status)
         $borrowings->getCollection()->transform(function($item) {
             $status = 'pending';
             if ($item->status === 'rejected') $status = 'rejected';
@@ -82,6 +92,7 @@ class BorrowingController extends Controller
             'asset_id' => 'required|exists:assets,id',
             'quantity' => 'required|integer|min:1',
             'return_date' => 'nullable|date|after_or_equal:today',
+            'return_time' => 'nullable', // Tambahan untuk jam
             'reason' => 'required|string|max:255',
         ]);
 
@@ -90,8 +101,15 @@ class BorrowingController extends Controller
 
             $asset = Asset::lockForUpdate()->findOrFail($request->asset_id);
 
+            // Cek Stok
             if ($asset->quantity < $request->quantity) {
                 return back()->with('error', 'Stok aset tidak mencukupi!')->withInput();
+            }
+
+            // Gabungkan Tanggal & Waktu Kembali jika ada
+            $returnDateTime = $request->return_date;
+            if ($request->return_date && $request->return_time) {
+                $returnDateTime = $request->return_date . ' ' . $request->return_time;
             }
 
             AssetRequest::create([
@@ -99,11 +117,12 @@ class BorrowingController extends Controller
                 'asset_id' => $request->asset_id,
                 'quantity' => $request->quantity,
                 'request_date' => now(), 
-                'return_date' => $request->return_date,
+                'return_date' => $returnDateTime,
                 'reason' => $request->reason,
                 'status' => 'pending', 
             ]);
 
+            // Log History
             AssetHistory::create([
                 'asset_id' => $request->asset_id,
                 'user_id' => auth()->id(),
@@ -117,7 +136,7 @@ class BorrowingController extends Controller
         } catch (Exception $e) {
             DB::rollBack();
             Log::error('Store Borrowing Error: ' . $e->getMessage());
-            return back()->with('error', 'Terjadi kesalahan sistem.')->withInput();
+            return back()->with('error', 'Terjadi kesalahan sistem: ' . $e->getMessage())->withInput();
         }
     }
 
@@ -128,38 +147,46 @@ class BorrowingController extends Controller
     {
         $borrowing = AssetRequest::with(['user', 'asset'])->findOrFail($id);
 
-        // === SECURITY FIX: CEK HAK AKSES ===
-        // Jika user BUKAN admin DAN user ID peminjam TIDAK SAMA dengan yang login
+        // Security Check
         if (auth()->user()->role !== 'admin' && $borrowing->user_id !== auth()->id()) {
             abort(403, 'Akses Ditolak: Anda tidak berhak melihat data peminjaman ini.');
         }
-        // ===================================
 
+        // Set Locale Carbon
         Carbon::setLocale('id'); 
         
         $totalDurasi = '-';
         $sisaWaktu = '-';
         $isOverdue = false;
 
+        // Tentukan Waktu Mulai (Borrowed At atau Created At)
         $start = $borrowing->borrowed_at ? Carbon::parse($borrowing->borrowed_at) : Carbon::parse($borrowing->created_at);
-        $end = $borrowing->return_date ? Carbon::parse($borrowing->return_date)->endOfDay() : null;
+        $end = $borrowing->return_date ? Carbon::parse($borrowing->return_date) : null;
 
+        // Hitung Total Durasi Rencana
         if ($end) {
+            // diff() mengembalikan interval positif (absolute)
             $totalDurasi = $this->formatInterval($start->diff($end));
         }
 
+        // Hitung Sisa Waktu / Status Keterlambatan
         if ($borrowing->status === 'approved' && !$borrowing->returned_at && $end) {
             $now = Carbon::now();
+            
             if ($now->greaterThan($end)) {
+                // Jika sekarang > rencana kembali = Terlambat
                 $isOverdue = true;
                 $sisaWaktu = "Terlambat " . $this->formatInterval($end->diff($now));
             } else {
+                // Jika sekarang < rencana kembali = Sisa Waktu
                 $sisaWaktu = $this->formatInterval($now->diff($end)) . " lagi";
             }
         } elseif ($borrowing->returned_at) {
             $sisaWaktu = 'Selesai (Dikembalikan)';
         } elseif ($borrowing->status == 'pending') {
             $sisaWaktu = 'Menunggu Persetujuan';
+        } elseif ($borrowing->status == 'rejected') {
+            $sisaWaktu = 'Permintaan Ditolak';
         }
 
         $history = AssetHistory::where('asset_id', $borrowing->asset_id)->latest()->take(10)->get();
@@ -179,7 +206,6 @@ class BorrowingController extends Controller
      */
     public function approve($id)
     {
-        // Security Check
         if (auth()->user()->role !== 'admin') abort(403);
 
         try {
@@ -195,7 +221,13 @@ class BorrowingController extends Controller
                 return back()->with('error', 'Gagal! Stok aset tidak mencukupi.');
             }
 
+            // Kurangi Stok
             $assetRequest->asset->decrement('quantity', $assetRequest->quantity ?? 1);
+            
+            // Update Status Aset jika stok habis
+            if($assetRequest->asset->quantity == 0) {
+                $assetRequest->asset->update(['status' => 'deployed']);
+            }
 
             $assetRequest->update([
                 'status' => 'approved',
@@ -220,11 +252,10 @@ class BorrowingController extends Controller
     }
 
     /**
-     * ADMIN: Reject Peminjaman (FIXED)
+     * ADMIN: Reject Peminjaman
      */
     public function reject(Request $request, $id)
     {
-        // Security Check
         if (auth()->user()->role !== 'admin') abort(403);
 
         $request->validate(['admin_note' => 'required|string|max:500']);
@@ -235,7 +266,7 @@ class BorrowingController extends Controller
             $assetRequest = AssetRequest::lockForUpdate()->findOrFail($id);
             
             if ($assetRequest->status !== 'pending') {
-                return back()->with('error', 'Gagal: Status permintaan bukan pending (mungkin sudah diproses).');
+                return back()->with('error', 'Gagal: Status permintaan bukan pending.');
             }
 
             $assetRequest->update([
@@ -296,7 +327,7 @@ class BorrowingController extends Controller
 
             $borrowing = AssetRequest::with('asset')->findOrFail($id);
 
-            // Security: Cek kepemilikan (Admin bebas, User harus punya sendiri)
+            // Security: Cek kepemilikan
             if (auth()->user()->role !== 'admin' && $borrowing->user_id !== auth()->id()) {
                 abort(403);
             }
@@ -307,8 +338,13 @@ class BorrowingController extends Controller
                 'return_notes' => $request->notes,
             ]);
 
+            // Kembalikan Stok
             $borrowing->asset->increment('quantity', $borrowing->quantity ?? 1);
-            $borrowing->asset->update(['status' => 'available']);
+            
+            // Jika status sebelumnya deployed (habis), kembalikan jadi available
+            if($borrowing->asset->status == 'deployed' && $borrowing->asset->quantity > 0) {
+                $borrowing->asset->update(['status' => 'available']);
+            }
 
             AssetHistory::create([
                 'asset_id' => $borrowing->asset_id,
@@ -318,7 +354,7 @@ class BorrowingController extends Controller
             ]);
 
             DB::commit();
-            return redirect()->route('borrowing.show', $id)->with('success', 'Aset berhasil dikembalikan');
+            return back()->with('success', 'Aset berhasil dikembalikan');
 
         } catch (Exception $e) {
             DB::rollBack();
@@ -326,13 +362,16 @@ class BorrowingController extends Controller
         }
     }
 
-    // Helper formatting
+    /**
+     * HELPER: Format Durasi (X Hari Y Jam Z Menit)
+     */
     private function formatInterval($diff)
     {
         $parts = [];
         if ($diff->d > 0) $parts[] = $diff->d . ' Hari';
         if ($diff->h > 0) $parts[] = $diff->h . ' Jam';
         if ($diff->i > 0) $parts[] = $diff->i . ' Menit';
+        
         if (empty($parts)) return 'Kurang dari 1 Menit';
         return implode(' ', array_slice($parts, 0, 3)); 
     }
