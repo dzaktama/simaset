@@ -25,7 +25,6 @@
         {{-- Range Buttons --}}
         <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
             <div class="flex items-center gap-2 flex-wrap">
-                <button data-range="hourly" class="range-btn px-3 py-2 text-xs font-semibold rounded transition border border-transparent bg-white border-gray-300 hover:bg-gray-100 text-gray-700">Per Jam</button>
                 <button data-range="daily" class="range-btn px-3 py-2 text-xs font-semibold rounded transition border border-transparent bg-white border-gray-300 hover:bg-gray-100 text-gray-700">Harian</button>
                 <button data-range="monthly" class="range-btn px-3 py-2 text-xs font-semibold rounded transition border border-transparent bg-indigo-100 border-indigo-300 text-indigo-700 font-bold">Bulanan</button>
                 <button data-range="yearly" class="range-btn px-3 py-2 text-xs font-semibold rounded transition border border-transparent bg-white border-gray-300 hover:bg-gray-100 text-gray-700">Tahunan</button>

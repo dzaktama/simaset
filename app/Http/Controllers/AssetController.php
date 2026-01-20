@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Carbon\Carbon;
 
 class AssetController extends Controller
 {
@@ -431,40 +432,74 @@ class AssetController extends Controller
     public function chartsData(Request $request)
     {
         $range = $request->query('range', 'monthly');
-        $statusCounts = [
-            'available' => Asset::where('status', 'available')->count(),
-            'deployed' => Asset::where('status', 'deployed')->count(),
-            'maintenance' => Asset::where('status', 'maintenance')->count(),
-            'broken' => Asset::where('status', 'broken')->count(),
-            'total' => Asset::count()
-        ];
+        $endDate = Carbon::now();
 
-        $series = ['labels' => [], 'data' => []];
+        // --- LOGIKA FILTER WAKTU (SAMA SEPERTI DI ATAS) ---
+        if ($range === 'daily' || $range === 'weekly') {
+            $startDate = $endDate->copy()->subDays(29);
+            $groupBy = "DATE(created_at)";
+            $dateFormat = "Y-m-d";
+            $labelFormat = "d M";
+            $step = '1 day';
 
-        if ($range === 'daily') {
-            for ($i = 6; $i >= 0; $i--) {
-                $day = now()->subDays($i)->format('Y-m-d');
-                $series['labels'][] = now()->subDays($i)->format('d M');
-                $series['data'][] = Asset::whereDate('created_at', $day)->count();
-            }
         } elseif ($range === 'yearly') {
-            $currentYear = now()->year;
-            for ($y = $currentYear - 4; $y <= $currentYear; $y++) {
-                $series['labels'][] = (string)$y;
-                $series['data'][] = Asset::whereYear('created_at', $y)->count();
-            }
+            $endDate = $endDate->copy()->endOfYear();
+            $startDate = $endDate->copy()->subYears(4)->startOfYear();
+            $groupBy = "YEAR(created_at)";
+            $dateFormat = "Y";
+            $labelFormat = "Y";
+            $step = '1 year';
+
         } else {
-            for ($m = 11; $m >= 0; $m--) {
-                $dt = now()->subMonths($m);
-                $series['labels'][] = $dt->format('M Y');
-                $series['data'][] = Asset::whereYear('created_at', $dt->year)->whereMonth('created_at', $dt->month)->count();
+            $endDate = $endDate->copy()->endOfMonth();
+            $startDate = $endDate->copy()->subMonths(11)->startOfMonth();
+            $groupBy = "DATE_FORMAT(created_at, '%Y-%m')";
+            $dateFormat = "Y-m";
+            $labelFormat = "M Y";
+            $step = '1 month';
+        }
+
+        $labels = [];
+        $assetData = [];
+        
+        $period = \Carbon\CarbonPeriod::create($startDate, $step, $endDate);
+        foreach ($period as $date) {
+            $key = $date->format($dateFormat);
+            $labels[] = $date->format($labelFormat);
+            $assetData[$key] = 0;
+        }
+
+        $assets = \App\Models\Asset::select(
+                DB::raw("$groupBy as date_key"),
+                DB::raw('COUNT(*) as count')
+            )
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->groupBy('date_key')
+            ->get();
+
+        foreach ($assets as $asset) {
+            if (isset($assetData[$asset->date_key])) {
+                $assetData[$asset->date_key] = (int) $asset->count;
             }
         }
 
+        // Data Pie Chart (Status) - Tidak Terpengaruh Range
+        $statusCounts = \App\Models\Asset::select('status', DB::raw('count(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->toArray();
+
         return response()->json([
-            'statusCounts' => $statusCounts,
-            'series' => $series,
-            'range' => $range
+            'series' => [
+                'labels' => $labels,
+                'data' => array_values($assetData),
+            ],
+            'statusCounts' => [
+                'available' => $statusCounts['available'] ?? 0,
+                'deployed' => $statusCounts['deployed'] ?? 0,
+                'maintenance' => $statusCounts['maintenance'] ?? 0,
+                'broken' => ($statusCounts['broken'] ?? 0) + ($statusCounts['lost'] ?? 0),
+            ]
         ]);
     }
 
@@ -474,46 +509,75 @@ class AssetController extends Controller
     public function borrowStats(Request $request)
     {
         $range = $request->query('range', 'monthly');
-        $series = ['labels' => [], 'approved' => [], 'rejected' => []];
+        
+        $endDate = Carbon::now();
+        
+        // --- LOGIKA FILTER WAKTU ---
+        if ($range === 'daily' || $range === 'weekly') {
+            // MODE HARIAN (30 Hari Terakhir)
+            // Jika tombol kirim 'daily' atau 'weekly', masuk sini
+            $startDate = $endDate->copy()->subDays(29); 
+            $groupBy = "DATE(created_at)";
+            $dateFormat = "Y-m-d";
+            $labelFormat = "d M"; // 20 Jan
+            $step = '1 day';
 
-        if ($range === 'hourly') {
-            for ($i = 23; $i >= 0; $i--) {
-                $hour = now()->subHours($i);
-                $series['labels'][] = $hour->format('H:i');
-                $series['approved'][] = AssetRequest::whereDate('created_at', $hour->format('Y-m-d'))->whereHour('created_at', $hour->hour)->where('status','approved')->count();
-                $series['rejected'][] = AssetRequest::whereDate('created_at', $hour->format('Y-m-d'))->whereHour('created_at', $hour->hour)->where('status','rejected')->count();
-            }
-        } elseif ($range === 'daily') {
-            for ($i = 6; $i >= 0; $i--) {
-                $day = now()->subDays($i)->format('Y-m-d');
-                $series['labels'][] = now()->subDays($i)->format('d M');
-                $series['approved'][] = AssetRequest::whereDate('created_at', $day)->where('status','approved')->count();
-                $series['rejected'][] = AssetRequest::whereDate('created_at', $day)->where('status','rejected')->count();
-            }
         } elseif ($range === 'yearly') {
-            $currentYear = now()->year;
-            for ($y = $currentYear - 4; $y <= $currentYear; $y++) {
-                $series['labels'][] = (string)$y;
-                $series['approved'][] = AssetRequest::whereYear('created_at', $y)->where('status','approved')->count();
-                $series['rejected'][] = AssetRequest::whereYear('created_at', $y)->where('status','rejected')->count();
-            }
+            // MODE TAHUNAN (5 Tahun Terakhir)
+            $endDate = $endDate->copy()->endOfYear();
+            $startDate = $endDate->copy()->subYears(4)->startOfYear();
+            $groupBy = "YEAR(created_at)";
+            $dateFormat = "Y";
+            $labelFormat = "Y"; // 2026
+            $step = '1 year';
+
         } else {
-            for ($m = 11; $m >= 0; $m--) {
-                $dt = now()->subMonths($m);
-                $series['labels'][] = $dt->format('M Y');
-                $series['approved'][] = AssetRequest::whereYear('created_at', $dt->year)->whereMonth('created_at', $dt->month)->where('status','approved')->count();
-                $series['rejected'][] = AssetRequest::whereYear('created_at', $dt->year)->whereMonth('created_at', $dt->month)->where('status','rejected')->count();
+            // MODE BULANAN (12 Bulan Terakhir) - DEFAULT
+            $endDate = $endDate->copy()->endOfMonth();
+            $startDate = $endDate->copy()->subMonths(11)->startOfMonth();
+            $groupBy = "DATE_FORMAT(created_at, '%Y-%m')";
+            $dateFormat = "Y-m";
+            $labelFormat = "M Y"; // Jan 2026
+            $step = '1 month';
+        }
+
+        // 1. Siapkan Array Data Kosong (Agar grafik urut & rapi)
+        $labels = [];
+        $approvedData = [];
+        $rejectedData = [];
+        
+        $period = \Carbon\CarbonPeriod::create($startDate, $step, $endDate);
+        foreach ($period as $date) {
+            $key = $date->format($dateFormat);
+            $labels[] = $date->format($labelFormat);
+            $approvedData[$key] = 0;
+            $rejectedData[$key] = 0;
+        }
+
+        // 2. Query Database
+        $requests = \App\Models\AssetRequest::select(
+                DB::raw("$groupBy as date_key"),
+                DB::raw('SUM(CASE WHEN status = "approved" THEN 1 ELSE 0 END) as approved_count'),
+                DB::raw('SUM(CASE WHEN status = "rejected" THEN 1 ELSE 0 END) as rejected_count')
+            )
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->groupBy('date_key')
+            ->get();
+
+        // 3. Mapping Data ke Array
+        foreach ($requests as $req) {
+            if (isset($approvedData[$req->date_key])) {
+                $approvedData[$req->date_key] = (int) $req->approved_count;
+                $rejectedData[$req->date_key] = (int) $req->rejected_count;
             }
         }
 
-        $totalApproved = AssetRequest::where('status','approved')->count();
-        $totalRejected = AssetRequest::where('status','rejected')->count();
-
         return response()->json([
-            'series' => $series,
-            'totalApproved' => $totalApproved,
-            'totalRejected' => $totalRejected,
-            'range' => $range
+            'series' => [
+                'labels' => $labels,
+                'approved' => array_values($approvedData),
+                'rejected' => array_values($rejectedData),
+            ]
         ]);
     }
 

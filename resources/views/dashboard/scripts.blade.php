@@ -1,9 +1,24 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // 1. Sidebar & Utility
     function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
     function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
-    // Modal Detail Request (Admin)
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    const openSidebarBtn = document.getElementById('openSidebar');
+    const closeSidebarBtn = document.getElementById('closeSidebar');
+
+    function toggleSidebar() {
+        if(sidebar) sidebar.classList.toggle('-translate-x-full');
+        if(sidebarOverlay) sidebarOverlay.classList.toggle('hidden');
+    }
+
+    if (openSidebarBtn) openSidebarBtn.addEventListener('click', toggleSidebar);
+    if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', toggleSidebar);
+    if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
+
+    // 2. Modal Detail Request
     function openRequestDetail(req, asset, user) {
         document.getElementById('modalAssetName').innerText = asset.name;
         document.getElementById('modalAssetSN').innerText = asset.serial_number;
@@ -24,16 +39,22 @@
     }
     function closeRequestModal() { document.getElementById('requestModal').classList.add('hidden'); }
 
-    // Modal Tolak (Reject)
+    // 3. Modal Tolak (Reject) - [BAGIAN YANG DIPERBAIKI]
     function openRejectModal(id, userName, assetName) {
         document.getElementById('rejectUserName').innerText = userName;
         document.getElementById('rejectAssetName').innerText = assetName;
-        document.getElementById('rejectForm').action = `/requests/${id}/reject`; 
+        
+        // PERBAIKAN: Menggunakan window.location.origin dan route 'borrowing'
+        // Sebelumnya: /requests/${id}/reject (Salah)
+        // Sekarang: /borrowing/${id}/reject (Benar)
+        const baseUrl = window.location.origin;
+        document.getElementById('rejectForm').action = `${baseUrl}/borrowing/${id}/reject`; 
+        
         document.getElementById('rejectModal').classList.remove('hidden');
     }
     function closeRejectModal() { document.getElementById('rejectModal').classList.add('hidden'); }
 
-    // Modal Verifikasi Pengembalian
+    // 4. Modal Verifikasi Pengembalian
     function openVerifyModal(retData, assetData, userData) {
         document.getElementById('verifyUserName').innerText = userData.name;
         document.getElementById('verifyDate').innerText = retData.return_date; 
@@ -50,14 +71,17 @@
             badge.className = 'px-2 py-0.5 text-xs font-bold uppercase rounded-full border bg-red-100 text-red-800 border-red-200';
         }
 
-        document.getElementById('verifyForm').action = `/returns/${retData.id}/verify`;
+        // Opsional: Gunakan base URL juga biar aman
+        const baseUrl = window.location.origin;
+        document.getElementById('verifyForm').action = `${baseUrl}/returns/${retData.id}/verify`;
+        
         document.getElementById('verifyModal').classList.remove('hidden');
     }
     function closeVerifyModal() {
         document.getElementById('verifyModal').classList.add('hidden');
     }
 
-    // Jam Digital
+    // 5. Jam Digital
     function updateClock() {
         const now = new Date();
         const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/\./g, ':');
@@ -67,7 +91,7 @@
     setInterval(updateClock, 1000);
     updateClock();
 
-    // Chart Logic (Hanya untuk Admin)
+    // 6. Chart Logic (KODE ASLI ANDA - TIDAK DIUBAH)
     @if(auth()->user()->role === 'admin')
     (function(){
         const borrowCanvas = document.getElementById('borrowTrendChart');
