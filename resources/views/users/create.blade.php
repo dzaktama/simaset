@@ -42,8 +42,13 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Role / Hak Akses <span class="text-red-500">*</span></label>
                         <select name="role" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2.5">
-                            <option value="user">Karyawan (User)</option>
-                            <option value="admin">Administrator</option>
+                            <option value="user" {{ old('role') == 'user' ? 'selected' : '' }}>Karyawan (User)</option>
+                            <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Administrator</option>
+                            <option value="service_center" {{ old('role') == 'service_center' ? 'selected' : '' }}>Service Center (Teknisi)</option>
+                            
+                            @if(auth()->user()->role === 'super_admin')
+                                <option value="super_admin" {{ old('role') == 'super_admin' ? 'selected' : '' }}>Super Admin</option>
+                            @endif
                         </select>
                     </div>
                 </div>

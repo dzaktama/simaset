@@ -18,7 +18,7 @@ class RoleSeeder extends Seeder
             ['email' => 'superadmin@vitech.asia'],
             [
                 'name' => 'Super Administrator',
-                'password' => Hash::make('password'), // Default password
+                'password' => Hash::make('super123'),
                 'role' => 'super_admin',
                 'email_verified_at' => now(),
             ]
@@ -29,7 +29,7 @@ class RoleSeeder extends Seeder
             ['email' => 'service@vitech.asia'],
             [
                 'name' => 'Service Center',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('service123'),
                 'role' => 'service_center',
                 'email_verified_at' => now(),
             ]
@@ -40,7 +40,7 @@ class RoleSeeder extends Seeder
             ['email' => 'admin@vitech.asia'],
             [
                 'name' => 'Administrator IT',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('admin123'),
                 'role' => 'admin',
                 'email_verified_at' => now(),
             ]
@@ -51,7 +51,7 @@ class RoleSeeder extends Seeder
             ['email' => 'user@vitech.asia'],
             [
                 'name' => 'Karyawan Staff',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('user123'),
                 'role' => 'user',
                 'email_verified_at' => now(),
             ]

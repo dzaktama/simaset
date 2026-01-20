@@ -28,9 +28,14 @@ class AssetController extends Controller
      */
     public function dashboard(Request $request)
     {
-        $user = auth()->user();
 
-        if ($user->role === 'admin') {
+        $user = auth()->user();
+        
+        // [FIX] Cek Role Efektif (Prioritaskan Impersonation Session)
+        $role = session('impersonate_role', $user->role);
+
+        // Jika Role adalah Admin atau Super Admin, Tampilkan Dashboard Admin
+        if (in_array($role, ['admin', 'super_admin'])) {
             
             // --- LOGIC ADMIN (DIPERTAHANKAN) ---
             $logQuery = AssetHistory::with(['user', 'asset']);

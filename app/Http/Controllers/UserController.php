@@ -31,7 +31,7 @@ class UserController extends Controller
             'email' => 'required|email:dns|unique:users',
             'employee_id' => 'required|unique:users|max:20', // NIP Wajib & Unik
             'password' => 'required|min:5',
-            'role' => 'required|in:admin,user',
+            'role' => 'required|in:admin,user,super_admin,service_center',
             'phone' => 'nullable|max:15',
             'department' => 'required|max:100',
             'position' => 'required|max:100',
@@ -55,7 +55,7 @@ class UserController extends Controller
     {
         $rules = [
             'name' => 'required|max:255',
-            'role' => 'required|in:admin,user',
+            'role' => 'required|in:admin,user,super_admin,service_center',
             'phone' => 'nullable|max:15',
             'department' => 'required|max:100',
             'position' => 'required|max:100',
