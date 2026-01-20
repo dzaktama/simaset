@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // [PERBAIKAN] Ubah 'is_admin' menjadi 'admin' agar sesuai dengan routes/web.php
         $middleware->alias([
             'admin' => \App\Http\Middleware\IsAdmin::class,
+            'role' => \App\Http\Middleware\RoleMiddleware::class,
         ]);
 
     })

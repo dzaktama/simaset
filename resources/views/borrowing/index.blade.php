@@ -158,20 +158,33 @@
                                 </div>
                                 <script>
                                     (function() {
-                                        // Gunakan ISO String dari object Carbon yang sudah dicasting
-                                        const startDate = new Date('{{ $borrowing->request_date ? $borrowing->request_date->toIso8601String() : ($borrowing->created_at ? $borrowing->created_at->toIso8601String() : '') }}');
+                                        // Gunakan Batas Kembali (return_date) sebagai target
+                                        const returnDateStr = '{{ $borrowing->return_date ? $borrowing->return_date->toIso8601String() : '' }}';
                                         const durationEl = document.getElementById('duration-{{ $borrowing->id }}');
                                         
+                                        if (!returnDateStr) {
+                                            durationEl.textContent = 'Tidak ada batas waktu';
+                                            return;
+                                        }
+
+                                        const targetDate = new Date(returnDateStr);
+
                                         function updateDuration() {
                                             const now = new Date();
-                                            // Gunakan Math.abs agar tidak muncul minus
-                                            const diffMs = Math.abs(now - startDate);
+                                            const diffMs = targetDate - now; // Positif = Sisa Waktu, Negatif = Terlambat
                                             
-                                            const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                                            const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                                            const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                                            const isOverdue = diffMs < 0;
+                                            const absDiff = Math.abs(diffMs);
                                             
-                                            durationEl.textContent = days + ' Hari ' + hours + ' Jam ' + minutes + ' Menit';
+                                            const days = Math.floor(absDiff / (1000 * 60 * 60 * 24));
+                                            const hours = Math.floor((absDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                                            const minutes = Math.floor((absDiff % (1000 * 60 * 60)) / (1000 * 60));
+                                            
+                                            if (isOverdue) {
+                                                durationEl.innerHTML = `<span class="text-red-600 font-bold">Terlambat ${days} Hari ${hours} Jam</span>`;
+                                            } else {
+                                                durationEl.innerHTML = `<span class="text-blue-600 font-medium">Sisa ${days} Hari ${hours} Jam ${minutes} Menit</span>`;
+                                            }
                                         }
                                         updateDuration();
                                         setInterval(updateDuration, 60000);

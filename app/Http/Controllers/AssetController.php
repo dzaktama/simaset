@@ -215,13 +215,28 @@ class AssetController extends Controller
             'image3' => 'nullable|image|max:2048',
         ]);
 
-        $prefix = strtoupper(substr($request->name, 0, 3));
-        $lastAsset = Asset::where('serial_number', 'like', $prefix . '-%')
-                          ->orderByRaw('CAST(SUBSTRING(serial_number, 5) AS UNSIGNED) DESC')
+        // GENERATE SERIAL NUMBER: AAA-00001
+        // Ambil 3 huruf pertama dari nama aset (Uppercase)
+        $prefix = strtoupper(substr(preg_replace('/[^a-zA-Z]/', '', $request->name), 0, 3));
+        if (strlen($prefix) < 3) {
+            $prefix = strtoupper(str_pad($prefix, 3, 'X')); // Fallback jika nama < 3 huruf
+        }
+
+        // Cari nomor urut terakhir untuk prefix ini
+        $lastAsset = Asset::where('serial_number', 'regexp', "^$prefix-[0-9]{5}$")
+                          ->orderBy('serial_number', 'desc')
                           ->first();
-        
-        $number = $lastAsset ? (int) substr($lastAsset->serial_number, 4) + 1 : 1;
-        $serialNumber = $prefix . '-' . str_pad($number, 5, '0', STR_PAD_LEFT);
+
+        // Tentukan nomor berikutnya
+        if ($lastAsset) {
+            $lastNumber = (int) substr($lastAsset->serial_number, 4);
+            $number = $lastNumber + 1;
+        } else {
+            $number = 1;
+        }
+
+        // Format: AAA-00001
+        $serialNumber = sprintf('%s-%05d', $prefix, $number);
 
         $data = $request->except(['image', 'image2', 'image3']); 
         
