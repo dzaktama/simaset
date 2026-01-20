@@ -130,7 +130,14 @@
                 <div class="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold border border-indigo-200">
                     {{ substr(auth()->user()->name, 0, 1) }}
                 </div>
-                <span class="ml-3 hidden text-sm font-medium text-gray-700 lg:block">{{ auth()->user()->name }}</span>
+                <span class="ml-3 hidden text-sm font-medium text-gray-700 lg:block">
+                    {{ auth()->user()->name }}
+                    @if(session('impersonate_role'))
+                        <span class="ml-2 px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-100 text-yellow-800 border border-yellow-200">
+                            Mode: {{ ucfirst(str_replace('_', ' ', session('impersonate_role'))) }}
+                        </span>
+                    @endif
+                </span>
                 <svg class="ml-1 hidden h-5 w-5 text-gray-400 lg:block" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
                 </svg>
@@ -140,7 +147,30 @@
             <div id="user-menu-dropdown" class="absolute right-0 z-20 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none hidden transition-all duration-200">
                 <div class="px-4 py-2 border-b border-gray-100">
                     <p class="text-xs text-gray-500">Login sebagai</p>
-                    <p class="text-sm font-bold text-gray-900 truncate">{{ auth()->user()->role === 'admin' ? 'Administrator' : 'Karyawan' }}</p>
+                    <p class="text-sm font-bold text-gray-900 truncate">
+                        {{ auth()->user()->role === 'super_admin' && !session('impersonate_role') ? 'Super Admin' : ucfirst(str_replace('_', ' ', session('impersonate_role', auth()->user()->role))) }}
+                    </p>
+                    
+                    {{-- DROPDOWN SWITCH ROLE (KHUSUS SUPER ADMIN) --}}
+                    @if(auth()->user()->role === 'super_admin')
+                        <div class="mt-2 pt-2 border-t border-gray-100">
+                            <p class="text-[10px] uppercase font-bold text-gray-400 mb-1 px-4">View As (Mode)</p>
+                            
+                            <a href="{{ route('impersonate', ['role' => 'super_admin']) }}" class="block px-4 py-1 text-xs hover:bg-indigo-50 {{ !session('impersonate_role') ? 'text-indigo-600 font-bold' : 'text-gray-600' }}">
+                                • Super Admin (Asli)
+                            </a>
+                            <a href="{{ route('impersonate', ['role' => 'admin']) }}" class="block px-4 py-1 text-xs hover:bg-indigo-50 {{ session('impersonate_role') == 'admin' ? 'text-indigo-600 font-bold' : 'text-gray-600' }}">
+                                • Admin
+                            </a>
+                            <a href="{{ route('impersonate', ['role' => 'service_center']) }}" class="block px-4 py-1 text-xs hover:bg-indigo-50 {{ session('impersonate_role') == 'service_center' ? 'text-indigo-600 font-bold' : 'text-gray-600' }}">
+                                • Service Center
+                            </a>
+                            <a href="{{ route('impersonate', ['role' => 'user']) }}" class="block px-4 py-1 text-xs hover:bg-indigo-50 {{ session('impersonate_role') == 'user' ? 'text-indigo-600 font-bold' : 'text-gray-600' }}">
+                                • User (Karyawan)
+                            </a>
+                        </div>
+                        <div class="my-2 border-t border-gray-100"></div>
+                    @endif
                 </div>
                 
                 @if(auth()->user()->role === 'admin')

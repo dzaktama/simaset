@@ -61,6 +61,29 @@ class AuthController extends Controller
         
         return redirect('/login');
     }
+
+    // Role Switcher Logic (Super Admin Only)
+    public function impersonate(Request $request)
+    {
+        // Security Check: Hanya Real Super Admin yang boleh
+        if (auth()->user()->role !== 'super_admin') {
+            abort(403);
+        }
+
+        $role = $request->query('role');
+        
+        // Validasi Role
+        if (in_array($role, ['admin', 'service_center', 'user', 'super_admin'])) {
+            // Jika pilih 'super_admin', artinya kembali ke diri sendiri (hapus session)
+            if ($role === 'super_admin') {
+                $request->session()->forget('impersonate_role');
+            } else {
+                $request->session()->put('impersonate_role', $role);
+            }
+        }
+
+        return back()->with('success', 'Berhasil beralih ke mode: ' . ucfirst(str_replace('_', ' ', $role)));
+    }
     
     // [FEATURE] Fungsi Refresh Captcha via AJAX
     public function refreshCaptcha()
