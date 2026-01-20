@@ -109,39 +109,39 @@
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Peminjam</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aset</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Tanggal Peminjaman</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Durasi</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aksi</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Peminjaman</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durasi</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
                 @forelse($borrowings as $borrowing)
                     <tr class="hover:bg-gray-50 transition">
                         {{-- Kolom Peminjam --}}
-                        <td class="px-4 py-4">
-                            <div class="flex items-center">
-                                <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                        <td class="px-4 py-4 align-top">
+                            <div class="flex items-start">
+                                <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0 mt-1">
                                     <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                                     </svg>
                                 </div>
-                                <div class="ml-4 min-w-[150px]">
-                                    <p class="text-sm font-medium text-gray-900">{{ $borrowing->user->name ?? 'N/A' }}</p>
-                                    <p class="text-sm text-gray-500 truncate max-w-[200px]">{{ $borrowing->user->email ?? '-' }}</p>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900">{{ $borrowing->user->name ?? 'N/A' }}</div>
+                                    <div class="text-sm text-gray-500 break-words">{{ $borrowing->user->email ?? '-' }}</div>
                                 </div>
                             </div>
                         </td>
 
                         {{-- Kolom Aset --}}
-                        <td class="px-4 py-4">
-                            <div class="flex items-center gap-2">
-                                <div class="h-8 w-8 rounded bg-indigo-100 flex items-center justify-center shrink-0">
+                        <td class="px-4 py-4 align-top">
+                            <div class="flex items-start gap-2">
+                                <div class="h-8 w-8 rounded bg-indigo-100 flex items-center justify-center shrink-0 mt-1">
                                     <svg class="h-4 w-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m0 0l8 4m-8-4v10l8 4m0-10l8 4m-8-4v10"></path>
                                     </svg>
                                 </div>
-                                <span class="text-sm font-medium text-gray-900 min-w-[200px] block">{{ $borrowing->asset->name ?? 'N/A' }}</span>
+                                <span class="text-sm font-medium text-gray-900 block">{{ $borrowing->asset->name ?? 'N/A' }}</span>
                             </div>
                         </td>
 
@@ -151,7 +151,7 @@
                         </td>
 
                         {{-- Kolom Durasi (FIX MINUS & FORMAT) --}}
-                        <td class="px-4 py-4 whitespace-nowrap">
+                        <td class="px-4 py-4 align-top">
                             @if($borrowing->borrowing_status === 'active')
                                 <div class="text-sm">
                                     <span class="font-medium text-gray-900" id="duration-{{ $borrowing->id }}">Menghitung...</span>
@@ -191,7 +191,7 @@
                         </td>
 
                         {{-- Kolom Status --}}
-                        <td class="px-4 py-4 whitespace-nowrap">
+                        <td class="px-4 py-4 text-center align-top">
                             @if($borrowing->borrowing_status === 'active')
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                     <span class="w-2 h-2 bg-green-600 rounded-full mr-2 animate-pulse"></span>
@@ -222,8 +222,8 @@
                         </td>
 
                         {{-- Kolom Aksi --}}
-                        <td class="px-4 py-4 whitespace-nowrap text-sm text-center">
-                            <div class="flex justify-center gap-2">
+                        <td class="px-4 py-4 text-sm text-center align-top">
+                            <div class="flex justify-center gap-2 flex-col sm:flex-row">
                                 <a href="{{ route('borrowing.show', $borrowing->id) }}" class="text-blue-600 hover:text-blue-900 transition font-medium">
                                     Detail
                                 </a>
