@@ -55,10 +55,10 @@
                         </td>
                         <td class="px-4 py-3 text-sm">{{ $borrowing->quantity }}</td>
                         <td class="px-4 py-3 text-sm">
-                            {{ $borrowing->created_at->format('d M Y') }}
+                            {{ $borrowing->created_at->format('d M Y H:i') }}
                         </td>
-                        <td class="px-4 py-3 text-sm">
-                            {{ $borrowing->return_date ? \Carbon\Carbon::parse($borrowing->return_date)->format('d M Y') : '-' }}
+                        <td class="px-4 py-4 whitespace-nowrap text-sm">
+                            {{ $borrowing->return_date ? $borrowing->return_date->format('d M Y') : '-' }}
                         </td>
                         <td class="px-4 py-3 text-xs">
                             @if($borrowing->status == 'pending')

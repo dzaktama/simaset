@@ -30,6 +30,19 @@ class AssetRequest extends Model
         'condition',
         'return_notes'
     ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'request_date' => 'datetime',
+        'return_date' => 'datetime',
+        'borrowed_at' => 'datetime',
+        'returned_at' => 'datetime',
+        'approved_at' => 'datetime',
+    ];
     
     public function user()
     {

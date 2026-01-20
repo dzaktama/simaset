@@ -141,7 +141,7 @@
                             </div>
                         </td>
                         <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {{ $borrowing->created_at ? \Carbon\Carbon::parse($borrowing->created_at)->format('d M Y H:i') : '-' }}
+                            {{ $borrowing->created_at->format('d M Y H:i') }}
                         </td>
                         <td class="px-4 py-4 whitespace-nowrap">
                             @if($borrowing->status == 'pending')

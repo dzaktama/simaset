@@ -168,7 +168,7 @@
                         </div>
                         <div>
                             <p class="font-bold text-gray-900">Permintaan Diajukan</p>
-                            <p class="text-sm text-gray-500">{{ \Carbon\Carbon::parse($borrowing->created_at)->translatedFormat('d F Y, H:i') }}</p>
+                            <p class="text-sm text-gray-500">{{ $borrowing->created_at->translatedFormat('d F Y, H:i') }}</p>
                         </div>
                     </div>
 
@@ -189,7 +189,7 @@
                             @if($borrowing->status == 'pending')
                                 <p class="text-xs text-gray-400 mb-2">Menunggu persetujuan...</p>
                             @elseif($isApproved)
-                                <p class="text-sm text-gray-500">{{ \Carbon\Carbon::parse($borrowing->approved_at ?? $borrowing->updated_at)->translatedFormat('d F Y, H:i') }}</p>
+                                <p class="text-sm text-gray-500">{{ ($borrowing->approved_at ?? $borrowing->updated_at)->translatedFormat('d F Y, H:i') }}</p>
                             @elseif($borrowing->status == 'rejected')
                                 <p class="text-sm text-red-500 italic mt-1">"{{ $borrowing->admin_note }}"</p>
                             @endif
@@ -218,7 +218,7 @@
                         </div>
                         <div>
                             <p class="font-bold {{ $isDone ? 'text-gray-900' : 'text-gray-500' }}">Dikembalikan</p>
-                            @if($isDone) <p class="text-sm text-gray-500">{{ \Carbon\Carbon::parse($borrowing->returned_at)->translatedFormat('d F Y, H:i') }}</p> @endif
+                            @if($isDone) <p class="text-sm text-gray-500">{{ $borrowing->returned_at->translatedFormat('d F Y, H:i') }}</p> @endif
                         </div>
                     </div>
                 </div>
@@ -277,7 +277,7 @@
                     </div>
                     <p class="text-white text-opacity-80 text-sm mt-2">
                         @if($borrowing->status == 'approved' && !$borrowing->returned_at)
-                             Batas Kembali: {{ $borrowing->return_date ? \Carbon\Carbon::parse($borrowing->return_date)->translatedFormat('d M Y') : 'Tidak ditentukan' }}
+                             Batas Kembali: {{ $borrowing->return_date ? $borrowing->return_date->translatedFormat('d M Y') : 'Tidak ditentukan' }}
                         @else
                              Durasi Peminjaman
                         @endif
