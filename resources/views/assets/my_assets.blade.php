@@ -291,10 +291,10 @@
 
     // --- LOGIC RETURN ASET ---
     function openReturnModal(reqId, assetName, assetSN, assetImgUrl, assignedDateRaw) {
-        // PERBAIKAN: Action URL diarahkan ke route borrowing.return
-        // Route: Route::post('/borrowing/{id}/return', ...)
+        // PERBAIKAN: Action URL diarahkan ke route khusus user (borrowing.return_user)
+        // Route: Route::post('/borrowing/{id}/return-user', ...)
         const form = document.getElementById('returnForm');
-        form.action = `/borrowing/${reqId}/return`;
+        form.action = `/borrowing/${reqId}/return-user`;
 
         document.getElementById('returnAssetName').innerText = assetName;
         document.getElementById('returnAssetSN').innerText = assetSN;

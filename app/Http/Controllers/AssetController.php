@@ -91,6 +91,32 @@ class AssetController extends Controller
                 'recentActivities' => AssetHistory::with(['asset', 'user'])->latest()->take(5)->get() // Versi simple untuk view baru
             ]);
 
+        } elseif ($role == 'service_center') {
+             // --- LOGIC SERVICE CENTER ---
+             
+             // Hitung Stats Maintenance
+             $stats = [
+                 'on_process' => \App\Models\Maintenance::where('status', 'on_process')->count(),
+                 'completed_month' => \App\Models\Maintenance::where('status', 'completed')
+                                     ->whereMonth('completion_date', now()->month)
+                                     ->whereYear('completion_date', now()->year)
+                                     ->count(),
+                 'cost_month' => \App\Models\Maintenance::where('status', 'completed')
+                                     ->whereMonth('completion_date', now()->month)
+                                     ->whereYear('completion_date', now()->year)
+                                     ->sum('cost'),
+                 'broken' => Asset::where('status', 'broken')->count(),
+             ];
+
+             // 5 Aktivitas Terbaru
+             $recentMaintenances = \App\Models\Maintenance::with('asset')->latest()->take(5)->get();
+
+             return view('dashboard.service_center_view', [
+                 'title' => 'Dashboard Service Center',
+                 'stats' => $stats,
+                 'recentMaintenances' => $recentMaintenances
+             ]);
+
         } else {
             // --- LOGIC KARYAWAN (DIPERBAIKI) ---
             
@@ -215,58 +241,100 @@ class AssetController extends Controller
             'category' => 'required',
             'quantity' => 'required|integer|min:1',
             'purchase_date' => 'required|date',
+            'purchase_price' => 'nullable|numeric|min:0', // Baru
+            'useful_life_years' => 'nullable|integer|min:1', // Baru
+            'residual_value' => 'nullable|numeric|min:0', // Baru
             'image' => 'nullable|image|max:2048',
             'image2' => 'nullable|image|max:2048',
             'image3' => 'nullable|image|max:2048',
         ]);
 
-        // GENERATE SERIAL NUMBER: AAA-00001
+        // 1. GENERATE PREFIX (AAA)
         // Ambil 3 huruf pertama dari nama aset (Uppercase)
         $prefix = strtoupper(substr(preg_replace('/[^a-zA-Z]/', '', $request->name), 0, 3));
         if (strlen($prefix) < 3) {
             $prefix = strtoupper(str_pad($prefix, 3, 'X')); // Fallback jika nama < 3 huruf
         }
 
-        // Cari nomor urut terakhir untuk prefix ini
+        // 2. CARI URUTAN TERAKHIR (LAST NUMBER)
         $lastAsset = Asset::where('serial_number', 'regexp', "^$prefix-[0-9]{5}$")
                           ->orderBy('serial_number', 'desc')
                           ->first();
 
-        // Tentukan nomor berikutnya
+        // 3. TENTUKAN START NUMBER
+        $startNumber = 1;
         if ($lastAsset) {
             $lastNumber = (int) substr($lastAsset->serial_number, 4);
-            $number = $lastNumber + 1;
-        } else {
-            $number = 1;
+            $startNumber = $lastNumber + 1;
         }
 
-        // Format: AAA-00001
-        $serialNumber = sprintf('%s-%05d', $prefix, $number);
+        // 4. SIAPKAN DATA UMUM
+        // Handle Upload Image Sekali Saja
+        $imageData = [];
+        if ($request->hasFile('image')) $imageData['image'] = $request->file('image')->store('assets', 'public');
+        if ($request->hasFile('image2')) $imageData['image2'] = $request->file('image2')->store('assets', 'public');
+        if ($request->hasFile('image3')) $imageData['image3'] = $request->file('image3')->store('assets', 'public');
 
-        $data = $request->except(['image', 'image2', 'image3']); 
+        $commonData = $request->except(['image', 'image2', 'image3', 'quantity', 'serial_number']);
+        $commonData['status'] = $request->status ?? 'available';
         
-        if ($request->hasFile('image')) $data['image'] = $request->file('image')->store('assets', 'public');
-        if ($request->hasFile('image2')) $data['image2'] = $request->file('image2')->store('assets', 'public');
-        if ($request->hasFile('image3')) $data['image3'] = $request->file('image3')->store('assets', 'public');
-
-        $data['serial_number'] = $serialNumber;
-        $data['status'] = $request->status ?? 'available';
+        // Financial Defaults
+        $commonData['purchase_price'] = $request->purchase_price ?? 0;
+        $commonData['useful_life_years'] = $request->useful_life_years ?? 4;
+        $commonData['residual_value'] = $request->residual_value ?? 0;
         
-        $data['lorong'] = $request->lorong;
-        $data['rak'] = $request->rak;
-        $data['location'] = ($request->lorong ?? '-') . ' - Rak ' . ($request->rak ?? '-');
+        $location = ($request->lorong ?? '-') . ' - Rak ' . ($request->rak ?? '-');
+        $commonData['lorong'] = $request->lorong;
+        $commonData['rak'] = $request->rak;
+        $commonData['location'] = $location;
 
-        $asset = Asset::create($data);
+        // Merge Image Paths
+        $commonData = array_merge($commonData, $imageData);
 
-        // Catat History
-        AssetHistory::create([
-            'asset_id' => $asset->id,
-            'user_id' => auth()->id(),
-            'action' => 'created',
-            'notes' => 'Aset baru ditambahkan ke sistem'
-        ]);
+        // 5. LOOP UNTUK CREATE DATA MASSAL (BULK INSERT)
+        // Jika User input Quantity 10, maka buat 10 record dengan Qty masing-masing 1
+        $inputQty = (int) $request->quantity;
+        $createdSNs = [];
 
-        return redirect()->route('assets.index')->with('success', 'Aset berhasil disimpan! SN: ' . $serialNumber);
+        DB::beginTransaction();
+        try {
+            for ($i = 0; $i < $inputQty; $i++) {
+                $currentNumber = $startNumber + $i;
+                $serialNumber = sprintf('%s-%05d', $prefix, $currentNumber);
+                
+                // Tiap record qty = 1
+                $assetData = $commonData;
+                $assetData['serial_number'] = $serialNumber;
+                $assetData['quantity'] = 1; // FORCE 1
+                
+                $asset = Asset::create($assetData);
+                
+                // Catat History
+                AssetHistory::create([
+                    'asset_id' => $asset->id,
+                    'user_id' => auth()->id(),
+                    'action' => 'created', 
+                    'notes' => 'Aset baru ditambahkan (Bulk Insert #' . ($i + 1) . ')'
+                ]);
+
+                $createdSNs[] = $serialNumber;
+            }
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Gagal menyimpan data: ' . $e->getMessage());
+        }
+
+        $msg = "Aset berhasil disimpan! Total: $inputQty unit.";
+        if ($inputQty == 1) {
+            $msg .= " SN: " . $createdSNs[0];
+        } else {
+            $firstSN = $createdSNs[0];
+            $lastSN = end($createdSNs);
+            $msg .= " Range SN: $firstSN s/d $lastSN";
+        }
+
+        return redirect()->route('assets.index')->with('success', $msg);
     }
 
     /**
@@ -309,7 +377,12 @@ class AssetController extends Controller
             'manual_quantity' => 'nullable|integer|min:1',
             'assigned_date' => 'nullable|date', 
             'return_date' => 'nullable|date',   
+            'assigned_date' => 'nullable|date', 
+            'return_date' => 'nullable|date',   
             'purchase_date' => 'nullable|date',
+            'purchase_price' => 'nullable|numeric|min:0', // Baru
+            'useful_life_years' => 'nullable|integer|min:1', // Baru
+            'residual_value' => 'nullable|numeric|min:0', // Baru
             'description' => 'nullable',
             'condition_notes' => 'nullable',
             'rak' => 'nullable|string', 
@@ -439,11 +512,11 @@ class AssetController extends Controller
      */
     public function scanQrImage($id)
     {
-        if (class_exists('SimpleSoftwareIO\QrCode\Facades\QrCode')) {
-            $qrCode = QrCode::format('png')->size(200)->margin(1)->generate(route('assets.show', $id));
-            return response($qrCode)->header('Content-type','image/png');
-        }
-        return response('QR Library Missing', 404);
+        // Gunakan API Eksternal yang stabil agar gambar selalu muncul (Tanpa dependensi server)
+        $url = route('assets.show', $id);
+        $qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' . urlencode($url);
+        
+        return redirect($qrApiUrl);
     }
 
     /**

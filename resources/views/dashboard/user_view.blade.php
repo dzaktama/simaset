@@ -127,7 +127,7 @@
                         @if($activity->return_date)
                             <span class="text-gray-800 font-medium">{{ \Carbon\Carbon::parse($activity->return_date)->translatedFormat('d M Y') }}</span>
                             <p class="text-xs text-gray-500">
-                                ({{ \Carbon\Carbon::parse($activity->created_at)->diffInDays(\Carbon\Carbon::parse($activity->return_date)) }} Hari)
+                                ({{ \Carbon\Carbon::parse($activity->created_at)->diff(\Carbon\Carbon::parse($activity->return_date))->format('%d Hari %h Jam %i Menit') }})
                             </p>
                         @else
                             <span class="text-gray-400 italic">Tidak ditentukan</span>

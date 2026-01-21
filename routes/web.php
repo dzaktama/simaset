@@ -62,6 +62,7 @@ Route::middleware(['auth'])->group(function () {
     // Note: Service Center TIDAK BOLEH destroy (hapus), nanti diblokir di controller/blade
     Route::middleware(['role:admin,super_admin,service_center'])->group(function() {
         Route::resource('assets', AssetController::class)->except(['index', 'show']);
+        Route::resource('maintenances', App\Http\Controllers\MaintenanceController::class);
     });
 
     // ====================================================

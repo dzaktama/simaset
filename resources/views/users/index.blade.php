@@ -46,8 +46,12 @@
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            @if($user->role == 'admin')
+                            @if($user->role == 'super_admin')
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Super Admin</span>
+                            @elseif($user->role == 'admin')
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">Administrator</span>
+                            @elseif($user->role == 'service_center')
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-orange-100 text-orange-800">Service Center</span>
                             @else
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Karyawan</span>
                             @endif
@@ -171,7 +175,12 @@
             // 1. Set Profil
             document.getElementById('modalUserName').innerText = user.name;
             document.getElementById('modalUserInitial').innerText = user.name.charAt(0).toUpperCase();
-            document.getElementById('modalUserRole').innerText = user.role === 'admin' ? 'Administrator' : 'Karyawan';
+            let roleText = 'Karyawan';
+            if (user.role === 'super_admin') roleText = 'Super Admin';
+            else if (user.role === 'admin') roleText = 'Administrator';
+            else if (user.role === 'service_center') roleText = 'Service Center';
+            
+            document.getElementById('modalUserRole').innerText = roleText;
             document.getElementById('modalUserNIP').innerText = user.employee_id || '-';
             document.getElementById('modalUserEmail').innerText = user.email;
             document.getElementById('modalUserPhone').innerText = user.phone || '-';

@@ -67,6 +67,55 @@
                         </div>
                     </div>
 
+                    {{-- Financial / Depreciation Widget --}}
+                    @if($asset->purchase_price)
+                    <div class="bg-gradient-to-br from-indigo-50 to-white p-6 rounded-xl border border-indigo-100 shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 right-0 -mr-4 -mt-4 w-24 h-24 rounded-full bg-indigo-100 opacity-50 blur-xl"></div>
+                        
+                        <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2 relative z-10">
+                            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                            Valuasi & Depresiasi
+                        </h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+                            {{-- Visual Bar --}}
+                            <div>
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span class="font-medium text-gray-600">Sisa Nilai Buku</span>
+                                    <span class="font-bold text-indigo-700">{{ $asset->depreciation_percentage }}%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-3 mb-4">
+                                    <div class="bg-indigo-600 h-3 rounded-full transition-all duration-1000 ease-out" style="width: {{ $asset->depreciation_percentage }}%"></div>
+                                </div>
+                                <div class="flex justify-between text-xs text-gray-500">
+                                    <span>Beli: {{ \Carbon\Carbon::parse($asset->purchase_date)->format('M Y') }}</span>
+                                    <span>Akhir: {{ \Carbon\Carbon::parse($asset->purchase_date)->addYears($asset->useful_life_years)->format('M Y') }}</span>
+                                </div>
+                            </div>
+                            
+                            {{-- Numbers --}}
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center border-b border-indigo-100 pb-2">
+                                    <span class="text-xs text-gray-500 uppercase">Harga Beli</span>
+                                    <span class="font-bold text-gray-800">Rp {{ number_format($asset->purchase_price, 0, ',', '.') }}</span>
+                                </div>
+                                <div class="flex justify-between items-center border-b border-indigo-100 pb-2">
+                                    <span class="text-xs text-gray-500 uppercase">Nilai Saat Ini</span>
+                                    <span class="font-bold text-indigo-700 text-lg">Rp {{ number_format($asset->current_value, 0, ',', '.') }}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-xs text-gray-500 uppercase">Penyusutan/Bulan</span>
+                                    @php
+                                        $monthlyDep = ($asset->purchase_price - $asset->residual_value) / ($asset->useful_life_years * 12);
+                                        $monthlyDep = $monthlyDep > 0 ? $monthlyDep : 0;
+                                    @endphp
+                                    <span class="font-mono text-xs text-red-500">- Rp {{ number_format($monthlyDep, 0, ',', '.') }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
                     {{-- Description --}}
                     @if ($asset->description)
                     <div>
