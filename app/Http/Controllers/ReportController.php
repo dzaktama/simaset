@@ -89,97 +89,146 @@ class ReportController extends Controller
      */
     public function exportPdf(Request $request)
     {
-        // 1. QUERY DATA
-        $query = Asset::with('holder');
-
-        // Filter Pencarian (Nama / SN)
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('serial_number', 'like', "%{$search}%");
-            });
-        }
-
-        // Filter Kategori (BARU)
-        if ($request->filled('category') && $request->category != 'all') {
-            $query->where('category', $request->category);
-        }
-
-        // Filter Status
-        if ($request->filled('status') && $request->status != 'all') {
-            $query->where('status', $request->status);
-        }
-
-        // Sorting (Logika Lengkap sesuai request)
-        $sort = $request->query('sort', 'newest');
-        switch ($sort) {
-            case 'name_asc': $query->orderBy('name', 'asc'); break;
-            case 'stock_low': $query->orderBy('quantity', 'asc'); break;
-            case 'stock_high': $query->orderBy('quantity', 'desc'); break;
-            case 'oldest': $query->oldest(); break;
-            // Sorting berdasarkan prioritas status
-            case 'status_available': $query->orderByRaw("CASE WHEN status = 'available' THEN 1 ELSE 2 END"); break;
-            case 'status_deployed': $query->orderByRaw("CASE WHEN status = 'deployed' THEN 1 ELSE 2 END"); break;
-            case 'status_maintenance': $query->orderByRaw("CASE WHEN status = 'maintenance' THEN 1 ELSE 2 END"); break;
-            case 'status_broken': $query->orderByRaw("CASE WHEN status = 'broken' THEN 1 ELSE 2 END"); break;
-            default: $query->latest(); break; // newest
-        }
-
-        $assets = $query->get();
-
-        // 2. Convert Images to Base64 (Wajib agar muncul di PDF/Print)
-        $assets->each(function ($asset) {
-            if ($asset->image) {
-                // Cek path, prioritas storage public
-                $imagePath = storage_path('app/public/' . $asset->image);
-                if (file_exists($imagePath)) {
-                    $asset->image_base64 = $this->assetService->fileToBase64($imagePath);
-                } else {
-                    // Fallback jika pakai symbolic link atau path lain
-                    $asset->image_base64 = ''; // Kosongkan jika file fisik tidak ada
-                }
-            } else {
-                $asset->image_base64 = '';
-            }
-        });
-
-        // 3. Siapkan Data untuk View
-        $data = [
-            'assets' => $assets,
+        // LOGIC UMUM: Setup Variabel Dasar
+        $logoPath = public_path('img/logoVitechAsia.png');
+        $logoBase64 = $this->assetService->fileToBase64($logoPath);
+        
+        $commonData = [
             'date' => now()->setTimezone('Asia/Jakarta')->translatedFormat('d F Y'),
             'printTime' => now()->setTimezone('Asia/Jakarta')->format('H:i'),
-            'title' => 'Laporan Aset IT',
-            
-            // Variabel Filter & Config
-            'filterCategory' => $request->category == 'all' ? 'Semua Kategori' : $request->category,
-            'filterStatus' => ucfirst($request->status ?? 'Semua'),
-            'filterSort' => $this->getSortLabel($sort),
-            'filterSearch' => $request->search,
-            'search' => $request->search, // Cadangan agar view tidak error
-            
-            'customTitle' => $request->query('custom_title', 'Laporan Aset IT'),
+            'logoBase64' => $logoBase64,
+            'customTitle' => $request->query('custom_title', 'Laporan'),
             'adminNotes' => $request->query('admin_notes', '-'),
-            'showImages' => $request->query('show_images', 1),
+            'filterStatus' => ucfirst($request->status == 'all' ? 'Semua Status' : $request->status),
             'orientation' => $request->query('orientation', 'portrait'),
-            
-            // Helper Path Gambar Statis (Logo)
-            'logoBase64' => $this->assetService->fileToBase64(public_path('img/logoVitechAsia.png')),
-            'publicPath' => public_path(),
-            'storagePath' => storage_path('app/public')
+            'search' => $request->search,
         ];
 
-        $pdf = Pdf::loadView('pdf.assets_report', $data)
-                  ->setPaper('a4', $data['orientation']);
+        // --- CABANG 1: LAPORAN PEMINJAMAN ---
+        if ($request->type === 'borrowing') {
+            $query = AssetRequest::with(['user', 'asset']);
 
-        // 4. Logic Download vs Preview
-        // Jika ada parameter 'download=1', paksa download file.
+            // Filter Tanggal
+            $startDate = $request->start_date;
+            $endDate = $request->end_date;
+            
+            if ($startDate && $endDate) {
+                $query->whereBetween('created_at', [
+                    $startDate . ' 00:00:00', 
+                    $endDate . ' 23:59:59'
+                ]);
+                $commonData['filterDateRange'] = \Carbon\Carbon::parse($startDate)->format('d/m/Y') . ' - ' . \Carbon\Carbon::parse($endDate)->format('d/m/Y');
+            } else {
+                $commonData['filterDateRange'] = 'Semua Waktu';
+            }
+
+            // Filter Pencarian
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->whereHas('user', fn($u) => $u->where('name', 'like', "%{$search}%"))
+                      ->orWhereHas('asset', fn($a) => $a->where('name', 'like', "%{$search}%")->orWhere('serial_number', 'like', "%{$search}%"));
+                });
+            }
+
+            // Filter Status (Jika ada)
+            if ($request->filled('status') && $request->status != 'all') {
+                // Mapping status jika perlu, atau langsung pakai
+                $query->where('status', $request->status);
+            }
+
+            $requests = $query->latest()->get();
+            
+            $data = array_merge($commonData, [
+                'title' => 'Laporan Riwayat Peminjaman',
+                'requests' => $requests
+            ]);
+
+            $pdf = Pdf::loadView('pdf.borrowing_report', $data)
+                      ->setPaper('a4', $request->query('orientation', 'portrait'));
+
+        } else {
+            // --- CABANG 2: LAPORAN ASET (DEFAULT) ---
+            
+            $query = Asset::with('holder');
+
+            // Filter Pencarian
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('serial_number', 'like', "%{$search}%");
+                });
+            }
+
+            // Filter Kategori
+            if ($request->filled('category') && $request->category != 'all') {
+                $query->where('category', $request->category);
+            }
+
+            // Filter Status
+            if ($request->filled('status') && $request->status != 'all') {
+                $query->where('status', $request->status);
+            }
+
+            // Filter Tanggal (Opsional untuk Aset: Berdasarkan Tanggal Masuk/Deploy?)
+            // Implementasi: Biasanya Laporan Stok adalah Snapshot saat ini, jadi tanggal range kurang relevan kecuali untuk "Aset Masuk".
+            // Namun, jika user mau filter aset yang DIINPUT pada tanggal tertentu:
+            $startDate = $request->start_date;
+            $endDate = $request->end_date;
+            if ($startDate && $endDate) {
+                $query->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+            }
+
+            // Sorting
+            $sort = $request->query('sort', 'newest');
+            switch ($sort) {
+                case 'name_asc': $query->orderBy('name', 'asc'); break;
+                case 'stock_low': $query->orderBy('quantity', 'asc'); break;
+                case 'stock_high': $query->orderBy('quantity', 'desc'); break;
+                case 'oldest': $query->oldest(); break;
+                case 'status_available': $query->orderByRaw("CASE WHEN status = 'available' THEN 1 ELSE 2 END"); break;
+                case 'status_deployed': $query->orderByRaw("CASE WHEN status = 'deployed' THEN 1 ELSE 2 END"); break;
+                case 'status_maintenance': $query->orderByRaw("CASE WHEN status = 'maintenance' THEN 1 ELSE 2 END"); break;
+                case 'status_broken': $query->orderByRaw("CASE WHEN status = 'broken' THEN 1 ELSE 2 END"); break;
+                default: $query->latest(); break;
+            }
+
+            $assets = $query->get();
+
+            // Convert Images Logic
+            $assets->each(function ($asset) {
+                if ($asset->image) {
+                    $imagePath = storage_path('app/public/' . $asset->image);
+                    if (file_exists($imagePath)) {
+                        $asset->image_base64 = $this->assetService->fileToBase64($imagePath);
+                    } else {
+                        $asset->image_base64 = '';
+                    }
+                } else {
+                    $asset->image_base64 = '';
+                }
+            });
+
+            $data = array_merge($commonData, [
+                'title' => 'Laporan Aset IT',
+                'assets' => $assets,
+                'filterCategory' => $request->category == 'all' ? 'Semua Kategori' : $request->category,
+                'filterSort' => $this->getSortLabel($sort),
+                'showImages' => $request->query('show_images', 1),
+            ]);
+
+            $pdf = Pdf::loadView('pdf.assets_report', $data)
+                      ->setPaper('a4', $request->query('orientation', 'portrait'));
+        }
+
+        // OUTPUT
         if ($request->has('download') && $request->download == 1) {
-            $filename = 'Laporan_Aset_' . now()->format('Y-m-d_H-i-s') . '.pdf';
+            $prefix = $request->type === 'borrowing' ? 'Laporan_Peminjaman_' : 'Laporan_Aset_';
+            $filename = $prefix . now()->format('Y-m-d_H-i-s') . '.pdf';
             return $pdf->download($filename);
         }
 
-        // Default: Stream (Preview di Iframe)
         return $pdf->stream('preview.pdf');
     }
 

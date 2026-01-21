@@ -19,15 +19,38 @@
                     
                     {{-- 1. DATA FILTERING --}}
                     <div class="space-y-4">
-                        <label class="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 block pb-1">Filter Data</label>
+                        <label class="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 block pb-1">Tipe & Waktu</label>
                         
+                        {{-- TIPE LAPORAN --}}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Laporan</label>
+                            <select name="type" id="reportType" onchange="toggleFilters(); refreshPreview()" class="w-full rounded-lg border-gray-300 text-sm shadow-sm font-semibold text-indigo-700 bg-indigo-50">
+                                <option value="asset">Laporan Aset (Inventaris)</option>
+                                <option value="borrowing">Laporan Peminjaman (Riwayat)</option>
+                            </select>
+                        </div>
+
+                        {{-- FILTER TANGGAL (RANGE) --}}
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Dari Tanggal</label>
+                                <input type="date" name="start_date" onchange="refreshPreview()" class="w-full rounded-lg border-gray-300 text-sm shadow-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Sampai Tanggal</label>
+                                <input type="date" name="end_date" onchange="refreshPreview()" class="w-full rounded-lg border-gray-300 text-sm shadow-sm">
+                            </div>
+                        </div>
+
+                        <label class="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 block pb-1 mt-4">Filter Detail</label>
+
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Pencarian</label>
-                            <input type="text" name="search" placeholder="Nama aset atau Serial Number..." class="w-full rounded-lg border-gray-300 text-sm focus:ring-indigo-500 shadow-sm" onchange="refreshPreview()"> 
+                            <input type="text" name="search" placeholder="Nama, User, atau SN..." class="w-full rounded-lg border-gray-300 text-sm focus:ring-indigo-500 shadow-sm" onchange="refreshPreview()"> 
                         </div>
 
                         {{-- FILTER KATEGORI (BARU) --}}
-                        <div>
+                        <div id="categoryContainer">
                             <label class="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
                             <select name="category" onchange="refreshPreview()" class="w-full rounded-lg border-gray-300 text-sm shadow-sm">
                                 <option value="all">Semua Kategori</option>
@@ -42,7 +65,7 @@
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                                <select name="status" onchange="refreshPreview()" class="w-full rounded-lg border-gray-300 text-sm shadow-sm">
+                                <select name="status" id="statusSelect" onchange="refreshPreview()" class="w-full rounded-lg border-gray-300 text-sm shadow-sm">
                                     <option value="all">Semua Status</option>
                                     <option value="available">Available</option>
                                     <option value="deployed">Deployed</option>
@@ -86,7 +109,7 @@
                                     <option value="landscape">Landscape (Miring)</option>
                                 </select>
                             </div>
-                            <div class="flex items-center pt-3">
+                            <div class="flex items-center pt-3" id="imagesContainer">
                                 <label class="inline-flex items-center cursor-pointer select-none">
                                     <input type="checkbox" name="show_images" value="1" checked onchange="refreshPreview()" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4">
                                     <span class="ml-2 text-sm text-gray-700 font-medium">Tampilkan Foto</span>
@@ -99,9 +122,16 @@
                             <textarea name="admin_notes" rows="3" onchange="refreshPreview()" class="w-full rounded-lg border-gray-300 text-sm shadow-sm" placeholder="Contoh: Disetujui oleh Manager IT pada tanggal..."></textarea>
                         </div>
                     </div>
+
+                    {{-- TOMBOL DOWNLOAD --}}
+                    <div class="mt-6 pt-4 border-t border-gray-100">
+                        <button type="button" onclick="downloadPdf()" class="w-full flex justify-center items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-lg shadow transition">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            Download PDF Disini
+                        </button>
+                    </div>
                 </form>
             </div>
-            {{-- TOMBOL DELETE DARI SINI (SUDAH DIHAPUS) --}}
         </div>
     </div>
 
@@ -133,6 +163,64 @@
 
 <script>
     const pdfUrl = "{{ route('reports.pdf') }}"; 
+    
+    // Status Options Data
+    const assetStatuses = [
+        {val: 'all', text: 'Semua Status'},
+        {val: 'available', text: 'Available'},
+        {val: 'deployed', text: 'Deployed'},
+        {val: 'maintenance', text: 'Maintenance'},
+        {val: 'broken', text: 'Broken'}
+    ];
+    const borrowingStatuses = [
+        {val: 'all', text: 'Semua Status'},
+        {val: 'pending', text: 'Menunggu Persetujuan'},
+        {val: 'approved', text: 'Sedang Dipinjam'},
+        {val: 'rejected', text: 'Ditolak'},
+        {val: 'returned', text: 'Sudah Dikembalikan'}
+    ];
+
+    function toggleFilters() {
+        const type = document.getElementById('reportType').value;
+        const catContainer = document.getElementById('categoryContainer');
+        const imgContainer = document.getElementById('imagesContainer');
+        const statusSelect = document.getElementById('statusSelect');
+
+        // 1. Toggle Category & Images
+        if (type === 'borrowing') {
+            catContainer.classList.add('hidden');
+            imgContainer.classList.add('hidden');
+            
+            // Swap Status Options to Borrowing
+            updateSelectOptions(statusSelect, borrowingStatuses);
+
+        } else {
+            catContainer.classList.remove('hidden');
+            imgContainer.classList.remove('hidden');
+            
+            // Swap Status Options to Assets
+            updateSelectOptions(statusSelect, assetStatuses);
+        }
+    }
+
+    function updateSelectOptions(select, options) {
+        // Simpan nilai lama jika ada yang cocok
+        const oldVal = select.value;
+
+        select.innerHTML = '';
+        options.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.val;
+            option.innerText = opt.text;
+            select.appendChild(option);
+        });
+
+        // Restore value if possible, else default to 'all'
+        // Cek apakah oldVal ada di opsi baru
+        const exists = options.some(o => o.val === oldVal);
+        if(exists) select.value = oldVal;
+        else select.value = 'all';
+    }
 
     function refreshPreview() {
         const form = document.getElementById('reportForm');
@@ -159,7 +247,21 @@
         };
     }
 
-    document.addEventListener('DOMContentLoaded', refreshPreview);
+    function downloadPdf() {
+        const form = document.getElementById('reportForm');
+        const formData = new FormData(form);
+        // Tambahkan parameter download
+        formData.append('download', '1');
+        const queryString = new URLSearchParams(formData).toString();
+        
+        // Buka di tab baru / trigger download
+        window.location.href = `${pdfUrl}?${queryString}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        toggleFilters(); // Set initial state
+        refreshPreview();
+    });
 </script>
 
 <style>
