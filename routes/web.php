@@ -41,7 +41,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/charts/asset-stats', [AssetController::class, 'chartsData'])->name('charts.assets'); // Dipakai di dashboard
     Route::get('/charts/borrow-stats', [AssetController::class, 'borrowStats'])->name('charts.borrows');
     
-    // Lihat Katalog & Peta
+    // Lihat Katalog & Peta (Akses Semua User)
+    Route::get('/assets', [AssetController::class, 'index'])->name('assets.index');
+    Route::get('/assets/{asset}', [AssetController::class, 'show'])->where('asset', '[0-9]+')->name('assets.show');
     Route::get('/assets/map', [AssetController::class, 'locationMap'])->name('assets.map');
     Route::get('/assets/my', [AssetController::class, 'myAssets'])->name('assets.my'); 
     Route::get('/assets/{id}/scan-qr-image', [AssetController::class, 'scanQrImage'])->name('assets.scan_image');
@@ -50,6 +52,7 @@ Route::middleware(['auth'])->group(function () {
     // Transaksi Peminjaman (User)
     Route::post('/borrowing', [BorrowingController::class, 'store'])->name('borrowing.store');
     Route::get('/borrowing/history', [BorrowingController::class, 'userHistory'])->name('borrowing.history');
+    Route::get('/borrowing/{id}', [BorrowingController::class, 'show'])->name('borrowing.show'); // Detail Shared
     Route::post('/borrowing/{id}/return-user', [BorrowingController::class, 'returnAsset'])->name('borrowing.return_user');
 
     // ====================================================
@@ -58,7 +61,7 @@ Route::middleware(['auth'])->group(function () {
     // Boleh: Create, Edit, Update, Index, Show
     // Note: Service Center TIDAK BOLEH destroy (hapus), nanti diblokir di controller/blade
     Route::middleware(['role:admin,super_admin,service_center'])->group(function() {
-        Route::resource('assets', AssetController::class);
+        Route::resource('assets', AssetController::class)->except(['index', 'show']);
     });
 
     // ====================================================
@@ -70,7 +73,7 @@ Route::middleware(['auth'])->group(function () {
         
         // Approval & Manajemen Peminjaman
         Route::get('/borrowing', [BorrowingController::class, 'index'])->name('borrowing.index');
-        Route::get('/borrowing/{id}', [BorrowingController::class, 'show'])->name('borrowing.show'); // Detail Admin
+        // Route borrowing/{id} moved to general group (line 52)
         Route::post('/borrowing/{id}/approve', [BorrowingController::class, 'approve'])->name('borrowing.approve');
         Route::post('/borrowing/{id}/reject', [BorrowingController::class, 'reject'])->name('borrowing.reject');
         Route::post('/borrowing/{id}/return', [BorrowingController::class, 'returnAsset'])->name('borrowing.return');

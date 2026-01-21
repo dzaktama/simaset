@@ -4,8 +4,13 @@
         <div class="bg-gradient-to-r from-indigo-600 to-blue-600 px-6 py-4 text-white">
             <div class="flex items-center justify-between">
                 <div>
-                    <h3 class="text-lg font-bold" id="chartTitle">📊 Tren Peminjaman Aset</h3>
-                    <p class="text-sm text-indigo-100 mt-1" id="chartDescription">Menampilkan jumlah aset yang diminta per periode</p>
+                    <h3 class="text-lg font-bold flex items-center gap-2">
+                        <svg class="w-6 h-6 text-indigo-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                        </svg>
+                        <span id="chartTitle">Tren Peminjaman Aset</span>
+                    </h3>
+                    <p class="text-sm text-indigo-100 mt-1 pl-8" id="chartDescription">Menampilkan jumlah aset yang diminta per periode</p>
                 </div>
                 <div class="flex items-center gap-2">
                     <button id="prevChart" class="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition transform hover:scale-110">
@@ -49,8 +54,9 @@
         </div>
 
         {{-- Info Footer --}}
-        <div class="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-600">
-            <span id="chartInfo">📌 Geser atau klik tombol navigasi untuk melihat grafik lainnya</span>
+        <div class="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-600 flex items-center gap-2">
+            <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span id="chartInfo">Geser atau klik tombol navigasi untuk melihat grafik lainnya</span>
         </div>
     </div>
 

@@ -11,48 +11,55 @@
                     <svg class="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
                     Konfigurasi Laporan
                 </h2>
-                <p class="text-xs text-gray-500 mt-1">Gunakan tombol print/download di dalam preview.</p>
+                <p class="text-xs text-gray-500 mt-1">Atur filter di bawah untuk menghasilkan laporan PDF.</p>
             </div>
 
             <div class="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6">
-                <form id="reportForm">
+                <form id="reportForm" class="space-y-6">
                     
-                    {{-- 1. DATA FILTERING --}}
-                    <div class="space-y-4">
-                        <label class="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 block pb-1">Tipe & Waktu</label>
+                    {{-- SECTION 1: JENIS LAPORAN --}}
+                    <div>
+                        <label class="block text-sm font-bold text-gray-800 mb-2">Jenis Laporan</label>
+                        <select name="type" id="reportType" onchange="toggleFilters(); refreshPreview()" class="block w-full px-4 py-3 text-base border-2 border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-lg shadow-sm transition ease-in-out duration-150 font-medium text-gray-900 bg-white">
+                            <option value="asset">Laporan Inventaris Aset</option>
+                            <option value="borrowing">Laporan Riwayat Peminjaman</option>
+                        </select>
+                    </div>
+
+                    {{-- SECTION 2: WAKTU --}}
+                    <div id="dateFilterSection" class="hidden space-y-4 pt-4 border-t border-gray-100">
+                        <label class="block text-sm font-bold text-gray-800">Periode Waktu</label>
                         
-                        {{-- TIPE LAPORAN --}}
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Laporan</label>
-                            <select name="type" id="reportType" onchange="toggleFilters(); refreshPreview()" class="w-full rounded-lg border-gray-300 text-sm shadow-sm font-semibold text-indigo-700 bg-indigo-50">
-                                <option value="asset">Laporan Aset (Inventaris)</option>
-                                <option value="borrowing">Laporan Peminjaman (Riwayat)</option>
-                            </select>
+                        <div class="grid grid-cols-3 gap-3">
+                            <button type="button" onclick="setPreset('this_month')" class="flex items-center justify-center px-4 py-2 border-2 border-gray-300 shadow-sm text-xs font-bold rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Bulan Ini</button>
+                            <button type="button" onclick="setPreset('last_month')" class="flex items-center justify-center px-4 py-2 border-2 border-gray-300 shadow-sm text-xs font-bold rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Bulan Lalu</button>
+                            <button type="button" onclick="setPreset('this_year')" class="flex items-center justify-center px-4 py-2 border-2 border-gray-300 shadow-sm text-xs font-bold rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Tahun Ini</button>
                         </div>
 
-                        {{-- FILTER TANGGAL (RANGE) --}}
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Dari Tanggal</label>
-                                <input type="date" name="start_date" onchange="refreshPreview()" class="w-full rounded-lg border-gray-300 text-sm shadow-sm">
+                                <label for="start_date" class="block text-xs font-bold text-gray-500 uppercase mb-1">Dari Tanggal</label>
+                                <input type="date" name="start_date" id="start_date" onchange="refreshPreview()" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-2 border-gray-300 rounded-lg py-2 px-3 font-medium text-gray-900">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Sampai Tanggal</label>
-                                <input type="date" name="end_date" onchange="refreshPreview()" class="w-full rounded-lg border-gray-300 text-sm shadow-sm">
+                                <label for="end_date" class="block text-xs font-bold text-gray-500 uppercase mb-1">Sampai Tanggal</label>
+                                <input type="date" name="end_date" id="end_date" onchange="refreshPreview()" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-2 border-gray-300 rounded-lg py-2 px-3 font-medium text-gray-900">
                             </div>
                         </div>
+                    </div>
 
-                        <label class="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 block pb-1 mt-4">Filter Detail</label>
-
+                    {{-- SECTION 3: FILTER DETAIL --}}
+                    <div class="space-y-4 pt-4 border-t border-gray-100">
+                        <label class="block text-sm font-bold text-gray-800">Filter Detail</label>
+                        
+                        {{-- Search --}}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Pencarian</label>
-                            <input type="text" name="search" placeholder="Nama, User, atau SN..." class="w-full rounded-lg border-gray-300 text-sm focus:ring-indigo-500 shadow-sm" onchange="refreshPreview()"> 
+                             <input type="text" name="search" placeholder="Cari data (Nama, Serial Number)..." class="focus:ring-indigo-500 focus:border-indigo-500 block w-full px-4 text-sm border-2 border-gray-300 rounded-lg py-3 font-medium text-gray-900 shadow-sm" onchange="refreshPreview()"> 
                         </div>
 
-                        {{-- FILTER KATEGORI (BARU) --}}
+                        {{-- Kategori --}}
                         <div id="categoryContainer">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
-                            <select name="category" onchange="refreshPreview()" class="w-full rounded-lg border-gray-300 text-sm shadow-sm">
+                            <select name="category" onchange="refreshPreview()" class="mt-1 block w-full px-3 py-2.5 text-base border-2 border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-lg font-medium text-gray-900">
                                 <option value="all">Semua Kategori</option>
                                 @if(isset($categories))
                                     @foreach($categories as $cat)
@@ -62,73 +69,71 @@
                             </select>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-2 gap-4">
+                            {{-- Status --}}
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                                <select name="status" id="statusSelect" onchange="refreshPreview()" class="w-full rounded-lg border-gray-300 text-sm shadow-sm">
-                                    <option value="all">Semua Status</option>
-                                    <option value="available">Available</option>
-                                    <option value="deployed">Deployed</option>
-                                    <option value="maintenance">Maintenance</option>
-                                    <option value="broken">Broken</option>
+                                <select name="status" id="statusSelect" onchange="refreshPreview()" class="mt-1 block w-full px-3 py-2.5 text-base border-2 border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-lg font-medium text-gray-900">
+                                    {{-- Options filled by JS --}}
                                 </select>
                             </div>
+                            {{-- Sort --}}
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Urutan</label>
-                                <select name="sort" onchange="refreshPreview()" class="w-full rounded-lg border-gray-300 text-sm shadow-sm">
-                                    <option value="newest">Terbaru (Default)</option>
+                                <select name="sort" onchange="refreshPreview()" class="mt-1 block w-full px-3 py-2.5 text-base border-2 border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-lg font-medium text-gray-900">
+                                    <option value="newest">Terbaru</option>
                                     <option value="oldest">Terlama</option>
-                                    <option value="name_asc">Nama (A-Z)</option>
-                                    <option value="stock_low">Stok Paling Sedikit</option>
-                                    <option value="stock_high">Stok Paling Banyak</option>
-                                    <optgroup label="Berdasarkan Status">
-                                        <option value="status_available">Available Dulu</option>
-                                        <option value="status_deployed">Deployed Dulu</option>
-                                        <option value="status_maintenance">Maintenance Dulu</option>
-                                        <option value="status_broken">Broken Dulu</option>
+                                    <option value="name_asc">Nama A-Z</option>
+                                    <optgroup label="Stok">
+                                        <option value="stock_low">Stok Minim</option>
+                                        <option value="stock_high">Stok Banyak</option>
+                                    </optgroup>
+                                    <optgroup label="Prioritas Status">
+                                        <option value="status_available">Available</option>
+                                        <option value="status_deployed">Deployed</option>
+                                        <option value="status_maintenance">Maintenance</option>
+                                        <option value="status_broken">Broken</option>
                                     </optgroup>
                                 </select>
                             </div>
                         </div>
                     </div>
 
-                    {{-- 2. LAYOUT & TAMPILAN --}}
-                    <div class="space-y-4 mt-6">
-                        <label class="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 block pb-1">Tampilan PDF</label>
+                    {{-- DOWNLOAD & OPTIONS --}}
+                    <div class="pt-6 border-t border-gray-100">
+                        <button type="button" onclick="downloadPdf()" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+                            <svg class="mr-2 -ml-1 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            Download PDF Report
+                        </button>
+                    </div>
+
+                    {{-- ADVANCED OPTIONS (Always Visible) --}}
+                    <div id="advancedOptions" class="space-y-4 pt-6 border-t border-gray-100">
+                        <label class="block text-sm font-bold text-gray-800">Kustomisasi Layout</label>
                         
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Judul Dokumen</label>
-                            <input type="text" name="custom_title" value="Laporan Inventaris Aset IT" class="w-full rounded-lg border-gray-300 text-sm shadow-sm" onchange="refreshPreview()">
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Judul Laporan</label>
+                            <input type="text" name="custom_title" value="Laporan Aset" class="focus:ring-indigo-500 focus:border-indigo-500 block w-full px-4 text-sm border-2 border-gray-300 rounded-lg py-2.5 font-medium text-gray-900 shadow-sm" onchange="refreshPreview()">
                         </div>
 
-                        <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200">
+                        <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs font-bold text-gray-500 mb-1">Orientasi Kertas</label>
-                                <select name="orientation" onchange="refreshPreview()" class="rounded border-gray-300 text-xs py-1 shadow-sm w-32">
+                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Orientasi</label>
+                                <select name="orientation" onchange="refreshPreview()" class="block w-full px-3 py-2.5 text-base border-2 border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-lg font-medium text-gray-900">
                                     <option value="portrait">Portrait (Tegak)</option>
                                     <option value="landscape">Landscape (Miring)</option>
                                 </select>
                             </div>
-                            <div class="flex items-center pt-3" id="imagesContainer">
-                                <label class="inline-flex items-center cursor-pointer select-none">
-                                    <input type="checkbox" name="show_images" value="1" checked onchange="refreshPreview()" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4">
-                                    <span class="ml-2 text-sm text-gray-700 font-medium">Tampilkan Foto</span>
+                            <div id="imagesContainer" class="flex items-center pt-6">
+                                <label class="inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" name="show_images" value="1" checked onchange="refreshPreview()" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 h-5 w-5">
+                                    <span class="ml-2 text-sm font-medium text-gray-700">Sertakan Foto</span>
                                 </label>
                             </div>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Catatan Kaki (Footer)</label>
-                            <textarea name="admin_notes" rows="3" onchange="refreshPreview()" class="w-full rounded-lg border-gray-300 text-sm shadow-sm" placeholder="Contoh: Disetujui oleh Manager IT pada tanggal..."></textarea>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Catatan Kaki (Footer)</label>
+                            <textarea name="admin_notes" rows="2" onchange="refreshPreview()" class="focus:ring-indigo-500 focus:border-indigo-500 block w-full px-4 text-sm border-2 border-gray-300 rounded-lg py-2.5 font-medium text-gray-900 shadow-sm" placeholder="Contoh: Mengetahui, Kepala Bagian IT..."></textarea>
                         </div>
-                    </div>
-
-                    {{-- TOMBOL DOWNLOAD --}}
-                    <div class="mt-6 pt-4 border-t border-gray-100">
-                        <button type="button" onclick="downloadPdf()" class="w-full flex justify-center items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-lg shadow transition">
-                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                            Download PDF Disini
-                        </button>
                     </div>
                 </form>
             </div>
@@ -147,8 +152,11 @@
 
             {{-- Toolbar Info --}}
             <div class="bg-gray-700 text-white px-4 py-2 flex justify-between items-center text-xs font-mono shadow-md z-10">
-                <span>PREVIEW MODE</span>
-                <span id="page-info">A4 Portrait</span>
+                <span class="font-bold flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    LIVE PREVIEW
+                </span>
+                <span id="page-info" class="bg-gray-600 px-2 py-0.5 rounded">A4 Portrait</span>
             </div>
 
             {{-- Iframe Preview --}}
@@ -185,28 +193,27 @@
         const catContainer = document.getElementById('categoryContainer');
         const imgContainer = document.getElementById('imagesContainer');
         const statusSelect = document.getElementById('statusSelect');
+        const dateSection = document.getElementById('dateFilterSection');
 
-        // 1. Toggle Category & Images
+        // 1. Toggle Filter Visibility
         if (type === 'borrowing') {
             catContainer.classList.add('hidden');
             imgContainer.classList.add('hidden');
+            dateSection.classList.remove('hidden'); // Show Date for Borrowing
             
-            // Swap Status Options to Borrowing
             updateSelectOptions(statusSelect, borrowingStatuses);
 
         } else {
             catContainer.classList.remove('hidden');
             imgContainer.classList.remove('hidden');
+            dateSection.classList.add('hidden'); // Hide Date for Asset (Optional)
             
-            // Swap Status Options to Assets
             updateSelectOptions(statusSelect, assetStatuses);
         }
     }
 
     function updateSelectOptions(select, options) {
-        // Simpan nilai lama jika ada yang cocok
         const oldVal = select.value;
-
         select.innerHTML = '';
         options.forEach(opt => {
             const option = document.createElement('option');
@@ -214,12 +221,44 @@
             option.innerText = opt.text;
             select.appendChild(option);
         });
-
-        // Restore value if possible, else default to 'all'
-        // Cek apakah oldVal ada di opsi baru
         const exists = options.some(o => o.val === oldVal);
-        if(exists) select.value = oldVal;
-        else select.value = 'all';
+        select.value = exists ? oldVal : 'all';
+    }
+
+
+
+    function setPreset(preset) {
+        const startEl = document.getElementById('start_date');
+        const endEl = document.getElementById('end_date');
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth();
+
+        let start, end;
+
+        if (preset === 'this_month') {
+            start = new Date(year, month, 1);
+            end = new Date(year, month + 1, 0);
+        } else if (preset === 'last_month') {
+            start = new Date(year, month - 1, 1);
+            end = new Date(year, month, 0);
+        } else if (preset === 'this_year') {
+            start = new Date(year, 0, 1);
+            end = new Date(year, 11, 31);
+        }
+
+        // Format to YYYY-MM-DD
+        const formatDate = (d) => {
+            let mo = d.getMonth() + 1;
+            let da = d.getDate();
+            return `${d.getFullYear()}-${mo < 10 ? '0'+mo : mo}-${da < 10 ? '0'+da : da}`;
+        };
+
+        if(start && end) {
+            startEl.value = formatDate(start);
+            endEl.value = formatDate(end);
+            refreshPreview();
+        }
     }
 
     function refreshPreview() {
@@ -231,7 +270,6 @@
         const loading = document.getElementById('loading-overlay');
         const pageInfo = document.getElementById('page-info');
         
-        // Update tampilan ukuran iframe
         const orient = formData.get('orientation');
         pageInfo.innerText = orient === 'landscape' ? 'A4 Landscape' : 'A4 Portrait';
         iframe.style.width = orient === 'landscape' ? '297mm' : '210mm';
@@ -239,7 +277,6 @@
 
         loading.classList.remove('hidden');
         
-        // Tambahkan timestamp untuk menghindari cache browser
         iframe.src = `${pdfUrl}?${queryString}&t=${new Date().getTime()}`;
 
         iframe.onload = function() {
@@ -250,16 +287,12 @@
     function downloadPdf() {
         const form = document.getElementById('reportForm');
         const formData = new FormData(form);
-        // Tambahkan parameter download
         formData.append('download', '1');
-        const queryString = new URLSearchParams(formData).toString();
-        
-        // Buka di tab baru / trigger download
-        window.location.href = `${pdfUrl}?${queryString}`;
+        window.location.href = `${pdfUrl}?${new URLSearchParams(formData).toString()}`;
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        toggleFilters(); // Set initial state
+        toggleFilters();
         refreshPreview();
     });
 </script>

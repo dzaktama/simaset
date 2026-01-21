@@ -11,13 +11,13 @@
         </div>
         
         <div class="flex gap-2">
-            @if(auth()->user()->role == 'admin')
+            @if(in_array(auth()->user()->role, ['admin', 'super_admin']))
             <a href="{{ route('assets.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg flex items-center gap-2 transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 Tambah Aset
             </a>
             @endif
-            @if(auth()->user()->role === 'admin')
+            @if(in_array(auth()->user()->role, ['admin', 'super_admin']))
                 <a href="{{ route('assets.map') }}" class="inline-flex items-center justify-center w-full px-4 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-purple-600 border border-transparent rounded-lg active:bg-purple-600 hover:bg-purple-700 focus:outline-none focus:shadow-outline-purple">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
@@ -109,9 +109,7 @@
                             {{-- Kolom 3: Status & Stok --}}
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-2 mb-1">
-                                    @if ($asset->quantity == 0)
-                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">Habis</span>
-                                    @elseif ($asset->status === 'available')
+                                    @if ($asset->status === 'available')
                                         <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">Available</span>
                                     @elseif ($asset->status === 'deployed')
                                         <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">Deployed</span>
@@ -154,7 +152,7 @@
                                         Detail
                                     </button>
 
-                                    @if(auth()->user()->role === 'admin')
+                                    @if(in_array(auth()->user()->role, ['admin', 'super_admin']))
                                         {{-- Tombol Edit --}}
                                         <a href="{{ route('assets.edit', $asset->id) }}" class="p-2 bg-yellow-50 text-yellow-600 rounded-lg hover:bg-yellow-100 border border-yellow-200 transition" title="Edit">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
@@ -437,7 +435,7 @@
             const retTime = asset.return_date ? formatDateID(asset.return_date) : 'Jangka Panjang';
             
             // Tampilkan Tombol Booking
-            if(authRole !== 'admin') {
+            if(authRole !== 'admin' && authRole !== 'super_admin') {
                 if(btnBooking) btnBooking.classList.remove('hidden');
             }
 
@@ -457,7 +455,7 @@
             st.classList.add('bg-green-100', 'text-green-800');
             
             // Tampilkan Tombol Pinjam
-            if(authRole !== 'admin' && asset.quantity > 0) {
+            if(authRole !== 'admin' && authRole !== 'super_admin' && asset.quantity > 0) {
                 if(btnPinjam) btnPinjam.classList.remove('hidden');
             }
 

@@ -19,8 +19,8 @@ class BorrowingController extends Controller
      */
     public function index(Request $request)
     {
-        // Security check: Hanya admin
-        if (auth()->user()->role !== 'admin') {
+        // Security check: Hanya admin & super_admin
+        if (!in_array(auth()->user()->role, ['admin', 'super_admin'])) {
             abort(403, 'Akses ditolak. Halaman ini khusus Admin.');
         }
 
@@ -148,7 +148,9 @@ class BorrowingController extends Controller
         $borrowing = AssetRequest::with(['user', 'asset'])->findOrFail($id);
 
         // Security Check
-        if (auth()->user()->role !== 'admin' && $borrowing->user_id !== auth()->id()) {
+        // Admin, Super Admin, dan Service Center boleh lihat SEMUA.
+        // User biasa HANYA boleh lihat punya sendiri.
+        if (!in_array(auth()->user()->role, ['admin', 'super_admin', 'service_center']) && $borrowing->user_id !== auth()->id()) {
             abort(403, 'Akses Ditolak: Anda tidak berhak melihat data peminjaman ini.');
         }
 
@@ -206,7 +208,7 @@ class BorrowingController extends Controller
      */
     public function approve($id)
     {
-        if (auth()->user()->role !== 'admin') abort(403);
+        if (!in_array(auth()->user()->role, ['admin', 'super_admin'])) abort(403);
 
         try {
             DB::beginTransaction();
@@ -256,7 +258,7 @@ class BorrowingController extends Controller
      */
     public function reject(Request $request, $id)
     {
-        if (auth()->user()->role !== 'admin') abort(403);
+        if (!in_array(auth()->user()->role, ['admin', 'super_admin'])) abort(403);
 
         $request->validate(['admin_note' => 'required|string|max:500']);
 
@@ -328,7 +330,7 @@ class BorrowingController extends Controller
             $borrowing = AssetRequest::with('asset')->findOrFail($id);
 
             // Security: Cek kepemilikan
-            if (auth()->user()->role !== 'admin' && $borrowing->user_id !== auth()->id()) {
+            if (!in_array(auth()->user()->role, ['admin', 'super_admin']) && $borrowing->user_id !== auth()->id()) {
                 abort(403);
             }
 

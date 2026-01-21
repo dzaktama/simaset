@@ -110,8 +110,8 @@
         let currentSlide = 0;
 
         const slides = [
-            { id: 0, title: '📊 Tren Peminjaman Aset', description: 'Menampilkan jumlah aset yang diminta per periode' },
-            { id: 1, title: '📈 Tren Penambahan Aset', description: 'Menampilkan pertambahan aset yang didaftarkan per periode' }
+            { id: 0, title: 'Tren Peminjaman Aset', description: 'Menampilkan jumlah aset yang diminta per periode' },
+            { id: 1, title: 'Tren Penambahan Aset', description: 'Menampilkan pertambahan aset yang didaftarkan per periode' }
         ];
 
         function updateCarousel() {
@@ -149,8 +149,8 @@
                     data: {
                         labels: borrowJson.series.labels,
                         datasets: [
-                            { label: '✅ Disetujui', data: borrowJson.series.approved, fill: true, backgroundColor: 'rgba(34,197,94,0.1)', borderColor: 'rgba(34,197,94,1)', borderWidth: 2.5, tension: 0.4 },
-                            { label: '❌ Ditolak', data: borrowJson.series.rejected, fill: true, backgroundColor: 'rgba(239,68,68,0.1)', borderColor: 'rgba(239,68,68,1)', borderWidth: 2.5, tension: 0.4 }
+                            { label: 'Disetujui', data: borrowJson.series.approved, fill: true, backgroundColor: 'rgba(34,197,94,0.1)', borderColor: 'rgba(34,197,94,1)', borderWidth: 2.5, tension: 0.4 },
+                            { label: 'Ditolak', data: borrowJson.series.rejected, fill: true, backgroundColor: 'rgba(239,68,68,0.1)', borderColor: 'rgba(239,68,68,1)', borderWidth: 2.5, tension: 0.4 }
                         ]
                     },
                     options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
