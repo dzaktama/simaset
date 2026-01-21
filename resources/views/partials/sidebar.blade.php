@@ -35,6 +35,12 @@
                 <span>Dashboard</span>
             </a>
 
+            {{-- Chat Menu --}}
+            <a href="{{ route('chat.index') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('chat.*') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
+                <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('chat.*') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                <span>Pesan & Diskusi</span>
+            </a>
+
             {{-- MENU OPERASIONAL (Admin, Super Admin, Service Center) --}}
             @if(in_array(auth()->user()->role, ['admin', 'super_admin', 'service_center']))
                 <div class="mt-6 mb-2 px-3"><div class="h-px bg-gray-200 mb-2"></div><p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Operasional</p></div>

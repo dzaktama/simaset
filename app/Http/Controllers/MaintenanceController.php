@@ -36,12 +36,23 @@ class MaintenanceController extends Controller
         
         // Hanya aset yang statusnya 'available' atau 'broken' yang bisa diservis (Logic bebas)
         // Tapi sementara kita izinkan semua kecuali yang sedang maintenance
-        $assets = Asset::where('status', '!=', 'maintenance')->get();
+        $assets = Asset::with('holder')->where('status', '!=', 'maintenance')->get();
 
         return view('maintenances.create', [
             'title' => 'Input Perbaikan Baru',
             'assets' => $assets,
             'selectedAsset' => $asset
+        ]);
+    }
+
+    /**
+     * Display the specified maintenance record.
+     */
+    public function show(Maintenance $maintenance)
+    {
+        return view('maintenances.show', [
+            'title' => 'Detail Perbaikan',
+            'maintenance' => $maintenance->load('asset.holder')
         ]);
     }
 

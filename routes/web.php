@@ -49,6 +49,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/assets/{id}/scan-qr-image', [AssetController::class, 'scanQrImage'])->name('assets.scan_image');
     Route::get('/assets/scan/{asset}', [AssetController::class, 'scanQr'])->name('assets.scan');
 
+    // Internal Chat
+    Route::get('/chat', [App\Http\Controllers\ChatController::class, 'index'])->name('chat.index');
+    Route::get('/chat/conversation/{userId}', [App\Http\Controllers\ChatController::class, 'getConversation'])->name('chat.get');
+    Route::post('/chat/send', [App\Http\Controllers\ChatController::class, 'sendMessage'])->name('chat.send');
+
     // Transaksi Peminjaman (User)
     Route::post('/borrowing', [BorrowingController::class, 'store'])->name('borrowing.store');
     Route::get('/borrowing/history', [BorrowingController::class, 'userHistory'])->name('borrowing.history');

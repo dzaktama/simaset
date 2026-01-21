@@ -184,7 +184,7 @@ class AssetController extends Controller
             'sort' => $request->sort ?? 'latest'
         ];
 
-        $assets = $this->assetService->buildAssetQuery($filters)->paginate(10)->withQueryString();
+        $assets = $this->assetService->buildAssetQuery($filters)->paginate(1000)->withQueryString();
         
         $categories = $this->assetService->getCategories();
 
