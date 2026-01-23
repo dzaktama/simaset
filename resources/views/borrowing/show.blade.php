@@ -367,66 +367,89 @@
 </div>
 
 {{-- MODAL RETURN (PENGEMBALIAN) --}}
-<div id="returnModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg shadow-xl max-w-md w-full animate-fade-in-down">
-        <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-center justify-between rounded-t-lg">
-            <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3"></path>
-                </svg>
-                Kembalikan Aset
-            </h3>
-            <button type="button" onclick="closeReturnModal()" class="text-white hover:text-blue-100">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-            </button>
-        </div>
+<div id="returnModal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        {{-- Background overlay --}}
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onclick="closeReturnModal()"></div>
 
-        <form id="returnForm" method="POST" action="{{ route('borrowing.return', $borrowing->id) }}" class="p-6">
-            @csrf
-            
-            <div class="mb-6">
-                <label class="block text-sm font-semibold text-gray-900 mb-3">Kondisi Aset</label>
-                <div class="space-y-3">
-                    <label class="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-green-50 transition">
-                        <input type="radio" name="condition" value="good" class="h-4 w-4 text-green-600" required>
-                        <span class="ml-3">
-                            <span class="block text-sm font-medium text-gray-900">Baik</span>
-                            <span class="text-xs text-gray-500">Tidak ada kerusakan</span>
-                        </span>
-                    </label>
-                    <label class="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-yellow-50 transition">
-                        <input type="radio" name="condition" value="minor_damage" class="h-4 w-4 text-yellow-600" required>
-                        <span class="ml-3">
-                            <span class="block text-sm font-medium text-gray-900">Kerusakan Ringan</span>
-                            <span class="text-xs text-gray-500">Fungsi masih normal</span>
-                        </span>
-                    </label>
-                    <label class="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-red-50 transition">
-                        <input type="radio" name="condition" value="major_damage" class="h-4 w-4 text-red-600" required>
-                        <span class="ml-3">
-                            <span class="block text-sm font-medium text-gray-900">Kerusakan Berat</span>
-                            <span class="text-xs text-gray-500">Perlu perbaikan</span>
-                        </span>
-                    </label>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+        <div class="relative inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <form id="returnForm" method="POST" action="{{ in_array(auth()->user()->role, ['admin', 'super_admin']) ? route('borrowing.return', $borrowing->id) : route('borrowing.return_user', $borrowing->id) }}">
+                @csrf
+                
+                {{-- Header --}}
+                <div class="bg-white px-6 pt-6 pb-2">
+                    <h3 class="text-xl font-extrabold text-gray-900" id="modal-title">Form Pengembalian Aset</h3>
+                    <p class="text-sm text-gray-500 mt-1">Pastikan kondisi barang sesuai sebelum dikembalikan.</p>
                 </div>
-            </div>
 
-            <div class="mb-6">
-                <label class="block text-sm font-semibold text-gray-900 mb-2">Catatan</label>
-                <textarea name="notes" rows="3" placeholder="Jelaskan kondisi aset atau kerusakan yang ditemukan..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"></textarea>
-            </div>
+                <div class="px-6 py-4">
+                    {{-- Asset Preview Card --}}
+                    <div class="flex items-center gap-4 bg-indigo-50 p-4 rounded-xl border border-indigo-100 mb-6">
+                        <div class="h-16 w-16 rounded-lg bg-white border border-indigo-200 flex-shrink-0 overflow-hidden flex items-center justify-center relative">
+                            @if($borrowing->asset->image)
+                                <img src="{{ asset('storage/' . $borrowing->asset->image) }}" class="w-full h-full object-cover" alt="{{ $borrowing->asset->name }}">
+                            @else
+                                <svg class="h-8 w-8 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            @endif
+                        </div>
+                        <div class="overflow-hidden">
+                            <p class="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-0.5">Barang yang dikembalikan</p>
+                            <h4 class="text-base font-bold text-gray-900 truncate leading-tight">{{ $borrowing->asset->name }}</h4>
+                            <p class="text-xs text-gray-500 font-mono mt-0.5">{{ $borrowing->asset->serial_number }}</p>
+                        </div>
+                    </div>
 
-            <div class="flex gap-3">
-                <button type="button" onclick="closeReturnModal()" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition">
-                    Batal
-                </button>
-                <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition">
-                    Konfirmasi
-                </button>
-            </div>
-        </form>
+                    <div class="space-y-5">
+
+
+                        {{-- Kondisi --}}
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1.5">Kondisi Barang Saat Ini</label>
+                            <div class="relative">
+                                <select name="condition" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm appearance-none pl-3 pr-10" required>
+                                    <option value="" disabled selected>-- Pilih Kondisi --</option>
+                                    <option value="good">Baik (Layak Pakai)</option>
+                                    <option value="minor_damage">Rusak Ringan</option>
+                                    <option value="major_damage">Rusak Berat</option>
+                                </select>
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Catatan --}}
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1.5">Catatan Tambahan</label>
+                            <div class="relative">
+                                <textarea name="notes" rows="3" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="Contoh: Ada lecet sedikit di bagian bawah..."></textarea>
+                                <div class="absolute bottom-2 right-2 text-gray-400 pointer-events-none">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Footer Actions --}}
+                <div class="bg-gray-50 px-6 py-4 flex flex-row-reverse gap-3">
+                    <button type="submit" class="w-full sm:w-auto inline-flex justify-center rounded-lg border border-transparent px-5 py-2.5 bg-indigo-600 text-sm font-bold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all">
+                        Ajukan Pengembalian
+                    </button>
+                    <button type="button" class="w-full sm:w-auto inline-flex justify-center rounded-lg border border-gray-300 px-5 py-2.5 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none transition-all" onclick="closeReturnModal()">
+                        Batal
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 

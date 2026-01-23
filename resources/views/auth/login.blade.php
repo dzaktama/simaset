@@ -106,9 +106,7 @@
                                 <label for="remember-me" class="ml-3 block text-sm leading-6 text-gray-700">Remember me</label>
                             </div>
 
-                            <div class="text-sm leading-6">
-                                <a href="#" class="font-semibold text-indigo-600 hover:text-indigo-500">Lupa password?</a>
-                            </div>
+
                         </div>
 
                         <div>
@@ -119,10 +117,7 @@
                     </form>
                 </div>
                 
-                <p class="mt-10 text-center text-sm text-gray-500">
-                    Karyawan baru? 
-                    <a href="/register" class="font-semibold leading-6 text-indigo-600 hover:text-indigo-500">Daftarkan akun di sini</a>
-                </p>
+
 
             </div>
         </div>

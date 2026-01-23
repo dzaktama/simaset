@@ -1,7 +1,7 @@
 @extends('layouts.main')
 
 @section('container')
-<div class="container mx-auto px-4 py-8">
+<div class="container mx-auto px-4 py-8" x-data="{ showEditModal: false }">
     
     {{-- Header --}}
     <div class="flex items-center justify-between mb-6">
@@ -14,6 +14,16 @@
             Kembali
         </a>
     </div>
+
+    {{-- Edit Button (Admin Only) --}}
+    @if(in_array(auth()->user()->role, ['admin', 'super_admin']))
+    <div class="mb-6 flex justify-end">
+        <button @click="showEditModal = true" class="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-indigo-700 transition shadow-sm">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            Edit Data Tiket
+        </button>
+    </div>
+    @endif
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
@@ -63,18 +73,18 @@
                         <p class="font-bold text-gray-900 text-lg">{{ $maintenance->vendor_name }}</p>
                     </div>
                     <div>
-                        <p class="text-xs text-gray-500 mb-1">Tanggal Mulai Service</p>
+                        <p class="text-xs text-gray-500 mb-1">Waktu Mulai Service</p>
                         <div class="flex items-center gap-2 text-gray-800 font-medium">
                             <svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                            {{ \Carbon\Carbon::parse($maintenance->start_date)->translatedFormat('d F Y') }}
+                            {{ \Carbon\Carbon::parse($maintenance->start_date)->translatedFormat('l, d F Y') }} <span class="text-gray-400">|</span> {{ \Carbon\Carbon::parse($maintenance->created_at)->format('H:i') }}
                         </div>
                     </div>
                     @if($maintenance->completion_date)
                     <div>
-                        <p class="text-xs text-gray-500 mb-1">Tanggal Selesai</p>
+                        <p class="text-xs text-gray-500 mb-1">Waktu Selesai</p>
                         <div class="flex items-center gap-2 text-green-700 font-medium">
                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            {{ \Carbon\Carbon::parse($maintenance->completion_date)->translatedFormat('d F Y') }}
+                            {{ \Carbon\Carbon::parse($maintenance->completion_date)->translatedFormat('l, d F Y') }}
                         </div>
                     </div>
                     @endif
@@ -93,7 +103,7 @@
                     </div>
                     <div class="w-full">
                         <h3 class="text-lg font-bold text-gray-900 mb-2">Deskripsi Masalah / Kerusakan</h3>
-                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-100 text-gray-700 leading-relaxed">
+                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-100 text-gray-700 leading-relaxed font-mono text-sm">
                             {{ $maintenance->problem_description }}
                         </div>
                     </div>
@@ -133,34 +143,37 @@
                     {{-- Form Update Status --}}
                     <div class="bg-indigo-50 px-8 py-4 border-b border-indigo-100 flex items-center justify-between">
                         <h3 class="text-lg font-bold text-indigo-900">Update Status Perbaikan</h3>
-                        <span class="bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded-full uppercase">Sedang Diproses</span>
+                        <span class="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">Sedang Diproses</span>
                     </div>
                     <form action="{{ route('maintenances.update', $maintenance->id) }}" method="POST" class="p-8">
                         @csrf
                         @method('PUT')
                         
                         <div class="mb-6">
-                            <label class="block text-sm font-bold text-gray-700 mb-2">Tindakan yang Dilakukan (Solusi) <span class="text-red-500">*</span></label>
-                            <textarea name="resolution_notes" rows="4" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Jelaskan langkah perbaikan yang telah dilakukan...">{{ $maintenance->resolution_notes }}</textarea>
-                            <p class="text-xs text-gray-500 mt-1">Isi catatan ini untuk merekam progres atau solusi akhir perbaikan.</p>
+                            <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Tindakan yang Dilakukan (Solusi) <span class="text-red-500">*</span></label>
+                            <textarea name="resolution_notes" rows="4" class="w-full px-4 py-3 rounded-lg border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition resize-none" placeholder="Jelaskan langkah perbaikan yang telah dilakukan...">{{ $maintenance->resolution_notes }}</textarea>
+                            <p class="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>    
+                                Isi catatan ini untuk merekam progres atau solusi akhir perbaikan.
+                            </p>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                             <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-2">Update Biaya (Rp)</label>
-                                <div class="relative rounded-md shadow-sm">
+                                <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Update Biaya (Rp)</label>
+                                <div class="relative rounded-lg shadow-sm">
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <span class="text-gray-500 sm:text-sm font-bold">Rp</span>
                                     </div>
-                                    <input type="number" name="cost" value="{{ $maintenance->cost }}" class="pl-10 block w-full rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500" placeholder="0">
+                                    <input type="number" name="cost" value="{{ $maintenance->cost }}" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition" placeholder="0">
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-2">Status Tiket</label>
-                                <select name="status" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    <option value="on_process" {{ $maintenance->status == 'on_process' ? 'selected' : '' }}>Masih Dalam Proses</option>
+                                <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Status Tiket</label>
+                                <select name="status" class="w-full px-4 py-3 rounded-lg border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition bg-white cursor-pointer">
+                                    <option value="on_process" {{ $maintenance->status == 'on_process' ? 'selected' : '' }}>⏳ Masih Dalam Proses</option>
                                     <option value="completed" {{ $maintenance->status == 'completed' ? 'selected' : '' }}>✅ Selesai (Aset Kembali Available)</option>
-                                    <option value="cancelled" {{ $maintenance->status == 'cancelled' ? 'selected' : '' }}>❌ Dibatalkan</option>
+                                    <option value="cancelled" {{ $maintenance->status == 'cancelled' ? 'selected' : '' }}>🚫 Dibatalkan</option>
                                 </select>
                             </div>
                         </div>
@@ -168,8 +181,8 @@
                         {{-- Hidden Completion Date --}}
                         <input type="hidden" name="completion_date" value="{{ date('Y-m-d') }}">
 
-                        <div class="flex justify-end gap-3 pt-4 border-t border-indigo-50">
-                            <button type="submit" class="px-6 py-2.5 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 transition">
+                        <div class="flex justify-end gap-3 pt-6 border-t border-indigo-50">
+                            <button type="submit" class="px-6 py-2.5 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 transition transform active:scale-95">
                                 Simpan Update
                             </button>
                         </div>
@@ -186,28 +199,88 @@
                         <div class="space-y-4">
                             <div>
                                 <label class="block text-xs font-bold text-gray-700 mb-1">Revisi Catatan Solusi</label>
-                                <textarea name="resolution_notes" rows="2" class="w-full rounded border-gray-300 text-sm">{{ $maintenance->resolution_notes }}</textarea>
+                                <textarea name="resolution_notes" rows="2" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 transition text-sm">{{ $maintenance->resolution_notes }}</textarea>
                             </div>
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-xs font-bold text-gray-700 mb-1">Revisi Biaya</label>
-                                    <input type="number" name="cost" value="{{ $maintenance->cost }}" class="w-full rounded border-gray-300 text-sm">
+                                    <input type="number" name="cost" value="{{ $maintenance->cost }}" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 transition text-sm">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold text-gray-700 mb-1">Status</label>
-                                    <select name="status" class="w-full rounded border-gray-300 text-sm">
+                                    <select name="status" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 transition text-sm">
                                         <option value="completed" selected>Tetap Selesai</option>
                                         <option value="on_process">Kembalikan ke Proses</option>
                                     </select>
                                 </div>
                             </div>
-                            <button type="submit" class="bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded hover:bg-indigo-700">Simpan Perubahan</button>
+                            <button type="submit" class="bg-indigo-600 text-white text-xs font-bold px-4 py-2 rounded hover:bg-indigo-700 transition">Simpan Perubahan</button>
                         </div>
                     </form>
                 </div>
                 @endif
             </div>
 
+        </div>
+    </div>
+    {{-- Edit Modal --}}
+    <div x-show="showEditModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true" @click="showEditModal = false">
+                <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-indigo-600 px-4 py-3 sm:px-6 flex justify-between items-center">
+                    <h3 class="text-lg leading-6 font-bold text-white">Edit Data Tiket</h3>
+                    <button @click="showEditModal = false" class="text-white hover:text-indigo-200">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                
+                <form action="{{ route('maintenances.update', $maintenance->id) }}" method="POST">
+                    @csrf
+                    @method('PUT')
+                    <input type="hidden" name="status" value="{{ $maintenance->status }}">
+                    
+                    <div class="px-4 py-5 sm:p-6 space-y-4">
+                        {{-- Vendor --}}
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">Vendor / Service Center</label>
+                            <input type="text" name="vendor_name" value="{{ $maintenance->vendor_name }}" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required>
+                        </div>
+
+                        {{-- Start Date --}}
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">Tanggal Mulai</label>
+                            <input type="date" name="start_date" value="{{ $maintenance->start_date }}" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required>
+                        </div>
+
+                        {{-- Description --}}
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">Deskripsi Masalah</label>
+                            <textarea name="problem_description" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required>{{ $maintenance->problem_description }}</textarea>
+                        </div>
+
+                        {{-- Cost (Optional) --}}
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">Estimasi Biaya (Rp)</label>
+                            <input type="number" name="cost" value="{{ $maintenance->cost }}" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-bold text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm">
+                            Simpan Perubahan
+                        </button>
+                        <button type="button" @click="showEditModal = false" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                            Batal
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>

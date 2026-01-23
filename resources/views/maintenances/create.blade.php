@@ -31,62 +31,91 @@
                 </div>
 
                 <div class="p-8 space-y-6">
-                    {{-- 1. Pilih Aset --}}
-                    <div>
-                        <label class="font-bold text-gray-700 mb-2 block">Pilih Aset yang Bermasalah <span class="text-red-500">*</span></label>
-                        <select id="assetSelect" name="asset_id" class="w-full" required>
-                            <option value="">-- Cari Serial Number / Nama Aset --</option>
-                            @foreach($assets as $asset)
-                                <option value="{{ $asset->id }}" {{ (isset($selectedAsset) && $selectedAsset->id == $asset->id) ? 'selected' : '' }}>
-                                    {{ $asset->serial_number }} - {{ $asset->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                        <p class="text-xs text-gray-500 mt-2 flex items-center gap-1">
-                            <svg class="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            Pilih aset untuk melihat detail informasi di sebelah kanan.
-                        </p>
+                {{-- 1. Pilih Aset & Filter --}}
+                <div class="space-y-4">
+                    <div class="flex flex-col md:flex-row gap-4">
+                        {{-- Filter Dropdown --}}
+                        <div class="w-full md:w-1/3">
+                            <label class="font-bold text-gray-700 mb-2 block text-sm uppercase tracking-wide">Filter Status</label>
+                            <select x-model="filterStatus" @change="updateAssetList()" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition shadow-sm bg-white">
+                                <option value="">Semua Status</option>
+                                <option value="available">Available (Tersedia)</option>
+                                <option value="deployed">Deployed (Dipakai)</option>
+                                <option value="broken">Broken (Rusak)</option>
+                                <option value="maintenance">Maintenance (Sedang Perbaikan)</option>
+                            </select>
+                        </div>
+                        
+                        {{-- Asset Select --}}
+                        <div class="w-full md:w-2/3">
+                            <label class="font-bold text-gray-700 mb-2 block text-sm uppercase tracking-wide">Pilih Aset yang Bermasalah <span class="text-red-500">*</span></label>
+                            <select id="assetSelect" name="asset_id" class="w-full" required>
+                                <option value="">-- Cari Serial Number / Nama Aset --</option>
+                                {{-- Options populated by JS --}}
+                            </select>
+                        </div>
                     </div>
+                    
+                    <p class="text-xs text-gray-500 flex items-center gap-1">
+                        <svg class="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Pilih aset untuk melihat detail informasi di sebelah kanan.
+                    </p>
+                </div>
 
-                    {{-- 2. Detail Vendor & Tanggal --}}
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label class="font-bold text-gray-700 mb-2 block">Vendor / Tempat Service <span class="text-red-500">*</span></label>
+                {{-- 2. Detail Vendor, Tanggal & Prioritas --}}
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="md:col-span-1">
+                            <label class="font-bold text-gray-700 mb-2 block text-sm uppercase tracking-wide">Prioritas <span class="text-red-500">*</span></label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                </div>
+                                <select name="priority" class="pl-10 w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition shadow-sm appearance-none bg-white cursor-pointer" required>
+                                    <option value="normal">Normal</option>
+                                    <option value="high">High (Mendesak)</option>
+                                    <option value="critical">Critical (Darurat)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="font-bold text-gray-700 mb-2 block text-sm uppercase tracking-wide">Vendor / Tempat Service <span class="text-red-500">*</span></label>
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
                                 </div>
-                                <input type="text" name="vendor_name" class="pl-10 w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 transition shadow-sm" placeholder="Nama Service Center" required>
+                                <input type="text" name="vendor_name" class="pl-10 w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition shadow-sm" placeholder="Nama Service Center / Teknisi" required>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label class="font-bold text-gray-700 mb-2 block">Tanggal Mulai <span class="text-red-500">*</span></label>
+                            <label class="font-bold text-gray-700 mb-2 block text-sm uppercase tracking-wide">Tanggal Mulai <span class="text-red-500">*</span></label>
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                                 </div>
-                                <input type="date" name="start_date" value="{{ date('Y-m-d') }}" class="pl-10 w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 transition shadow-sm" required>
+                                <input type="date" name="start_date" value="{{ date('Y-m-d') }}" class="pl-10 w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition shadow-sm" required>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="font-bold text-gray-700 mb-2 block text-sm uppercase tracking-wide">Estimasi Biaya <span class="text-gray-400 font-normal normal-case">(Opsional)</span></label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 text-sm font-bold">Rp</span>
+                                </div>
+                                <input type="number" name="cost" class="pl-10 w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition shadow-sm" placeholder="0">
                             </div>
                         </div>
                     </div>
 
                     {{-- 3. Deskripsi Masalah --}}
                     <div>
-                        <label class="font-bold text-gray-700 mb-2 block">Deskripsi Masalah <span class="text-red-500">*</span></label>
+                        <label class="font-bold text-gray-700 mb-2 block text-sm uppercase tracking-wide">Deskripsi Masalah <span class="text-red-500">*</span></label>
                         <div class="relative">
-                            <textarea name="problem_description" rows="4" class="w-full rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 transition shadow-sm bg-gray-50 focus:bg-white" placeholder="Jelaskan detail kerusakan, error, atau alasan maintenance..." required></textarea>
-                            <div class="absolute bottom-3 right-3 text-gray-400 text-xs pointer-events-none">Minimal 10 karakter</div>
-                        </div>
-                    </div>
-
-                    {{-- 4. Estimasi Biaya --}}
-                    <div>
-                        <label class="font-bold text-gray-700 mb-2 block">Estimasi Biaya <span class="text-xs font-normal text-gray-500">(Opsional - Kosongkan jika belum tahu)</span></label>
-                        <div class="relative rounded-md shadow-sm max-w-xs">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <span class="text-gray-500 sm:text-sm font-bold">Rp</span>
-                            </div>
-                            <input type="number" name="cost" class="pl-10 block w-full rounded-lg border-gray-300 focus:ring-indigo-500 focus:border-indigo-500" placeholder="0">
+                            <textarea name="problem_description" rows="5" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition shadow-sm resize-none" placeholder="Jelaskan detail kerusakan, error, atau alasan maintenance..." required></textarea>
+                            <div class="absolute bottom-3 right-3 text-xs text-gray-400 bg-white px-1 rounded">Min. 10 Karakter</div>
                         </div>
                     </div>
 
@@ -211,20 +240,64 @@
     function maintenanceForm() {
         return {
             selectedAsset: null,
+            filterStatus: '',
+            
             init() {
                 // Initial Load
+                this.updateAssetList();
+
                 if(initialAssetId) {
                     this.selectedAsset = allAssets.find(a => a.id == initialAssetId);
+                    // Set value and trigger change for Select2
+                    $('#assetSelect').val(initialAssetId).trigger('change');
                 }
 
                 // Init Select2
                 $('#assetSelect').select2({
                     placeholder: "Cari Aset...",
-                    allowClear: true
+                    allowClear: true,
+                    width: '100%',
+                    language: {
+                        noResults: function() {
+                            return "Aset tidak ditemukan (Cek filter status).";
+                        }
+                    }
                 }).on('change', (e) => {
                     const id = e.target.value;
                     this.selectedAsset = id ? allAssets.find(a => a.id == id) : null;
                 });
+            },
+
+            updateAssetList() {
+                const $select = $('#assetSelect');
+                const currentVal = $select.val(); // Keep selected if possible
+                
+                // Filter Logic
+                const filtered = this.filterStatus 
+                    ? allAssets.filter(a => a.status === this.filterStatus)
+                    : allAssets;
+
+                // Rebuild Options
+                $select.empty().append('<option value="">-- Cari Serial Number / Nama Aset --</option>');
+                
+                filtered.forEach(asset => {
+                    // Create option manually to ensure Select2 picks it up
+                    const optionText = `${asset.serial_number} - ${asset.name}`;
+                    const option = new Option(optionText, asset.id, false, false);
+                    $select.append(option);
+                });
+
+                // Restore Value if still valid in filtered list
+                if(currentVal && filtered.find(a => a.id == currentVal)) {
+                    $select.val(currentVal);
+                } else if(initialAssetId && !currentVal && filtered.find(a => a.id == initialAssetId)) {
+                     // If we have an initial ID (e.g. from redirect) and it matches, select it
+                     $select.val(initialAssetId);
+                } else {
+                    $select.val(null); // Clear if filtered out
+                }
+                
+                $select.trigger('change');
             }
         }
     }

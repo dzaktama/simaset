@@ -7,52 +7,80 @@
         <p class="mt-2 text-gray-600">Kelola semua permintaan peminjaman aset</p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow p-6 text-white">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-blue-100 text-sm">Total Peminjaman</p>
-                    <p class="text-3xl font-bold mt-2">{{ $statistics['total'] ?? 0 }}</p>
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+        {{-- 1. Total Peminjaman --}}
+        <div class="bg-white overflow-hidden rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition group relative">
+            <div class="p-5">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 bg-blue-500 rounded-md p-3 group-hover:bg-blue-600 transition">
+                            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-5">
+                            <dt class="text-sm font-medium text-gray-500 truncate">Total Peminjaman</dt>
+                            <dd class="text-2xl font-semibold text-gray-900">{{ $statistics['total'] ?? 0 }}</dd>
+                        </div>
+                    </div>
                 </div>
-                <svg class="w-12 h-12 text-blue-200 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
             </div>
         </div>
 
-        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow p-6 text-white">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-green-100 text-sm">Peminjaman Aktif</p>
-                    <p class="text-3xl font-bold mt-2">{{ $statistics['active'] ?? 0 }}</p>
+        {{-- 2. Peminjaman Aktif --}}
+        <div class="bg-white overflow-hidden rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition group relative">
+            <div class="p-5">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 bg-green-500 rounded-md p-3 group-hover:bg-green-600 transition">
+                            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-5">
+                            <dt class="text-sm font-medium text-gray-500 truncate">Peminjaman Aktif</dt>
+                            <dd class="text-2xl font-semibold text-gray-900">{{ $statistics['active'] ?? 0 }}</dd>
+                        </div>
+                    </div>
                 </div>
-                <svg class="w-12 h-12 text-green-200 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                </svg>
             </div>
         </div>
 
-        <div class="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg shadow p-6 text-white">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-yellow-100 text-sm">Tertunda</p>
-                    <p class="text-3xl font-bold mt-2">{{ $statistics['pending'] ?? 0 }}</p>
+        {{-- 3. Tertunda --}}
+        <div class="bg-white overflow-hidden rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition group relative">
+            <div class="p-5">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 bg-yellow-500 rounded-md p-3 group-hover:bg-yellow-600 transition">
+                            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-5">
+                            <dt class="text-sm font-medium text-gray-500 truncate">Tertunda</dt>
+                            <dd class="text-2xl font-semibold text-gray-900">{{ $statistics['pending'] ?? 0 }}</dd>
+                        </div>
+                    </div>
                 </div>
-                <svg class="w-12 h-12 text-yellow-200 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
             </div>
         </div>
 
-        <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow p-6 text-white">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-red-100 text-sm">Dikembalikan</p>
-                    <p class="text-3xl font-bold mt-2">{{ $statistics['returned'] ?? 0 }}</p>
+        {{-- 4. Dikembalikan --}}
+        <div class="bg-white overflow-hidden rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition group relative">
+            <div class="p-5">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 bg-red-500 rounded-md p-3 group-hover:bg-red-600 transition">
+                            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m7 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-5">
+                            <dt class="text-sm font-medium text-gray-500 truncate">Dikembalikan</dt>
+                            <dd class="text-2xl font-semibold text-gray-900">{{ $statistics['returned'] ?? 0 }}</dd>
+                        </div>
+                    </div>
                 </div>
-                <svg class="w-12 h-12 text-red-200 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m7 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
             </div>
         </div>
     </div>
@@ -237,12 +265,12 @@
                         {{-- Kolom Aksi --}}
                         <td class="px-4 py-4 text-sm text-center align-top">
                             <div class="flex justify-center gap-2 flex-col sm:flex-row">
-                                <a href="{{ route('borrowing.show', $borrowing->id) }}" class="text-blue-600 hover:text-blue-900 transition font-medium">
-                                    Detail
+                                <a href="{{ route('borrowing.show', $borrowing->id) }}" class="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition border border-blue-200" title="Lihat Detail">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                                 </a>
                                 @if($borrowing->borrowing_status === 'active')
-                                    <button type="button" onclick="openReturnModal({{ $borrowing->id }})" class="text-red-600 hover:text-red-900 transition font-medium">
-                                        Kembalikan
+                                    <button type="button" onclick="openReturnModal({{ $borrowing->id }})" class="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition border border-red-200" title="Kembalikan Aset">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
                                     </button>
                                 @endif
                             </div>
@@ -285,7 +313,8 @@
 
         <form id="returnForm" method="POST" class="p-6">
             @csrf
-            @method('PUT')
+            @csrf
+            {{-- @method('PUT') removed because route is POST --}}
 
             <div class="mb-6">
                 <label class="block text-sm font-semibold text-gray-900 mb-3">Kondisi Aset</label>

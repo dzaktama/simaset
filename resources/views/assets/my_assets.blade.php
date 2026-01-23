@@ -33,7 +33,7 @@
                     <tbody class="divide-y divide-gray-200 bg-white">
                         @foreach($myAssets as $item)
                         {{-- Mengirim object asset (dari relasi) + data assignment date ke fungsi modal --}}
-                        <tr class="hover:bg-gray-50 transition cursor-pointer group" onclick="openDetailModal({{ json_encode($item->asset) }}, '{{ $item->borrowed_at }}')">
+                        <tr class="hover:bg-gray-50 transition cursor-pointer group" onclick="openDetailModal({{ json_encode($item->asset) }}, '{{ $item->borrowed_at }}', '{{ $item->return_date }}')">
                             {{-- Info Aset --}}
                             <td class="px-6 py-4">
                                 <div class="flex items-center">
@@ -74,7 +74,7 @@
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" onclick="event.stopPropagation()">
                                 <div class="flex justify-end gap-2">
                                     {{-- 1. Tombol Detail --}}
-                                    <button onclick="openDetailModal({{ json_encode($item->asset) }}, '{{ $item->borrowed_at }}')" 
+                                    <button onclick="openDetailModal({{ json_encode($item->asset) }}, '{{ $item->borrowed_at }}', '{{ $item->return_date }}')" 
                                             class="text-gray-600 hover:text-indigo-600 bg-white hover:bg-gray-50 border border-gray-300 px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm">
                                         Detail
                                     </button>
@@ -106,77 +106,105 @@
     <div class="flex min-h-screen items-center justify-center p-4">
         <div class="fixed inset-0 bg-gray-900 bg-opacity-60 transition-opacity backdrop-blur-sm" onclick="closeMyAssetDetail()"></div>
         
-        <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
+        <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-3xl">
             {{-- Header Modal --}}
-            <div class="bg-indigo-600 px-6 py-4 flex justify-between items-center">
+            <div class="bg-indigo-600 px-6 py-4 flex justify-between items-center shadow-md z-10 relative">
                 <h3 class="text-lg font-bold text-white flex items-center gap-2">
                     <svg class="h-5 w-5 text-indigo-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     Detail Informasi Aset
                 </h3>
-                <button onclick="closeMyAssetDetail()" class="text-indigo-200 hover:text-white transition rounded-full p-1 hover:bg-indigo-500">
+                <button onclick="closeMyAssetDetail()" class="text-indigo-200 hover:text-white transition rounded-full p-1 hover:bg-indigo-500/50">
                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
             </div>
 
             {{-- Body Modal --}}
-            <div class="bg-white px-6 py-6">
-                <div class="flex flex-col md:flex-row gap-6">
-                    {{-- Bagian Gambar --}}
-                    <div class="w-full md:w-1/3">
-                        <div class="aspect-square rounded-xl bg-gray-100 border border-gray-200 overflow-hidden relative shadow-inner">
-                            <img id="detailImg" src="" class="w-full h-full object-cover" onerror="this.style.display='none'">
-                            <div id="detailImgPlaceholder" class="absolute inset-0 flex items-center justify-center text-gray-400">
-                                <svg class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+            <div class="bg-white px-0">
+                <div class="flex flex-col md:flex-row">
+                    {{-- Bagian Kiri: Gambar --}}
+                    <div class="w-full md:w-5/12 bg-gray-50 flex flex-col items-center justify-center p-6 border-r border-gray-100">
+                        <div class="aspect-square w-full rounded-2xl bg-white border border-gray-200 overflow-hidden relative shadow-sm mb-4 group">
+                            <img id="detailImg" src="" class="w-full h-full object-cover transition duration-500 group-hover:scale-105" onerror="this.style.display='none'">
+                            <div id="detailImgPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center text-gray-300 bg-gray-50">
+                                <svg class="h-16 w-16 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                <span class="text-xs font-medium">Tidak ada gambar</span>
                             </div>
                         </div>
-                        <div class="mt-3 text-center">
-                            <span class="px-3 py-1 rounded-full text-xs font-bold uppercase bg-blue-100 text-blue-800 border border-blue-200">
-                                Sedang Dipinjam
-                            </span>
-                        </div>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-green-100 text-green-800 border border-green-200 shadow-sm">
+                            <span class="w-2 h-2 mr-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                            Sedang Dipinjam
+                        </span>
                     </div>
 
-                    {{-- Bagian Informasi --}}
-                    <div class="w-full md:w-2/3 space-y-4">
+                    {{-- Bagian Kanan: Informasi --}}
+                    <div class="w-full md:w-7/12 p-6 md:p-8 space-y-6">
                         <div>
-                            <h2 id="detailAssetName" class="text-2xl font-bold text-gray-900 leading-tight">Nama Aset</h2>
-                            <p id="detailAssetSN" class="text-sm text-gray-500 font-mono mt-1">SN-12345678</p>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
-                            <div>
-                                <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Kategori</span>
-                                <p id="detailCategory" class="text-sm font-semibold text-gray-800 mt-0.5">-</p>
-                            </div>
-                            <div>
-                                <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Lokasi</span>
-                                <p id="detailLocation" class="text-sm font-semibold text-gray-800 mt-0.5">-</p>
-                            </div>
-                            <div>
-                                <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Tanggal Pinjam</span>
-                                <p id="detailAssigned" class="text-sm font-semibold text-gray-800 mt-0.5">-</p>
-                            </div>
-                            <div>
-                                <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Kondisi Awal</span>
-                                <p id="detailCondition" class="text-sm font-semibold text-gray-800 mt-0.5">-</p>
+                            <h2 id="detailAssetName" class="text-2xl font-extrabold text-gray-900 leading-tight">Nama Aset</h2>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-500 border border-gray-200 uppercase tracking-wider">Serial Number</span>
+                                <p id="detailAssetSN" class="text-sm font-mono text-gray-600 font-medium">SN-12345678</p>
                             </div>
                         </div>
 
-                        <div>
-                            <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Deskripsi / Spesifikasi</span>
-                            <div class="relative">
-                                <p id="detailDesc" class="text-sm text-gray-600 mt-1 leading-relaxed bg-white border border-gray-100 p-3 rounded-lg shadow-sm h-24 overflow-y-auto custom-scrollbar">
-                                    -
-                                </p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-4">
+                            {{-- Kategori --}}
+                            <div class="flex items-start gap-3">
+                                <div class="p-2 rounded-lg bg-indigo-50 text-indigo-600 mt-0.5">
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-0.5">Kategori</p>
+                                    <p id="detailCategory" class="text-sm font-semibold text-gray-800">-</p>
+                                </div>
+                            </div>
+                            {{-- Lokasi --}}
+                            <div class="flex items-start gap-3">
+                                <div class="p-2 rounded-lg bg-indigo-50 text-indigo-600 mt-0.5">
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-0.5">Lokasi</p>
+                                    <p id="detailLocation" class="text-sm font-semibold text-gray-800">-</p>
+                                </div>
+                            </div>
+                            {{-- Tanggal Pinjam --}}
+                            <div class="flex items-start gap-3">
+                                <div class="p-2 rounded-lg bg-blue-50 text-blue-600 mt-0.5">
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-0.5">Dipinjam Pada</p>
+                                    <p id="detailAssigned" class="text-sm font-semibold text-gray-800">-</p>
+                                </div>
+                            </div>
+                            {{-- Tenggat Waktu --}}
+                            <div class="flex items-start gap-3">
+                                <div class="p-2 rounded-lg bg-orange-50 text-orange-600 mt-0.5">
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-0.5">Batas Kembali</p>
+                                    <p id="detailReturnDate" class="text-sm font-semibold text-gray-800">-</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-gray-100 pt-5">
+                            <div class="flex items-center mb-2">
+                                <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">Kondisi & Catatan</p>
+                                <span id="detailCondition" class="ml-auto text-xs px-2 py-0.5 rounded-full font-bold bg-gray-100 text-gray-700 uppercase">-</span>
+                            </div>
+                            <div class="bg-gray-50 rounded-xl p-4 text-sm text-gray-600 leading-relaxed border border-gray-100 italic" id="detailDesc">
+                                -
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <div class="bg-gray-50 px-6 py-4 flex justify-end">
-                <button type="button" class="w-full sm:w-auto inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-5 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" onclick="closeMyAssetDetail()">
-                    Tutup
+            <div class="bg-gray-50 px-6 py-4 flex justify-end border-t border-gray-100">
+                <button type="button" class="w-full sm:w-auto inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-5 py-2.5 bg-white text-sm font-bold text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" onclick="closeMyAssetDetail()">
+                    Tutup Detail
                 </button>
             </div>
         </div>
@@ -213,10 +241,7 @@
                     </div>
                     
                     <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">Tanggal Pengembalian</label>
-                            <input type="date" name="return_date" value="{{ date('Y-m-d') }}" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" required>
-                        </div>
+
                         
                         <div>
                             <label class="block text-sm font-bold text-gray-700 mb-1">Kondisi Barang Saat Ini</label>
@@ -251,7 +276,7 @@
 
 <script>
     // --- LOGIC DETAIL ASET ---
-    function openDetailModal(asset, assignedDate) { // Menerima object asset + assignedDate
+    function openDetailModal(asset, assignedDate, returnDate) { // Menerima object asset + assignedDate + returnDate
         document.getElementById('detailAssetName').innerText = asset.name;
         document.getElementById('detailAssetSN').innerText = asset.serial_number;
         document.getElementById('detailCategory').innerText = asset.category || '-';
@@ -272,14 +297,23 @@
         }
 
         // Date Logic (assignedDate format YYYY-MM-DD HH:MM:SS)
+        const dateOptions = { 
+            day: 'numeric', month: 'long', year: 'numeric', 
+            hour: '2-digit', minute: '2-digit' 
+        };
+
         if (assignedDate) {
             const d = new Date(assignedDate);
-            // Format ID: 12 Januari 2026
-            document.getElementById('detailAssigned').innerText = d.toLocaleDateString('id-ID', {
-                day: 'numeric', month: 'long', year: 'numeric'
-            });
+            document.getElementById('detailAssigned').innerText = d.toLocaleDateString('id-ID', dateOptions);
         } else {
             document.getElementById('detailAssigned').innerText = '-';
+        }
+
+        if (returnDate) {
+            const r = new Date(returnDate);
+            document.getElementById('detailReturnDate').innerText = r.toLocaleDateString('id-ID', dateOptions);
+        } else {
+            document.getElementById('detailReturnDate').innerText = '-';
         }
         
         document.getElementById('myAssetDetailModal').classList.remove('hidden');
@@ -312,12 +346,7 @@
             iconEl.classList.remove('hidden');
         }
 
-        // [FIX LOGIC] Set Minimal Tanggal Pengembalian = Tanggal Pinjam
-        const dateInput = document.getElementsByName('return_date')[0];
-        if(assignedDateRaw) {
-            const minDate = new Date(assignedDateRaw).toISOString().split('T')[0];
-            dateInput.min = minDate; 
-        }
+
         
         document.getElementById('returnModal').classList.remove('hidden');
     }

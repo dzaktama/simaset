@@ -38,7 +38,9 @@ class AuthController extends Controller
 
         $credentials = $request->only('email', 'password');
 
-        if (Auth::attempt($credentials)) {
+        $remember = $request->boolean('remember-me');
+
+        if (Auth::attempt($credentials, $remember)) {
             $request->session()->regenerate();
             
             // [PERBAIKAN] Redirect ke route 'dashboard' (URI: /home) untuk semua role.

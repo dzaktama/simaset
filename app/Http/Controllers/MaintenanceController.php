@@ -64,19 +64,27 @@ class MaintenanceController extends Controller
         $request->validate([
             'asset_id' => 'required|exists:assets,id',
             'vendor_name' => 'required|string',
-            'start_date' => 'required|date',
+            'start_date' => 'required|date|after_or_equal:today',
             'problem_description' => 'required|string',
             'cost' => 'nullable|numeric|min:0'
+        ], [
+            'start_date.after_or_equal' => 'Tanggal mulai service tidak boleh kurang dari hari ini.'
         ]);
 
         DB::beginTransaction();
         try {
             // 1. Create Maintenance Log
+            $description = $request->problem_description;
+            if ($request->filled('priority')) {
+                $priorityLabel = ucfirst($request->priority);
+                $description = "[Prioritas: {$priorityLabel}] " . $description;
+            }
+
             Maintenance::create([
                 'asset_id' => $request->asset_id,
                 'vendor_name' => $request->vendor_name,
                 'start_date' => $request->start_date,
-                'problem_description' => $request->problem_description,
+                'problem_description' => $description,
                 'cost' => $request->cost ?? 0,
                 'status' => 'on_process'
             ]);
@@ -102,7 +110,26 @@ class MaintenanceController extends Controller
     {
         $request->validate([
             'status' => 'required|in:on_process,completed,cancelled',
-            'completion_date' => 'required_if:status,completed|date|nullable',
+            'vendor_name' => 'nullable|string',
+            'start_date' => 'nullable|date',
+            'problem_description' => 'nullable|string',
+            'completion_date' => [
+                'required_if:status,completed',
+                'date',
+                'nullable',
+                function ($attribute, $value, $fail) use ($maintenance, $request) {
+                    if ($value) {
+                        $completion = \Carbon\Carbon::parse($value)->startOfDay();
+                        // Use request start_date if present (editing), otherwise use existing
+                        $startDateString = $request->start_date ?? $maintenance->start_date;
+                        $start = \Carbon\Carbon::parse($startDateString)->startOfDay();
+                        
+                        if ($completion->lt($start)) {
+                            $fail("Tanggal selesai ({$completion->format('d M Y')}) tidak boleh sebelum tanggal mulai service ({$start->format('d M Y')}).");
+                        }
+                    }
+                }
+            ],
             'cost' => 'nullable|numeric|min:0'
         ]);
 

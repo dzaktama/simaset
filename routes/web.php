@@ -24,8 +24,8 @@ Route::get('/', function () {
 Route::controller(AuthController::class)->group(function () {
     Route::get('/login', 'showLoginForm')->name('login')->middleware('guest');
     Route::post('/login', 'login')->middleware('guest');
-    Route::get('/register', 'showRegisterForm')->name('register')->middleware('guest');
-    Route::post('/register', 'register')->middleware('guest');
+    // Route::get('/register', 'showRegisterForm')->name('register')->middleware('guest');
+    // Route::post('/register', 'register')->middleware('guest');
     Route::post('/logout', 'logout')->name('logout')->middleware('auth');
     // Role Switcher Route
     Route::get('/impersonate', 'impersonate')->name('impersonate')->middleware(['auth']);
@@ -49,9 +49,16 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/assets/{id}/scan-qr-image', [AssetController::class, 'scanQrImage'])->name('assets.scan_image');
     Route::get('/assets/scan/{asset}', [AssetController::class, 'scanQr'])->name('assets.scan');
 
-    // Internal Chat
+    // ==========================================
+    // FITUR CHAT (Percakapan Internal)
+    // ==========================================
+    // 1. Ini pintu masuk utama. Kalau user buka /chat, arahin ke halaman chat.
     Route::get('/chat', [App\Http\Controllers\ChatController::class, 'index'])->name('chat.index');
+    
+    // 2. Ini buat ngambil data chat sama orang lain. Dipanggil pake AJAX (tanpa reload).
     Route::get('/chat/conversation/{userId}', [App\Http\Controllers\ChatController::class, 'getConversation'])->name('chat.get');
+    
+    // 3. Ini jalur buat ngirim pesan baru.
     Route::post('/chat/send', [App\Http\Controllers\ChatController::class, 'sendMessage'])->name('chat.send');
 
     // Transaksi Peminjaman (User)
