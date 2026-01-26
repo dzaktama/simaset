@@ -1,7 +1,7 @@
 @extends('layouts.main')
 
 @section('container')
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-900">Aset Saya</h1>
         <p class="mt-2 text-gray-600">Daftar inventaris yang saat ini menjadi tanggung jawab Anda.</p>

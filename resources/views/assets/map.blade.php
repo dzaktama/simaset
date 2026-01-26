@@ -1,7 +1,7 @@
 @extends('layouts.main')
 
 @section('container')
-<div class="container mx-auto px-4 py-8">
+<div class="w-full mx-auto px-4 py-8">
     {{-- Header --}}
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
@@ -47,7 +47,7 @@
 </div>
 
 {{-- MODAL 1: LIST BARANG DI RAK --}}
-<div id="rackModal" class="fixed inset-0 z-40 hidden" role="dialog" aria-modal="true">
+<div id="rackModal" class="fixed inset-0 z-[60] hidden" role="dialog" aria-modal="true">
     <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity backdrop-blur-sm" onclick="closeRackModal()"></div>
     <div class="flex min-h-screen items-center justify-center p-4">
         <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-2xl transition-all w-full max-w-3xl border border-gray-100 max-h-[90vh] flex flex-col">
@@ -95,7 +95,7 @@
 </div>
 
 {{-- MODAL 2: DETAIL ASET (NESTED - Z-INDEX 50 LEBIH TINGGI) --}}
-<div id="detailModal" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true">
+<div id="detailModal" class="fixed inset-0 z-[70] hidden overflow-y-auto" role="dialog" aria-modal="true">
     <div class="flex min-h-screen items-center justify-center p-4">
         <div class="fixed inset-0 bg-black/60 transition-opacity backdrop-blur-sm" onclick="closeDetailModal()"></div>
         <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-4xl border border-gray-100">

@@ -1,7 +1,7 @@
 @extends('layouts.main')
 
 @section('container')
-<div class="container mx-auto px-4 py-8" x-data="maintenanceForm()">
+<div class="w-full mx-auto px-4 py-8" x-data="maintenanceForm()">
     
     {{-- Header --}}
     <div class="flex items-center justify-between mb-8">

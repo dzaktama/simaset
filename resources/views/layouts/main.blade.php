@@ -32,7 +32,7 @@
             @include('partials.topbar')
 
             <main class="flex-1 py-8">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                <div class="w-full mx-auto px-4 sm:px-6 md:px-8">
                     
                     {{-- 1. ALERT SUKSES --}}
                     @if(session()->has('success'))

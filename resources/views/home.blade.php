@@ -1,7 +1,7 @@
 @extends('layouts.main')
 
 @section('container')
-<div class="mx-auto max-w-7xl px-4 py-8">
+<div class="mx-auto w-full px-4 py-8">
     
     {{-- Header Dashboard --}}
     @include('dashboard.header')

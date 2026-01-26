@@ -249,4 +249,129 @@ class ReportController extends Controller
         $request->merge(['download' => 1]);
         return $this->exportPdf($request);
     }
+    /**
+     * Export Excel/CSV (Data Only)
+     */
+    /**
+     * Export Excel/CSV (Data Only)
+     */
+    public function exportExcel(Request $request)
+    {
+        $format = $request->query('format', 'xlsx');
+        $ext = $format === 'csv' ? 'csv' : 'xlsx'; // xlsx for valid OpenXML
+        $fileName = ($request->type === 'borrowing' ? 'Laporan_Peminjaman_' : 'Laporan_Aset_') . now()->format('Y-m-d_H-i-s') . '.' . $ext;
+
+        if ($format === 'csv') {
+            $headers = [
+                "Content-type" => "text/csv",
+                "Content-Disposition" => "attachment; filename=$fileName",
+                "Pragma" => "no-cache",
+                "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
+                "Expires" => "0"
+            ];
+    
+            $callback = function() use ($request) {
+                $file = fopen('php://output', 'w');
+                $this->writeExportData($file, $request, 'csv');
+                fclose($file);
+            };
+    
+            return response()->stream($callback, 200, $headers);
+        } else {
+            // Valid XLSX using Custom Service
+            $data = [];
+            
+            // --- BRANCH 1: BORROWING ---
+            if ($request->type === 'borrowing') {
+                // Header
+                $data[] = ['No', 'Peminjam', 'Aset', 'Serial Number', 'Tanggal Pinjam', 'Tanggal Kembali', 'Status', 'Keperluan'];
+
+                $query = AssetRequest::with(['user', 'asset']);
+                
+                // Re-apply filters (DRY: Consider refactoring filter logic later)
+                if ($request->start_date && $request->end_date) {
+                    $query->whereBetween('created_at', [$request->start_date . ' 00:00:00', $request->end_date . ' 23:59:59']);
+                }
+                if ($request->filled('search')) {
+                    $search = $request->search;
+                    $query->where(function($q) use ($search) {
+                        $q->whereHas('user', fn($u) => $u->where('name', 'like', "%{$search}%"))
+                          ->orWhereHas('asset', fn($a) => $a->where('name', 'like', "%{$search}%")->orWhere('serial_number', 'like', "%{$search}%"));
+                    });
+                }
+                if ($request->filled('status') && $request->status != 'all') {
+                    $query->where('status', $request->status);
+                }
+
+                $requests = $query->latest()->get();
+
+                foreach ($requests as $index => $req) {
+                    $data[] = [
+                        $index + 1,
+                        $req->user->name ?? 'Unknown',
+                        $req->asset->name ?? '-',
+                        $req->asset->serial_number ?? '-',
+                        $req->created_at->format('d/m/Y H:i'),
+                        $req->return_date ? \Carbon\Carbon::parse($req->return_date)->format('d/m/Y') : '-',
+                        ucfirst($req->status),
+                        $req->notes ?? '-'
+                    ];
+                }
+
+            } else {
+                // --- BRANCH 2: ASSET (Default) ---
+                // Header
+                $data[] = ['No', 'Nama Aset', 'Serial Number', 'Kategori', 'Lokasi', 'Kondisi', 'Status', 'Stok', 'Pengguna Saat Ini'];
+
+                $query = Asset::with('holder');
+
+                // Filter Logic
+                if ($request->filled('search')) {
+                    $search = $request->search;
+                    $query->where(function($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%")
+                          ->orWhere('serial_number', 'like', "%{$search}%");
+                    });
+                }
+                if ($request->filled('category') && $request->category != 'all') {
+                    $query->where('category', $request->category);
+                }
+                if ($request->filled('status') && $request->status != 'all') {
+                    $query->where('status', $request->status);
+                }
+                
+                // Sorting
+                $sort = $request->query('sort', 'newest');
+                switch ($sort) {
+                    case 'name_asc': $query->orderBy('name', 'asc'); break;
+                    case 'stock_low': $query->orderBy('quantity', 'asc'); break;
+                    case 'stock_high': $query->orderBy('quantity', 'desc'); break;
+                    case 'oldest': $query->oldest(); break;
+                    case 'status_available': $query->orderByRaw("CASE WHEN status = 'available' THEN 1 ELSE 2 END"); break;
+                    case 'status_deployed': $query->orderByRaw("CASE WHEN status = 'deployed' THEN 1 ELSE 2 END"); break;
+                    case 'status_maintenance': $query->orderByRaw("CASE WHEN status = 'maintenance' THEN 1 ELSE 2 END"); break;
+                    case 'status_broken': $query->orderByRaw("CASE WHEN status = 'broken' THEN 1 ELSE 2 END"); break;
+                    default: $query->latest(); break;
+                }
+
+                $assets = $query->get();
+
+                foreach ($assets as $index => $asset) {
+                    $data[] = [
+                        $index + 1,
+                        $asset->name,
+                        $asset->serial_number,
+                        $asset->category ?? '-',
+                        ($asset->lorong ?? '-') . ' / ' . ($asset->rak ?? '-'),
+                        $asset->condition_notes ?? '-',
+                        ucfirst($asset->status),
+                        $asset->quantity,
+                        $asset->holder->name ?? '-'
+                    ];
+                }
+            }
+
+            return \App\Services\SimpleXlsx::download($data, $fileName);
+        }
+    }
 }

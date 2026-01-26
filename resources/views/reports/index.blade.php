@@ -98,11 +98,22 @@
                     </div>
 
                     {{-- DOWNLOAD & OPTIONS --}}
-                    <div class="pt-6 border-t border-gray-100">
-                        <button type="button" onclick="downloadPdf()" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
-                            <svg class="mr-2 -ml-1 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    <div class="pt-6 border-t border-gray-100 space-y-3">
+                        <button type="button" onclick="downloadPdf()" class="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+                            <svg class="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
                             Download PDF Report
                         </button>
+                        
+                        <div class="grid grid-cols-2 gap-3">
+                            <button type="button" onclick="downloadExcel('csv')" class="flex justify-center items-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-bold text-green-700 bg-white hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200">
+                                <svg class="mr-2 h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                Export .csv
+                            </button>
+                            <button type="button" onclick="downloadExcel('xlsx')" class="flex justify-center items-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors duration-200">
+                                <svg class="mr-2 h-5 w-5 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                Export .xlsx
+                            </button>
+                        </div>
                     </div>
 
                     {{-- ADVANCED OPTIONS (Always Visible) --}}
@@ -160,7 +171,7 @@
             </div>
 
             {{-- Iframe Preview --}}
-            <div class="flex-1 p-4 md:p-8 flex justify-center overflow-auto bg-gray-500/10 custom-scrollbar-dark">
+            <div class="flex-1 p-0 flex justify-center overflow-auto bg-gray-500/10 custom-scrollbar-dark">
                 <iframe id="pdf-frame" class="bg-white shadow-2xl rounded-sm transition-all duration-300" 
                         style="width: 210mm; min-height: 297mm; height: auto;" 
                         src="about:blank"></iframe>
@@ -289,6 +300,14 @@
         const formData = new FormData(form);
         formData.append('download', '1');
         window.location.href = `${pdfUrl}?${new URLSearchParams(formData).toString()}`;
+    }
+
+    function downloadExcel(format = 'csv') {
+        const form = document.getElementById('reportForm');
+        const formData = new FormData(form);
+        formData.append('format', format);
+        const excelUrl = "{{ route('reports.excel') }}";
+        window.location.href = `${excelUrl}?${new URLSearchParams(formData).toString()}`;
     }
 
     document.addEventListener('DOMContentLoaded', () => {
