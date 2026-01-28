@@ -9,6 +9,12 @@ use Illuminate\Support\Facades\DB;
 
 class MaintenanceController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:maintenance.view')->only(['index', 'show']);
+        $this->middleware('can:maintenance.create')->only(['create', 'store']);
+        $this->middleware('can:maintenance.action')->only(['update']);
+    }
     /**
      * Display a listing of the maintenance logs.
      */
@@ -113,28 +119,30 @@ class MaintenanceController extends Controller
             'vendor_name' => 'nullable|string',
             'start_date' => 'nullable|date',
             'problem_description' => 'nullable|string',
-            'completion_date' => [
-                'required_if:status,completed',
-                'date',
-                'nullable',
-                function ($attribute, $value, $fail) use ($maintenance, $request) {
-                    if ($value) {
-                        $completion = \Carbon\Carbon::parse($value)->startOfDay();
-                        // Use request start_date if present (editing), otherwise use existing
-                        $startDateString = $request->start_date ?? $maintenance->start_date;
-                        $start = \Carbon\Carbon::parse($startDateString)->startOfDay();
-                        
-                        if ($completion->lt($start)) {
-                            $fail("Tanggal selesai ({$completion->format('d M Y')}) tidak boleh sebelum tanggal mulai service ({$start->format('d M Y')}).");
-                        }
-                    }
-                }
-            ],
+            'completion_date' => 'nullable|date', // Validasi strict dihapus, logic pindah ke bawah
             'cost' => 'nullable|numeric|min:0'
         ]);
 
         DB::beginTransaction();
         try {
+            // LOGIC BARU: Auto Timestamp & Prevention Error
+            if ($request->status == 'completed') {
+                $completionDate = now();
+                $request->merge(['completion_date' => $completionDate]);
+
+                // Cek konflik: Jika selesai SEBELUM mulai, maka majukan tanggal mulai ke saat ini juga
+                // Ini mencegah error logic "Selesai sebelum mulai"
+                $currentStartDate = $maintenance->start_date;
+                if ($request->has('start_date')) {
+                    $currentStartDate = \Carbon\Carbon::parse($request->start_date);
+                }
+
+                if ($completionDate->lt($currentStartDate)) {
+                    // Auto-adjust start date agar masuk akal
+                    $request->merge(['start_date' => $completionDate]);
+                }
+            }
+
             $maintenance->update($request->all());
 
             // Jika Selesai, kembalikan status aset
@@ -142,8 +150,9 @@ class MaintenanceController extends Controller
                 $maintenance->asset->update(['status' => 'available']);
             } 
             // Jika Dibatalkan, kembalikan ke available (atau status sebelumnya jika ada logic advanced)
+            // Jika Dibatalkan, tandai aset sebagai BROKEN (Rusak) karena belum diperbaiki
             elseif ($request->status === 'cancelled') {
-                $maintenance->asset->update(['status' => 'available']);
+                $maintenance->asset->update(['status' => 'broken']);
             }
 
             DB::commit();

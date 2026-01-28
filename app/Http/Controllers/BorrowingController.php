@@ -14,15 +14,20 @@ use Exception;
 
 class BorrowingController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('can:borrow.action')->only(['index', 'approve', 'reject']);
+        $this->middleware('can:borrow.request')->only(['store']);
+        $this->middleware('can:borrow.view')->only(['userHistory']);
+    }
+
     /**
      * ADMIN: Daftar semua peminjaman
      */
     public function index(Request $request)
     {
-        // Security check: Hanya admin & super_admin
-        if (!in_array(auth()->user()->role, ['admin', 'super_admin'])) {
-            abort(403, 'Akses ditolak. Halaman ini khusus Admin.');
-        }
+        // Middleware handled access
+
 
         $query = AssetRequest::with(['user', 'asset']);
 
@@ -123,11 +128,16 @@ class BorrowingController extends Controller
             ]);
 
             // Log History
+            $notes = 'User mengajukan peminjaman aset.';
+            if (session('impersonator_id')) {
+                $notes .= ' (Override by Super Admin)';
+            }
+
             AssetHistory::create([
                 'asset_id' => $request->asset_id,
                 'user_id' => auth()->id(),
                 'action' => 'created', 
-                'notes' => 'User mengajukan peminjaman aset.'
+                'notes' => $notes
             ]);
 
             DB::commit();
@@ -148,9 +158,11 @@ class BorrowingController extends Controller
         $borrowing = AssetRequest::with(['user', 'asset'])->findOrFail($id);
 
         // Security Check
-        // Admin, Super Admin, dan Service Center boleh lihat SEMUA.
+        // Admin (borrow.action/view) boleh lihat SEMUA.
         // User biasa HANYA boleh lihat punya sendiri.
-        if (!in_array(auth()->user()->role, ['admin', 'super_admin', 'service_center']) && $borrowing->user_id !== auth()->id()) {
+        $canViewAll = \Illuminate\Support\Facades\Gate::allows('borrow.action') || \Illuminate\Support\Facades\Gate::allows('borrow.view');
+        
+        if (!$canViewAll && $borrowing->user_id !== auth()->id()) {
             abort(403, 'Akses Ditolak: Anda tidak berhak melihat data peminjaman ini.');
         }
 
@@ -167,6 +179,11 @@ class BorrowingController extends Controller
 
         // Hitung Total Durasi Rencana
         if ($end) {
+            // FIX LOGIC: Jika waktu 00:00:00 (User tidak input jam), anggap batasnya sampai akhir hari (23:59:59)
+            if ($end->format('H:i:s') === '00:00:00') {
+                $end->endOfDay(); 
+            }
+
             // diff() mengembalikan interval positif (absolute)
             $totalDurasi = $this->formatInterval($start->diff($end));
         }
@@ -208,7 +225,7 @@ class BorrowingController extends Controller
      */
     public function approve($id)
     {
-        if (!in_array(auth()->user()->role, ['admin', 'super_admin'])) abort(403);
+        // Middleware handled access
 
         try {
             DB::beginTransaction();
@@ -258,7 +275,7 @@ class BorrowingController extends Controller
      */
     public function reject(Request $request, $id)
     {
-        if (!in_array(auth()->user()->role, ['admin', 'super_admin'])) abort(403);
+        // Middleware handled access
 
         $request->validate(['admin_note' => 'required|string|max:500']);
 
@@ -329,8 +346,10 @@ class BorrowingController extends Controller
 
             $borrowing = AssetRequest::with('asset')->findOrFail($id);
 
-            // Security: Cek kepemilikan
-            if (!in_array(auth()->user()->role, ['admin', 'super_admin']) && $borrowing->user_id !== auth()->id()) {
+            // Security: Cek kepemilikan atau izin borrow.return / borrow.action
+            $canReturnAny = \Illuminate\Support\Facades\Gate::allows('borrow.action') || \Illuminate\Support\Facades\Gate::allows('borrow.return');
+            
+            if (!$canReturnAny && $borrowing->user_id !== auth()->id()) {
                 abort(403);
             }
 

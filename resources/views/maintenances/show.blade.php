@@ -3,7 +3,7 @@
 @section('container')
 <div class="w-full mx-auto px-4 py-8" x-data="{ showEditModal: false }">
     
-    {{-- Header --}}
+    {{-- Bagian Kepala Halaman (Header) --}}
     <div class="flex items-center justify-between mb-6">
         <div>
             <h1 class="text-2xl font-bold text-gray-800">Detail Tiket Perbaikan</h1>
@@ -15,7 +15,7 @@
         </a>
     </div>
 
-    {{-- Edit Button (Admin Only) --}}
+    {{-- Tombol Edit (Hanya Terlihat oleh Admin) --}}
     @if(in_array(auth()->user()->role, ['admin', 'super_admin']))
     <div class="mb-6 flex justify-end">
         <button @click="showEditModal = true" class="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-indigo-700 transition shadow-sm">
@@ -27,9 +27,9 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {{-- LEFT COLUMN: ASSET INFO --}}
+        {{-- KOLOM KIRI: INFORMASI ASET --}}
         <div class="lg:col-span-1 space-y-6">
-            {{-- Asset Card --}}
+            {{-- Kartu Data Aset --}}
             <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden group">
                 <div class="relative h-48 bg-gray-200">
                     <img src="{{ $maintenance->asset->image ? asset('storage/' . $maintenance->asset->image) : 'https://placehold.co/400x300?text=No+Image' }}" 
@@ -64,7 +64,7 @@
                 </div>
             </div>
 
-            {{-- Vendor Card --}}
+            {{-- Kartu Informasi Vendor --}}
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">Informasi Vendor</h3>
                 <div class="space-y-4">
@@ -92,10 +92,10 @@
             </div>
         </div>
 
-        {{-- RIGHT COLUMN: MAINTENANCE LOG & ACTIONS --}}
+        {{-- KOLOM KANAN: RIWAYAT PERBAIKAN & TINDAKAN --}}
         <div class="lg:col-span-2 space-y-6">
             
-            {{-- Problem Description --}}
+            {{-- Deskripsi Masalah --}}
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
                 <div class="flex items-start gap-4">
                     <div class="bg-red-50 p-3 rounded-lg flex-shrink-0">
@@ -110,7 +110,7 @@
                 </div>
             </div>
 
-            {{-- Action Taken / Resolution (Form Update) --}}
+            {{-- Tindakan yang Diambil / Solusi (Formulir Update) --}}
             <div class="bg-white rounded-xl shadow-sm border border-indigo-100 overflow-hidden relative">
                 @if($maintenance->status == 'completed')
                     <div class="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg uppercase tracking-wider">Tiket Selesai</div>
@@ -140,7 +140,7 @@
                         </div>
                     </div>
                 @else
-                    {{-- Form Update Status --}}
+                    {{-- Formulir Update Status --}}
                     <div class="bg-indigo-50 px-8 py-4 border-b border-indigo-100 flex items-center justify-between">
                         <h3 class="text-lg font-bold text-indigo-900">Update Status Perbaikan</h3>
                         <span class="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">Sedang Diproses</span>
@@ -171,15 +171,14 @@
                             <div>
                                 <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Status Tiket</label>
                                 <select name="status" class="w-full px-4 py-3 rounded-lg border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition bg-white cursor-pointer">
-                                    <option value="on_process" {{ $maintenance->status == 'on_process' ? 'selected' : '' }}>⏳ Masih Dalam Proses</option>
-                                    <option value="completed" {{ $maintenance->status == 'completed' ? 'selected' : '' }}>✅ Selesai (Aset Kembali Available)</option>
-                                    <option value="cancelled" {{ $maintenance->status == 'cancelled' ? 'selected' : '' }}>🚫 Dibatalkan</option>
+                                    <option value="on_process" {{ $maintenance->status == 'on_process' ? 'selected' : '' }}>Masih Dalam Proses</option>
+                                    <option value="completed" {{ $maintenance->status == 'completed' ? 'selected' : '' }}>Selesai (Aset Kembali Tersedia)</option>
+                                    <option value="cancelled" {{ $maintenance->status == 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
                                 </select>
                             </div>
                         </div>
 
-                        {{-- Hidden Completion Date --}}
-                        <input type="hidden" name="completion_date" value="{{ date('Y-m-d') }}">
+                        {{-- Tanggal Selesai akan di-set otomatis oleh server saat submit --}}
 
                         <div class="flex justify-end gap-3 pt-6 border-t border-indigo-50">
                             <button type="submit" class="px-6 py-2.5 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 transition transform active:scale-95">
@@ -189,7 +188,7 @@
                     </form>
                 @endif
 
-                {{-- Edit Form (Hidden by default for completed items) --}}
+                {{-- Form Edit (Tersembunyi secara default untuk item yang sudah selesai) --}}
                 @if($maintenance->status == 'completed')
                 <div id="editForm" class="hidden border-t-4 border-indigo-500 bg-gray-50 p-8">
                     <h4 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Edit Data Selesai</h4>
@@ -223,7 +222,7 @@
 
         </div>
     </div>
-    {{-- Edit Modal --}}
+    {{-- Modal Edit Data --}}
     <div x-show="showEditModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 transition-opacity" aria-hidden="true" @click="showEditModal = false">
@@ -246,25 +245,25 @@
                     <input type="hidden" name="status" value="{{ $maintenance->status }}">
                     
                     <div class="px-4 py-5 sm:p-6 space-y-4">
-                        {{-- Vendor --}}
+                        {{-- Input Data Vendor --}}
                         <div>
                             <label class="block text-sm font-bold text-gray-700 mb-1">Vendor / Service Center</label>
                             <input type="text" name="vendor_name" value="{{ $maintenance->vendor_name }}" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required>
                         </div>
 
-                        {{-- Start Date --}}
+                        {{-- Input Tanggal Mulai --}}
                         <div>
                             <label class="block text-sm font-bold text-gray-700 mb-1">Tanggal Mulai</label>
                             <input type="date" name="start_date" value="{{ $maintenance->start_date }}" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required>
                         </div>
 
-                        {{-- Description --}}
+                        {{-- Input Deskripsi Masalah --}}
                         <div>
                             <label class="block text-sm font-bold text-gray-700 mb-1">Deskripsi Masalah</label>
                             <textarea name="problem_description" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required>{{ $maintenance->problem_description }}</textarea>
                         </div>
 
-                        {{-- Cost (Optional) --}}
+                        {{-- Input Biaya (Opsional) --}}
                         <div>
                             <label class="block text-sm font-bold text-gray-700 mb-1">Estimasi Biaya (Rp)</label>
                             <input type="number" name="cost" value="{{ $maintenance->cost }}" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">

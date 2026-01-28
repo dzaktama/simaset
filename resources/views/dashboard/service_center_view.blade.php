@@ -190,14 +190,18 @@
                         <td class="px-6 py-4">
                             @if($maintain->status == 'on_process')
                                 <span class="px-2.5 py-1 text-[10px] font-bold rounded-full bg-yellow-100 text-yellow-700 border border-yellow-200 uppercase tracking-wide">
-                                    ON PROCESS
+                                    SEDANG DIPROSES
                                 </span>
                             @elseif($maintain->status == 'completed')
                                 <span class="px-2.5 py-1 text-[10px] font-bold rounded-full bg-green-100 text-green-700 border border-green-200 uppercase tracking-wide">
-                                    COMPLETED
+                                    SELESAI
+                                </span>
+                            @elseif($maintain->status == 'cancelled')
+                                <span class="px-2.5 py-1 text-[10px] font-bold rounded-full bg-red-100 text-red-700 border border-red-200 uppercase tracking-wide">
+                                    DIBATALKAN
                                 </span>
                             @else
-                                <span class="px-2.5 py-1 text-[10px] font-bold rounded-full bg-red-100 text-red-700 border border-red-200 uppercase tracking-wide">
+                                <span class="px-2.5 py-1 text-[10px] font-bold rounded-full bg-gray-100 text-gray-700 border border-gray-200 uppercase tracking-wide">
                                     {{ strtoupper($maintain->status) }}
                                 </span>
                             @endif

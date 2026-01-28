@@ -24,86 +24,143 @@
     {{-- 2. Menu Items --}}
     <div class="flex-1 overflow-y-auto custom-scrollbar py-4 px-3 space-y-1">
         
-        <div class="mb-2 px-3">
+        {{-- SECTION: MENU UTAMA --}}
+        <div class="px-3 mb-2 mt-2">
             <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Menu Utama</p>
         </div>
-
         <nav class="space-y-1">
-            {{-- Dashboard (Semua User) --}}
+            @can('dashboard.view')
             <a href="{{ route('dashboard') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('dashboard') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
                 <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('dashboard') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
                 <span>Dashboard</span>
             </a>
+            @endcan
 
-            {{-- Chat Menu --}}
+            @can('chat.access')
             <a href="{{ route('chat.index') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('chat.*') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
                 <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('chat.*') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
                 <span>Pesan & Diskusi</span>
             </a>
+            @endcan
 
-            {{-- MENU OPERASIONAL (Admin, Super Admin, Service Center) --}}
-            @if(in_array(auth()->user()->role, ['admin', 'super_admin', 'service_center']))
-                <div class="mt-6 mb-2 px-3"><div class="h-px bg-gray-200 mb-2"></div><p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Operasional</p></div>
-
-                <a href="{{ route('assets.index') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->is('assets*') && !request()->routeIs('assets.map') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
-                    <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->is('assets*') && !request()->routeIs('assets.map') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-                    <span>Data Aset IT</span>
-                </a>
-
-                <a href="{{ route('maintenances.index') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('maintenances.*') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
-                    <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('maintenances.*') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    <span>Maintenance Log</span>
-                </a>
-
-                <a href="{{ route('assets.map') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('assets.map') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
-                    <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('assets.map') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    <span>Peta Lokasi</span>
-                </a>
-
-                {{-- HANYA ADMIN & SUPER ADMIN --}}
-                @if(in_array(auth()->user()->role, ['admin', 'super_admin']))
-                    <a href="{{ route('borrowing.index') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('borrowing.index') || request()->routeIs('borrowing.show') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
-                        <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('borrowing.index') || request()->routeIs('borrowing.show') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
-                        <span>Manajemen Peminjaman</span>
-                    </a>
-
-                    <a href="{{ route('reports.index') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('reports.*') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
-                        <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('reports.*') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                        <span>Laporan & Audit</span>
-                    </a>
-                @endif
-
-                {{-- HANYA SUPER ADMIN --}}
-                @if(auth()->user()->role === 'super_admin')
-                    <a href="{{ route('users.index') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('users.*') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
-                        <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('users.*') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                        <span>Manajemen User</span>
-                    </a>
-                @endif
+            {{-- Analytics (Only Admin/Super) --}}
+            @if(in_array(auth()->user()->role, ['admin', 'super_admin']))
+            <a href="{{ route('analytics.index') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('analytics.*') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
+                <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('analytics.*') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
+                <span>Pusat Data</span>
+            </a>
             @endif
+        </nav>
 
-            {{-- MENU KHUSUS KARYAWAN --}}
-            @if(auth()->user()->role !== 'admin')
-                <div class="mt-6 mb-2 px-3"><div class="h-px bg-gray-200 mb-2"></div><p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Karyawan</p></div>
-                
-                {{-- Aset Saya --}}
-                <a href="{{ route('assets.my') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('assets.my') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
-                    <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('assets.my') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
-                    <span>Aset Saya</span>
+        {{-- SECTION: MANAJEMEN ASET --}}
+        @canany(['asset.view', 'maintenance.view'])
+        <div class="mt-6 mb-2 px-3"><div class="h-px bg-gray-200 mb-2"></div><p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Aset & Inventaris</p></div>
+        <nav class="space-y-1">
+            @can('asset.view')
+            <a href="{{ route('assets.index') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->is('assets*') && !request()->routeIs('assets.create') && !request()->routeIs('assets.map') && !request()->routeIs('assets.my') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
+                <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->is('assets*') && !request()->routeIs('assets.create') && !request()->routeIs('assets.map') && !request()->routeIs('assets.my') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                <span>Katalog Aset</span>
+            </a>
+            {{-- Submenu: Input Aset (Hidden if no permission) --}}
+            @can('asset.create')
+                <a href="{{ route('assets.create') }}" class="group flex items-center pl-11 pr-3 py-2 text-xs font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('assets.create') ? 'bg-indigo-50 text-indigo-600' : 'text-gray-500 hover:text-indigo-600 hover:bg-gray-50' }}">
+                    <svg class="w-4 h-4 mr-2 transition-colors duration-200 {{ request()->routeIs('assets.create') ? 'text-indigo-600' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Input Aset Baru
                 </a>
+            @endcan
 
-                {{-- [BARU] Pinjam Aset (Browse) --}}
-                <a href="{{ route('assets.index') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('assets.index') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
-                    <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('assets.index') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-                    <span>Pinjam Aset Baru</span>
-                </a>
+            <a href="{{ route('assets.map') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('assets.map') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
+                <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('assets.map') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                <span>Lokasi Barang</span>
+            </a>
+            @endcan
 
-                {{-- [BARU] Riwayat Peminjaman (History) --}}
-                <a href="{{ route('borrowing.history') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('borrowing.history') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
-                    <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('borrowing.history') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    <span>Riwayat Peminjaman</span>
+            @can('maintenance.view')
+            <a href="{{ route('maintenances.index') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('maintenances.index') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
+                <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('maintenances.index') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                <span>Perbaikan Barang</span>
+            </a>
+            {{-- Submenu: Input Maintenance --}}
+            @can('maintenance.create')
+                <a href="{{ route('maintenances.create') }}" class="group flex items-center pl-11 pr-3 py-2 text-xs font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('maintenances.create') ? 'bg-indigo-50 text-indigo-600' : 'text-gray-500 hover:text-indigo-600 hover:bg-gray-50' }}">
+                    <svg class="w-4 h-4 mr-2 transition-colors duration-200 {{ request()->routeIs('maintenances.create') ? 'text-indigo-600' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Lapor Kerusakan
                 </a>
-            @endif
+            @endcan
+            @endcan
+        </nav>
+        @endcanany
+
+        {{-- SECTION: SIRKULASI --}}
+        @canany(['borrow.view', 'return.verify'])
+        <div class="mt-6 mb-2 px-3"><div class="h-px bg-gray-200 mb-2"></div><p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Sirkulasi</p></div>
+        <nav class="space-y-1">
+            {{-- Admin/Approver View --}}
+            @can('borrow.action')
+            <a href="{{ route('borrowing.index') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('borrowing.index') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
+                <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('borrowing.index') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+                <span>Approval Peminjaman</span>
+            </a>
+            @endcan
+
+            {{-- Teknisi/Admin Return Check --}}
+            @can('return.verify')
+            <a href="{{ route('returns.index') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('returns.*') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
+                <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('returns.*') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>Verifikasi Pengembalian</span>
+            </a>
+            @endcan
+
+            {{-- Personal History (Karyawan) --}}
+            @can('borrow.view')
+            <a href="{{ route('borrowing.history') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('borrowing.history') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
+                <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('borrowing.history') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>Riwayat Peminjaman</span>
+            </a>
+            @endcan
+        </nav>
+        @endcanany
+
+        {{-- SECTION: ADMINISTRASI --}}
+        @canany(['report.view', 'user.view'])
+        <div class="mt-6 mb-2 px-3"><div class="h-px bg-gray-200 mb-2"></div><p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Administrasi</p></div>
+        <nav class="space-y-1">
+            @can('report.view')
+            <a href="{{ route('reports.index') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('reports.*') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
+                <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('reports.*') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                <span>Laporan & Audit</span>
+            </a>
+            @endcan
+
+            @can('user.view')
+            <a href="{{ route('users.index') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('users.index') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
+                <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('users.index') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                <span>Manajemen User</span>
+            </a>
+            {{-- Submenu: Tambah User --}}
+            @can('user.create')
+                <a href="{{ route('users.create') }}" class="group flex items-center pl-11 pr-3 py-2 text-xs font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('users.create') ? 'bg-indigo-50 text-indigo-600' : 'text-gray-500 hover:text-indigo-600 hover:bg-gray-50' }}">
+                    <svg class="w-4 h-4 mr-2 transition-colors duration-200 {{ request()->routeIs('users.create') ? 'text-indigo-600' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
+                    Tambah User
+                </a>
+            @endcan
+            @endcan
+        </nav>
+        @endcanany
+
+        {{-- SECTION: PERSONAL --}}
+        <div class="mt-6 mb-2 px-3"><div class="h-px bg-gray-200 mb-2"></div><p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Area Pribadi</p></div>
+        <nav class="space-y-1">
+            <a href="{{ route('assets.my') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('assets.my') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
+                <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('assets.my') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
+                <span>Aset Saya</span>
+            </a>
         </nav>
     </div>
 

@@ -1,190 +1,228 @@
 @extends('layouts.main')
 
 @section('container')
-<div class="mx-auto max-w-6xl px-4 py-8 lg:py-12">
+<div class="w-full px-4 sm:px-6 lg:px-8 py-6 bg-gray-50 min-h-screen">
     {{-- Header Section --}}
-    <div class="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <h2 class="text-3xl font-extrabold text-gray-900 tracking-tight">Input Aset Baru</h2>
-            <p class="mt-2 text-base text-gray-500 max-w-2xl">
-                Tambahkan aset inventaris baru ke dalam sistem. 
-                Serial Number & QR Code akan digenerate otomatis setelah data tersimpan.
-            </p>
+            <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Input Aset Baru</h2>
+            <p class="mt-1 text-sm text-gray-500">Tambahkan aset inventaris baru ke dalam sistem. SN & QR Code otomatis.</p>
         </div>
-        <a href="{{ route('assets.index') }}" class="group inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-all duration-200">
-            <svg class="mr-2 h-5 w-5 text-gray-400 group-hover:text-gray-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
+        <a href="{{ route('assets.index') }}" class="group inline-flex items-center justify-center rounded-lg bg-white px-4 py-2 text-sm font-bold text-gray-700 shadow-sm border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200">
+            <svg class="w-4 h-4 mr-2 text-gray-500 group-hover:text-gray-700 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
             Kembali ke Daftar
         </a>
     </div>
 
     {{-- Form Wrapper --}}
-    <form action="{{ route('assets.store') }}" method="POST" enctype="multipart/form-data">
+    <form action="{{ route('assets.store') }}" method="POST" enctype="multipart/form-data" 
+          x-data="{
+              previews: { img1: null, img2: null, img3: null },
+              handleFile(e, key) {
+                  const file = e.target.files[0];
+                  if(file) {
+                      const reader = new FileReader();
+                      reader.onload = (e) => this.previews[key] = e.target.result;
+                      reader.readAsDataURL(file);
+                  }
+              },
+              dragover: false,
+              handleDrop(e) {
+                  this.dragover = false;
+                  const files = e.dataTransfer.files;
+                  if (files.length > 3) {
+                      alert('Maksimal 3 foto sekaligus!');
+                      return;
+                  }
+                  
+                  const inputs = ['image', 'image2', 'image3'];
+                  const keys = ['img1', 'img2', 'img3'];
+
+                  for (let i = 0; i < files.length; i++) {
+                      if (i >= 3) break;
+                      
+                      const file = files[i];
+                      const inputId = inputs[i] + 'Input';
+                      const key = keys[i];
+
+                      // Update Input File
+                      const dataTransfer = new DataTransfer();
+                      dataTransfer.items.add(file);
+                      document.getElementById(inputId).files = dataTransfer.files;
+
+                      // Update Preview
+                      const reader = new FileReader();
+                      reader.onload = (e) => this.previews[key] = e.target.result;
+                      reader.readAsDataURL(file);
+                  }
+              },
+              removeFile(key, inputId) {
+                  this.previews[key] = null;
+                  const input = document.getElementById(inputId);
+                  if (input) input.value = '';
+              }
+          }">
         @csrf
         
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             
             {{-- KOLOM UTAMA (KIRI/TENGAH) --}}
-            <div class="lg:col-span-2 space-y-8">
+            <div class="lg:col-span-2 space-y-6">
                 
                 {{-- CARD 1: INFORMASI DASAR --}}
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div class="border-b border-gray-100 bg-gray-50/50 px-6 py-4">
-                        <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
-                            <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
-                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            </span>
-                            Informasi Dasar
-                        </h3>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-5 py-3 bg-indigo-50 border-b border-indigo-100 flex items-center">
+                        <div class="bg-indigo-100 p-1.5 rounded-md mr-3 text-indigo-600">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </div>
+                        <h3 class="text-base font-bold text-indigo-900">Informasi Dasar</h3>
                     </div>
                     
-                    <div class="p-6 md:p-8 space-y-6">
+                    <div class="p-5 space-y-5">
                         {{-- Nama Barang & Status --}}
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="md:col-span-2">
-                                <label class="block text-sm font-bold text-gray-700 mb-2">Nama Barang / Aset <span class="text-red-500">*</span></label>
-                                <input type="text" name="name" value="{{ old('name') }}" class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-3 px-4 text-base" placeholder="Contoh: MacBook Pro M3 Max 16 Inch" required>
-                                @error('name') <p class="text-red-500 text-sm mt-1 font-medium">{{ $message }}</p> @enderror
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div class="md:col-span-2 group">
+                                <label class="block text-sm font-bold text-gray-700 mb-1.5 group-focus-within:text-indigo-600">Nama Barang / Aset <span class="text-red-500">*</span></label>
+                                <input type="text" name="name" value="{{ old('name') }}" 
+                                    class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-600 focus:bg-white focus:ring-0 transition-all duration-200 font-medium" 
+                                    placeholder="Contoh: MacBook Pro M3 Max 16 Inch" required>
+                                @error('name') <p class="text-red-600 text-xs mt-1 font-semibold">{{ $message }}</p> @enderror
                             </div>
 
                             {{-- Kategori --}}
-                            <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-2">Kategori Aset <span class="text-red-500">*</span></label>
+                            <div class="group">
+                                <label class="block text-sm font-bold text-gray-700 mb-1.5 group-focus-within:text-indigo-600">Kategori Aset <span class="text-red-500">*</span></label>
                                 <div class="relative">
-                                    <select name="category" class="block w-full appearance-none rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-3 pl-4 pr-10 text-base" required>
+                                    <select name="category" required class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 font-medium focus:border-indigo-600 focus:bg-white focus:ring-0 appearance-none cursor-pointer transition-all">
                                         <option value="">-- Pilih Kategori --</option>
                                         @foreach($categories as $cat)
                                             <option value="{{ $cat }}" {{ old('category') == $cat ? 'selected' : '' }}>{{ $cat }}</option>
                                         @endforeach
                                     </select>
-                                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                                     </div>
                                 </div>
-                                @error('category') <p class="text-red-500 text-sm mt-1 font-medium">{{ $message }}</p> @enderror
+                                @error('category') <p class="text-red-600 text-xs mt-1 font-semibold">{{ $message }}</p> @enderror
                             </div>
 
                             {{-- Status Awal --}}
-                            <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-2">Status Awal</label>
+                            <div class="group">
+                                <label class="block text-sm font-bold text-gray-700 mb-1.5 group-focus-within:text-indigo-600">Status Awal</label>
                                 <div class="relative">
-                                    <select name="status" class="block w-full appearance-none rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-3 pl-4 pr-10 text-base">
+                                    <select name="status" class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 font-medium focus:border-indigo-600 focus:bg-white focus:ring-0 appearance-none cursor-pointer transition-all">
                                         <option value="available" class="text-green-600 font-bold" {{ old('status') == 'available' ? 'selected' : '' }}>Available (Siap Pakai)</option>
                                         <option value="maintenance" class="text-yellow-600 font-bold" {{ old('status') == 'maintenance' ? 'selected' : '' }}>Maintenance (Perbaikan)</option>
                                     </select>
-                                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         {{-- Deskripsi --}}
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-2">Deskripsi & Spesifikasi</label>
-                            <textarea name="description" rows="3" class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-3 px-4 text-base" placeholder="Tuliskan spesifikasi detail, kelengkapan, warna, dsb..."></textarea>
+                        <div class="group">
+                            <label class="block text-sm font-bold text-gray-700 mb-1.5 group-focus-within:text-indigo-600">Deskripsi & Spesifikasi</label>
+                            <textarea name="description" rows="3" 
+                                class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-600 focus:bg-white focus:ring-0 transition-all duration-200 font-medium" 
+                                placeholder="Tuliskan spesifikasi detail, kelengkapan, warna, dsb...">{{ old('description') }}</textarea>
                         </div>
                     </div>
                 </div>
 
-                {{-- CARD 2: INFORMASI KEUANGAN (COLLAPSIBLE PREMIUM) --}}
-                <div x-data="{ expanded: false }" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300" :class="{'ring-2 ring-indigo-500 ring-offset-2': expanded}">
-                    <button type="button" @click="expanded = !expanded" class="w-full flex items-center justify-between px-6 py-5 bg-white hover:bg-gray-50 transition-colors">
-                        <div class="flex items-center gap-3">
-                            <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 text-green-600 transition-colors" :class="{'bg-indigo-600 text-white': expanded}">
-                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            </span>
-                            <div class="text-left">
-                                <h3 class="text-lg font-bold text-gray-900">Informasi Keuangan</h3>
-                                <p class="text-sm text-gray-500">Harga beli, masa manfaat, dan depresiasi (Opsional).</p>
-                            </div>
-                        </div>
-                        <span class="rounded-full p-2 text-gray-400 hover:bg-gray-200 transition-colors" :class="{'rotate-180 bg-gray-100 text-indigo-600': expanded}">
-                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                        </span>
-                    </button>
-
-                    <div x-show="expanded" x-collapse>
-                        <div class="p-6 md:p-8 space-y-6 border-t border-gray-100 bg-gray-50/30">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {{-- Tanggal Beli --}}
-                                <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-2">Tanggal Pembelian <span class="text-red-500">*</span></label>
-                                    <input type="date" name="purchase_date" value="{{ old('purchase_date') }}" class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-3 px-4" required>
-                                </div>
+                {{-- CARD 2: FOTO DOKUMENTASI (DIPINDAHKAN KE SINI) --}}
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
+                     x-on:dragover.prevent="dragover = true"
+                     x-on:dragleave.prevent="dragover = false"
+                     x-on:drop.prevent="handleDrop($event)"
+                     :class="{'ring-2 ring-indigo-500 bg-indigo-50': dragover}">
+                    <div class="bg-gray-50 px-5 py-3 border-b border-gray-200">
+                        <h3 class="text-xs font-extrabold text-gray-800 uppercase tracking-wider">Foto Dokumentasi</h3>
+                    </div>
+                    
+                    <div class="p-5 space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            @foreach(['image' => 'Foto Utama', 'image2' => 'Tampak Samping', 'image3' => 'Tampak Belakang'] as $key => $label)
+                            <div class="relative group">
+                                <label class="block text-xs font-bold text-gray-500 uppercase mb-1.5">{{ $label }}</label>
                                 
-                                {{-- Harga Beli --}}
-                                <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-2">Harga Per Unit (Rp)</label>
-                                    <div class="relative">
-                                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                                            <span class="text-gray-500 font-bold">Rp</span>
+                                {{-- Preview Area --}}
+                                <div class="mb-2 w-full h-32 rounded-lg border border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center overflow-hidden relative cursor-pointer hover:bg-gray-100 hover:border-indigo-400 transition-all"
+                                     @click="document.getElementById('{{ $key }}Input').click()">
+                                    
+                                    <template x-if="!previews.img{{ $loop->iteration }}">
+                                        <div class="text-center p-3">
+                                            <svg class="h-6 w-6 text-gray-400 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                            <span class="text-[10px] text-gray-500 font-bold">Klik Upload</span>
                                         </div>
-                                        <input type="number" name="purchase_price" class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-3 pl-12 pr-4" placeholder="0">
-                                    </div>
-                                </div>
-
-                                {{-- Masa Pakai --}}
-                                <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-2">
-                                        Masa Pakai (Tahun)
-                                        <span class="ml-1 inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800">Default: 4 Tahun</span>
-                                    </label>
-                                    <input type="number" name="useful_life_years" value="4" class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-3 px-4" placeholder="Contoh: 4">
-                                </div>
-
-                                {{-- Nilai Residu --}}
-                                <div>
-                                    <label class="block text-sm font-bold text-gray-700 mb-2">Nilai Residu (Rp)</label>
-                                    <div class="relative">
-                                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                                            <span class="text-gray-500 font-bold">Rp</span>
+                                    </template>
+                                    
+                                    <template x-if="previews.img{{ $loop->iteration }}">
+                                        <div class="relative w-full h-full group">
+                                            <img :src="previews.img{{ $loop->iteration }}" class="w-full h-full object-cover rounded-lg">
+                                            <button type="button" 
+                                                @click.stop="removeFile('img{{ $loop->iteration }}', '{{ $key }}Input')"
+                                                class="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors focus:outline-none"
+                                                title="Hapus Foto">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                            </button>
                                         </div>
-                                        <input type="number" name="residual_value" value="0" class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-3 pl-12 pr-4" placeholder="Estimasi harga jual akhir">
-                                    </div>
-                                    <p class="mt-1 text-xs text-gray-500">Nilai sisa aset setelah habis masa pakainya.</p>
+                                    </template>
+
+                                    {{-- Hidden Input --}}
+                                    <input id="{{ $key }}Input" type="file" name="{{ $key }}" class="hidden" 
+                                        accept="image/*"
+                                        @change="handleFile($event, 'img{{ $loop->iteration }}')">
                                 </div>
                             </div>
+                            @endforeach
                         </div>
+                        
+                        <p class="text-[10px] text-center text-gray-400 bg-gray-50 py-1.5 rounded border border-gray-200">
+                            Format: JPG/PNG, Max 2MB
+                        </p>
                     </div>
                 </div>
 
             </div>
 
             {{-- KOLOM SIDEBAR (KANAN) --}}
-            <div class="space-y-8">
+            <div class="space-y-6">
                 
-                {{-- CARD 3: LOGITSIK (LOKASI & JUMLAH) --}}
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                    <h3 class="text-base font-bold text-gray-900 mb-5 pb-3 border-b border-gray-100 uppercase tracking-wider">Logistik & Permintaan</h3>
+                {{-- CARD 3: LOGISTIK --}}
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="bg-gray-50 px-5 py-3 border-b border-gray-200">
+                        <h3 class="text-xs font-extrabold text-gray-800 uppercase tracking-wider">Logistik & Permintaan</h3>
+                    </div>
                     
-                    <div class="space-y-5">
+                    <div class="p-5 space-y-5">
                         {{-- Jumlah Massal --}}
-                        <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                            <label class="block text-sm font-bold text-blue-900 mb-2">Jumlah Aset (Input Massal)</label>
-                            <div class="flex items-center">
-                                <button type="button" onclick="document.getElementById('qtyInput').stepDown()" class="p-3 bg-white rounded-l-lg border border-r-0 border-blue-200 text-blue-600 hover:bg-blue-50 transition">-</button>
-                                <input id="qtyInput" type="number" name="quantity" value="{{ old('quantity', 1) }}" min="1" class="text-center w-full border-y border-x-0 border-blue-200 py-3 font-bold text-blue-900 focus:ring-0">
-                                <button type="button" onclick="document.getElementById('qtyInput').stepUp()" class="p-3 bg-white rounded-r-lg border border-l-0 border-blue-200 text-blue-600 hover:bg-blue-50 transition">+</button>
+                        <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-100 dash-border">
+                            <label class="block text-sm font-bold text-indigo-900 mb-2">Jumlah Aset (Input Massal)</label>
+                            <div class="flex items-center shadow-sm">
+                                <button type="button" onclick="document.getElementById('qtyInput').stepDown()" class="p-2.5 bg-white rounded-l-lg border border-r-0 border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition font-bold">-</button>
+                                <input id="qtyInput" type="number" name="quantity" value="{{ old('quantity', 1) }}" min="1" 
+                                    class="text-center w-full border border-indigo-200 py-2.5 font-bold text-indigo-900 focus:ring-0 focus:border-indigo-500 h-[42px] text-sm">
+                                <button type="button" onclick="document.getElementById('qtyInput').stepUp()" class="p-2.5 bg-white rounded-r-lg border border-l-0 border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition font-bold">+</button>
                             </div>
-                            <p class="text-xs text-blue-600 mt-2">
-                                <strong>Tips:</strong> Masukkan > 1 untuk membuat banyak aset sekaligus dengan SN berurutan otomatis.
+                            <p class="text-[11px] text-indigo-700 mt-1.5 font-medium">
+                                Masukkan > 1 untuk generate banyak aset dengan Serial Number berurutan.
                             </p>
                         </div>
 
                         {{-- Lokasi --}}
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-2">Lokasi Penyimpanan</label>
+                        <div class="group">
+                            <label class="block text-sm font-bold text-gray-700 mb-1.5">Lokasi Penyimpanan</label>
                             <div class="grid grid-cols-2 gap-3">
-                                <select name="lorong" class="block w-full rounded-lg border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500 p-2.5">
-                                    <option value="">Area...</option>
+                                <select name="lorong" class="block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium focus:border-indigo-600 focus:ring-0 transition-all">
+                                    <option value="">-- Area --</option>
                                     @foreach(range('A', 'Z') as $char)
                                         <option value="Area {{ $char }}" {{ old('lorong') == "Area $char" ? 'selected' : '' }}>Area {{ $char }}</option>
                                     @endforeach
                                 </select>
-                                <select name="rak" class="block w-full rounded-lg border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500 p-2.5">
-                                    <option value="">Rak...</option>
+                                <select name="rak" class="block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium focus:border-indigo-600 focus:ring-0 transition-all">
+                                    <option value="">-- Rak --</option>
                                     @for($i = 1; $i <= 50; $i++)
                                         @php $rakCode = 'R-' . str_pad($i, 2, '0', STR_PAD_LEFT); @endphp
                                         <option value="{{ $rakCode }}" {{ old('rak') == $rakCode ? 'selected' : '' }}>{{ $rakCode }}</option>
@@ -195,43 +233,73 @@
                     </div>
                 </div>
 
-                {{-- CARD 4: FOTO DOKUMENTASI --}}
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                    <h3 class="text-base font-bold text-gray-900 mb-5 pb-3 border-b border-gray-100 uppercase tracking-wider">Foto Dokumentasi</h3>
-                    
-                    <div class="space-y-4">
-                        {{-- Upload 1 --}}
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Foto Utama</label>
-                            <input type="file" name="image" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-colors cursor-pointer border rounded-lg">
+                {{-- CARD 4: INFORMASI KEUANGAN (DIPINDAHKAN KE SINI & SELALU TERBUKA) --}}
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-5 py-3 bg-white border-b border-gray-100 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-100 text-emerald-600">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            </span>
+                            <div>
+                                <h3 class="text-base font-bold text-gray-900">Informasi Keuangan</h3>
+                                <p class="text-xs text-gray-500">Harga beli & penyusutan.</p>
+                            </div>
                         </div>
-                        {{-- Upload 2 --}}
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Tampak Samping</label>
-                            <input type="file" name="image2" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 transition-colors cursor-pointer border rounded-lg">
+                    </div>
+
+                    <div class="p-5 space-y-5 bg-gray-50/50">
+                        <div class="grid grid-cols-1 gap-5">
+                            {{-- Tanggal Beli --}}
+                            <div class="group">
+                                <label class="block text-sm font-bold text-gray-700 mb-1.5 group-focus-within:text-indigo-600">Tanggal Pembelian <span class="text-red-500">*</span></label>
+                                <input type="date" name="purchase_date" value="{{ old('purchase_date') }}" 
+                                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-indigo-600 focus:ring-0 transition-all font-medium" required>
+                            </div>
+                            
+                            {{-- Harga Beli --}}
+                            <div class="group">
+                                <label class="block text-sm font-bold text-gray-700 mb-1.5 group-focus-within:text-indigo-600">Harga Per Unit (Rp)</label>
+                                <div class="relative">
+                                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 font-bold text-sm">Rp</span>
+                                    <input type="number" name="purchase_price" 
+                                        class="w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 py-2.5 text-sm text-gray-900 focus:border-indigo-600 focus:ring-0 transition-all font-medium" placeholder="0">
+                                </div>
+                            </div>
+
+                            {{-- Masa Pakai --}}
+                            <div class="group">
+                                <label class="block text-sm font-bold text-gray-700 mb-1.5 group-focus-within:text-indigo-600">
+                                    Masa Pakai (Tahun)
+                                </label>
+                                <input type="number" name="useful_life_years" value="4" 
+                                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-indigo-600 focus:ring-0 transition-all font-medium" placeholder="Contoh: 4">
+                            </div>
+
+                            {{-- Nilai Residu --}}
+                            <div class="group">
+                                <label class="block text-sm font-bold text-gray-700 mb-1.5 group-focus-within:text-indigo-600">Nilai Residu (Rp)</label>
+                                <div class="relative">
+                                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 font-bold text-sm">Rp</span>
+                                    <input type="number" name="residual_value" value="0" 
+                                        class="w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 py-2.5 text-sm text-gray-900 focus:border-indigo-600 focus:ring-0 transition-all font-medium" placeholder="Estimasi harga jual akhir">
+                                </div>
+                                <p class="mt-1 text-xs text-gray-400">Estimasi nilai sisa.</p>
+                            </div>
                         </div>
-                        {{-- Upload 3 --}}
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Tampak Belakang</label>
-                            <input type="file" name="image3" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 transition-colors cursor-pointer border rounded-lg">
-                        </div>
-                        <p class="text-xs text-gray-400 text-center pt-2">Max 2MB per file (JPG/PNG).</p>
                     </div>
                 </div>
                 
-                {{-- TOMBOL SIMPAN (Action Bar) --}}
+                {{-- TOMBOL SIMPAN --}}
                 <div class="sticky bottom-6">
-                    <button type="submit" class="w-full flex items-center justify-center rounded-xl bg-indigo-600 px-8 py-4 text-base font-bold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
-                        <svg class="mr-2 h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                        Simpan Aset Baru
+                    <button type="submit" class="w-full flex items-center justify-center rounded-xl bg-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 hover:-translate-y-1 hover:shadow-xl transition-all duration-200">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        SIMPAN ASET BARU
                     </button>
-                    <p class="text-center text-xs text-gray-400 mt-2">Pastikan data sudah benar sebelum menyimpan.</p>
+                    <p class="text-center text-xs text-gray-400 mt-2 font-medium">Pastikan data yang diinput sudah sesuai SOP.</p>
                 </div>
 
             </div>
         </div>
     </form>
 </div>
-
-{{-- AlpineJS for Interactions is already loaded in Layout --}}
 @endsection

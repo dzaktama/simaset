@@ -16,6 +16,23 @@
         </h1>
     </div>
 
+    {{-- Center: Date & Time (Hidden on mobile) --}}
+    <div class="hidden md:flex flex-1 items-center justify-center gap-6">
+        <div class="flex items-center gap-2 text-sm font-medium text-gray-500">
+            <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <span>{{ now()->isoFormat('dddd, D MMMM Y') }}</span>
+        </div>
+        <div class="flex items-center gap-2 rounded-full bg-indigo-50 px-4 py-1.5 text-sm font-bold text-indigo-700 border border-indigo-100 shadow-sm">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span id="global-clock" class="font-mono tracking-wide">{{ now()->format('H:i:s') }}</span>
+            <span class="text-xs font-extrabold">WIB</span>
+        </div>
+    </div>
+
     {{-- Right Side: User Profile & Notif --}}
     <div class="flex items-center gap-4">
         
@@ -130,12 +147,18 @@
                 <div class="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold border border-indigo-200">
                     {{ substr(auth()->user()->name, 0, 1) }}
                 </div>
-                <span class="ml-3 hidden text-sm font-medium text-gray-700 lg:block">
+                <span class="ml-3 hidden text-sm font-medium text-gray-700 lg:block flex items-center gap-2">
                     {{ auth()->user()->name }}
-                    @if(session('impersonate_role'))
-                        <span class="ml-2 px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-100 text-yellow-800 border border-yellow-200">
-                            Mode: {{ ucfirst(str_replace('_', ' ', session('impersonate_role'))) }}
-                        </span>
+                    
+                    @if(session('impersonator_id'))
+                        <div class="flex items-center gap-2 ml-2">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800 border border-red-200">
+                                Mode Override
+                            </span>
+                            <a href="{{ route('impersonate.leave') }}" class="px-2 py-1 rounded bg-red-600 text-white text-[10px] font-bold hover:bg-red-700 transition shadow-sm" title="Kembali ke Super Admin">
+                                Exit
+                            </a>
+                        </div>
                     @endif
                 </span>
                 <svg class="ml-1 hidden h-5 w-5 text-gray-400 lg:block" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -148,28 +171,26 @@
                 <div class="px-4 py-2 border-b border-gray-100">
                     <p class="text-xs text-gray-500">Login sebagai</p>
                     <p class="text-sm font-bold text-gray-900 truncate">
-                        {{ auth()->user()->role === 'super_admin' && !session('impersonate_role') ? 'Super Admin' : ucfirst(str_replace('_', ' ', session('impersonate_role', auth()->user()->role))) }}
+                        {{ auth()->user()->name }}
                     </p>
+                    <p class="text-[10px] text-gray-500 uppercase">{{ auth()->user()->role }}</p>
                     
-                    {{-- DROPDOWN SWITCH ROLE (KHUSUS SUPER ADMIN) --}}
-                    @if(auth()->user()->role === 'super_admin')
+                    {{-- DROPDOWN KHUSUS SUPER ADMIN (ASLI) --}}
+                    @if(auth()->user()->role === 'super_admin' && !session('impersonator_id'))
                         <div class="mt-2 pt-2 border-t border-gray-100">
-                            <p class="text-[10px] uppercase font-bold text-gray-400 mb-1 px-4">View As (Mode)</p>
-                            
-                            <a href="{{ route('impersonate', ['role' => 'super_admin']) }}" class="block px-4 py-1 text-xs hover:bg-indigo-50 {{ !session('impersonate_role') ? 'text-indigo-600 font-bold' : 'text-gray-600' }}">
-                                • Super Admin (Asli)
-                            </a>
-                            <a href="{{ route('impersonate', ['role' => 'admin']) }}" class="block px-4 py-1 text-xs hover:bg-indigo-50 {{ session('impersonate_role') == 'admin' ? 'text-indigo-600 font-bold' : 'text-gray-600' }}">
-                                • Admin
-                            </a>
-                            <a href="{{ route('impersonate', ['role' => 'service_center']) }}" class="block px-4 py-1 text-xs hover:bg-indigo-50 {{ session('impersonate_role') == 'service_center' ? 'text-indigo-600 font-bold' : 'text-gray-600' }}">
-                                • Service Center
-                            </a>
-                            <a href="{{ route('impersonate', ['role' => 'user']) }}" class="block px-4 py-1 text-xs hover:bg-indigo-50 {{ session('impersonate_role') == 'user' ? 'text-indigo-600 font-bold' : 'text-gray-600' }}">
-                                • User (Karyawan)
+                            <p class="text-[10px] uppercase font-bold text-gray-400 mb-1">Mode Override</p>
+                            <a href="{{ route('users.index') }}" class="block text-xs text-indigo-600 hover:text-indigo-800 font-bold">
+                                + Pilih Akun untuk Login
                             </a>
                         </div>
-                        <div class="my-2 border-t border-gray-100"></div>
+                    @endif
+
+                    @if(session('impersonator_id'))
+                        <div class="mt-2 pt-2 border-t border-gray-100">
+                            <a href="{{ route('impersonate.leave') }}" class="block text-xs text-red-600 hover:text-red-800 font-bold">
+                                ← Kembali ke Super Admin
+                            </a>
+                        </div>
                     @endif
                 </div>
                 
@@ -186,6 +207,17 @@
         </div>
     </div>
 </header>
+
+<script>
+    function updateGlobalClock() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/\./g, ':');
+        const clockEl = document.getElementById('global-clock');
+        if(clockEl) clockEl.innerText = timeString;
+    }
+    setInterval(updateGlobalClock, 1000);
+    updateGlobalClock(); // Run immediately
+</script>
 
 <script>
     // Logic Sidebar (Tetap)

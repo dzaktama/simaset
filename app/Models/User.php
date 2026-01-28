@@ -22,7 +22,7 @@ class User extends Authenticatable
 
     protected $casts = [
         'email_verified_at' => 'datetime',
-        // HAPUS BARIS PASSWORD => HASHED DI SINI
+        'permissions' => 'array',
     ];
 
     protected $fillable = [
@@ -34,5 +34,17 @@ class User extends Authenticatable
         'phone',      
         'department', 
         'position',   
+        'permissions',
     ];
+
+    /**
+     * Helper untuk cek permission
+     */
+    public function hasPermission($permission)
+    {
+        if ($this->role === 'super_admin') {
+            return true;
+        }
+        return in_array($permission, $this->permissions ?? []);
+    }
 }

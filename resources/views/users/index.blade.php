@@ -6,10 +6,49 @@
             <h2 class="text-3xl font-bold leading-tight text-gray-900">Manajemen Pengguna</h2>
             <p class="mt-2 text-sm text-gray-600">Kelola akun karyawan, administrator, dan hak akses sistem.</p>
         </div>
-        <a href="/users/create" class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 transition">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
-            Tambah User Baru
-        </a>
+        <div class="flex flex-col md:flex-row gap-3">
+             <form action="/users" method="GET" class="flex flex-col md:flex-row gap-3">
+                {{-- Filter Role --}}
+                <div class="relative">
+                    <select name="role" class="w-full md:w-auto appearance-none pl-3 pr-8 py-2 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                        <option value="">Semua Role</option>
+                        <option value="super_admin" {{ request('role') == 'super_admin' ? 'selected' : '' }}>Super Admin</option>
+                        <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>Administrator</option>
+                        <option value="service_center" {{ request('role') == 'service_center' ? 'selected' : '' }}>Service Center</option>
+                        <option value="user" {{ request('role') == 'user' ? 'selected' : '' }}>Karyawan</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </div>
+                </div>
+
+                {{-- Search Input --}}
+                <div class="relative">
+                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    </div>
+                    <input type="text" name="search" value="{{ request('search') }}" 
+                        class="block w-full md:w-64 rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-3 text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" 
+                        placeholder="Cari nama, email, NIP, HP...">
+                </div>
+
+                <button type="submit" class="inline-flex justify-center items-center rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors">
+                    Filter
+                </button>
+                
+                @if(request('search') || request('role'))
+                <a href="/users" class="inline-flex justify-center items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors">
+                    Reset
+                </a>
+                @endif
+            </form>
+
+            <a href="/users/create" class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 transition">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+                <span class="hidden md:inline">Tambah User</span>
+                <span class="md:hidden">Add</span>
+            </a>
+        </div>
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -63,20 +102,37 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div class="flex justify-end gap-2">
+                                {{-- TOMBOL LOGIN AS (SUPER ADMIN ONLY) --}}
+                                @if(auth()->user()->role == 'super_admin' && auth()->id() != $user->id)
+                                    <a href="{{ route('impersonate', $user->id) }}" class="text-white bg-indigo-600 hover:bg-indigo-700 p-2 rounded-lg border border-indigo-600 transition shadow-sm" title="Login Sebagai {{ $user->name }}">
+                                        {{-- Icon Monitor / Desktop --}}
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                        </svg>
+                                    </a>
+                                @endif
+
                                 {{-- TOMBOL DETAIL (MODAL) --}}
-                                <button onclick="openUserModal({{ json_encode($user) }}, {{ json_encode($user->assets) }})" class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 px-3 py-1 rounded border border-indigo-200 hover:bg-indigo-100 transition">
-                                    Detail
+                                <button onclick="openUserModal({{ json_encode($user) }}, {{ json_encode($user->assets) }})" class="text-blue-600 hover:text-blue-900 bg-blue-50 p-2 rounded-lg border border-blue-200 hover:bg-blue-100 transition" title="Detail User">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
                                 </button>
 
-                                <a href="/users/{{ $user->id }}/edit" class="text-yellow-600 hover:text-yellow-900 bg-yellow-50 px-3 py-1 rounded border border-yellow-200 hover:bg-yellow-100 transition">
-                                    Edit
+                                <a href="/users/{{ $user->id }}/edit" class="text-yellow-600 hover:text-yellow-900 bg-yellow-50 p-2 rounded-lg border border-yellow-200 hover:bg-yellow-100 transition" title="Edit User">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
                                 </a>
                                 
                                 <form action="/users/{{ $user->id }}" method="POST" class="inline-block" onsubmit="return confirm('Hapus user ini? Aksi ini tidak bisa dibatalkan.')">
                                     @method('delete')
                                     @csrf
-                                    <button class="text-red-600 hover:text-red-900 bg-red-50 px-3 py-1 rounded border border-red-200 hover:bg-red-100 transition">
-                                        Hapus
+                                    <button class="text-red-600 hover:text-red-900 bg-red-50 p-2 rounded-lg border border-red-200 hover:bg-red-100 transition" title="Hapus User">
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
                                     </button>
                                 </form>
                             </div>

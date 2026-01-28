@@ -26,9 +26,9 @@ Route::controller(AuthController::class)->group(function () {
     Route::post('/login', 'login')->middleware('guest');
     // Route::get('/register', 'showRegisterForm')->name('register')->middleware('guest');
     // Route::post('/register', 'register')->middleware('guest');
+    // Route::register route not used
+    // Route::post('/logout', 'logout')->name('logout')->middleware('auth'); // moved below
     Route::post('/logout', 'logout')->name('logout')->middleware('auth');
-    // Role Switcher Route
-    Route::get('/impersonate', 'impersonate')->name('impersonate')->middleware(['auth']);
 });
 
 // 3. Authenticated Routes (User & Admin)
@@ -68,44 +68,43 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/borrowing/{id}/return-user', [BorrowingController::class, 'returnAsset'])->name('borrowing.return_user');
 
     // ====================================================
-    // GROUP B: OPERASIONAL ASET (Admin & Service Center)
+    // GROUP: DYNAMIC PERMISSION ROUTES (Granular Access)
     // ====================================================
-    // Boleh: Create, Edit, Update, Index, Show
-    // Note: Service Center TIDAK BOLEH destroy (hapus), nanti diblokir di controller/blade
-    Route::middleware(['role:admin,super_admin,service_center'])->group(function() {
-        Route::resource('assets', AssetController::class)->except(['index', 'show']);
-        Route::resource('maintenances', App\Http\Controllers\MaintenanceController::class);
-    });
+    // Note: Middleware Permissions check is handled inside each Controller (__construct)
+    
+    // 1. MANAJEMEN ASET
+    Route::resource('assets', AssetController::class)->except(['index', 'show']); // Index/Show is public/auth
+    Route::resource('maintenances', App\Http\Controllers\MaintenanceController::class);
+    
+    // 2. SIRKULASI (Admin/Staff Ops)
+    // Borrowing Admin Actions
+    Route::get('/borrowing', [BorrowingController::class, 'index'])->name('borrowing.index')->middleware('can:borrow.action'); 
+    Route::post('/borrowing/{id}/approve', [BorrowingController::class, 'approve'])->name('borrowing.approve')->middleware('can:borrow.action');
+    Route::post('/borrowing/{id}/reject', [BorrowingController::class, 'reject'])->name('borrowing.reject')->middleware('can:borrow.action');
+    Route::post('/borrowing/{id}/return', [BorrowingController::class, 'returnAsset'])->name('borrowing.return')->middleware('can:borrow.action');
 
-    // ====================================================
-    // GROUP C: ADMINISTRASI PENUH (Admin & Super Admin)
-    // ====================================================
-    // Boleh: Approval Peminjaman, Laporan
-    // Note: Service Center DILARANG masuk sini
-    Route::middleware(['role:admin,super_admin'])->group(function() {
-        
-        // Approval & Manajemen Peminjaman
-        Route::get('/borrowing', [BorrowingController::class, 'index'])->name('borrowing.index');
-        // Route borrowing/{id} moved to general group (line 52)
-        Route::post('/borrowing/{id}/approve', [BorrowingController::class, 'approve'])->name('borrowing.approve');
-        Route::post('/borrowing/{id}/reject', [BorrowingController::class, 'reject'])->name('borrowing.reject');
-        Route::post('/borrowing/{id}/return', [BorrowingController::class, 'returnAsset'])->name('borrowing.return');
+    // Returns Verification
+    Route::resource('returns', AssetReturnController::class)->only(['index', 'show', 'update', 'store']);
+    Route::post('/returns/{return}/verify', [AssetReturnController::class, 'verify'])->name('returns.verify');
 
-        // Pengembalian (Resource)
-        Route::resource('returns', AssetReturnController::class)->only(['index', 'show', 'update', 'store']);
-        Route::post('/returns/{return}/verify', [AssetReturnController::class, 'verify'])->name('returns.verify');
+    // Impersonation Routes (Override Mode)
+    Route::get('/impersonate/leave', [AuthController::class, 'leaveImpersonation'])->name('impersonate.leave');
+    Route::get('/impersonate/{user}', [AuthController::class, 'impersonate'])->name('impersonate');
 
-        // Laporan
+    // 3. LAPORAN & AUDIT
+    Route::middleware(['can:report.view'])->group(function() {
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/pdf', [ReportController::class, 'exportPdf'])->name('reports.pdf');
         Route::get('/reports/excel', [ReportController::class, 'exportExcel'])->name('reports.excel');
     });
 
-    // ====================================================
-    // GROUP D: SUPER ADMIN ONLY
-    // ====================================================
-    Route::middleware(['role:super_admin'])->group(function() {
-        // Manajemen User (Full CRUD)
-        Route::resource('users', UserController::class);
-    });
+    // 4. ANALYTICS (Pusat Data)
+    Route::get('/analytics', [App\Http\Controllers\ChartController::class, 'index'])->name('analytics.index');
+    Route::get('/analytics/data', [App\Http\Controllers\ChartController::class, 'getData'])->name('analytics.data');
+    Route::get('/analytics/detail', [App\Http\Controllers\ChartController::class, 'getDetail'])->name('analytics.detail');
+
+
+    // 4. MANAJEMEN USER (Protected by user.* permissions)
+    Route::resource('users', UserController::class);
+
 });

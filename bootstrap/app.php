@@ -20,6 +20,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException $e, $request) {
+            return redirect()->back()->with('error', 'Akses Ditolak: Anda tidak memiliki izin untuk mengakses fitur ini. Silakan hubungi Super Admin.');
+        });
+        $exceptions->render(function (\Illuminate\Auth\Access\AuthorizationException $e, $request) {
+            return redirect()->back()->with('error', 'Akses Ditolak: Anda tidak memiliki izin untuk melakukan tindakan ini.');
+        });
     })
     ->create();

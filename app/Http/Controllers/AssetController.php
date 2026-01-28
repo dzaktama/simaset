@@ -20,6 +20,11 @@ class AssetController extends Controller
     public function __construct(AssetService $assetService)
     {
         $this->assetService = $assetService;
+        
+        // Middleware Permission Checks
+        $this->middleware('can:asset.create')->only(['create', 'store']);
+        $this->middleware('can:asset.edit')->only(['edit', 'update']);
+        $this->middleware('can:asset.delete')->only(['destroy']);
     }
 
     /**

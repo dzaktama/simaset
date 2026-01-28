@@ -11,6 +11,28 @@ use Carbon\Carbon;
 
 class AssetReturnController extends Controller
 {
+    public function __construct()
+    {
+        // Index & Verify butuh izin 'return.verify' (Admin/Teknisi)
+        // Update juga diprotect karena dipakai verify (via resource update/store logic kadang verified via update)
+        // Store (User mengajukan) dibiarkan terbuka untuk Auth
+        $this->middleware('can:return.verify')->only(['index', 'verify', 'update']);
+    }
+    /**
+     * [ADMIN/TEKNISI] List Pengembalian yang perlu diverifikasi
+     */
+    public function index()
+    {
+        // Ambil data pengembalian yang statusnya 'pending' (Perlu verifikasi)
+        // Dan juga yang sudah selesai untuk history, tapi prioritas pending di atas
+        $returns = AssetReturn::with(['asset', 'user', 'assetRequest'])
+                    ->orderByRaw("FIELD(status, 'pending') DESC")
+                    ->orderBy('created_at', 'DESC')
+                    ->paginate(10);
+
+        return view('returns.index', compact('returns'));
+    }
+
     /**
      * [USER] Form Pengajuan Pengembalian
      */

@@ -81,15 +81,7 @@
         document.getElementById('verifyModal').classList.add('hidden');
     }
 
-    // 5. Jam Digital
-    function updateClock() {
-        const now = new Date();
-        const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/\./g, ':');
-        const clockEl = document.getElementById('live-clock');
-        if(clockEl) clockEl.innerText = timeString;
-    }
-    setInterval(updateClock, 1000);
-    updateClock();
+    // 5. Jam Digital (DIHAPUS - Pindah ke Topbar Global)
 
     // 6. Chart Logic (KODE ASLI ANDA - TIDAK DIUBAH)
     @if(in_array(session('impersonate_role', auth()->user()->role), ['admin', 'super_admin']))

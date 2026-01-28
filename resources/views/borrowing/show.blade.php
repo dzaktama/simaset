@@ -113,9 +113,9 @@
                     </h2>
                 </div>
                 <div class="px-6 py-4 space-y-4">
-                    <div>
+                    <div class="border-b border-gray-100 pb-4">
                         <p class="text-sm text-gray-600">Nama Aset</p>
-                        <p class="font-semibold text-lg text-gray-900">{{ $borrowing->asset->name ?? '-' }}</p>
+                        <p class="font-bold text-lg text-gray-900">{{ $borrowing->asset->name ?? '-' }}</p>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
@@ -157,66 +157,97 @@
                         Lacak Status
                     </h2>
                 </div>
-                <div class="px-6 py-6 relative">
-                    {{-- Garis Vertikal Utama --}}
-                    <div class="absolute left-[2.2rem] top-8 bottom-8 w-0.5 bg-gray-200 -z-10"></div>
+                <div class="px-6 py-6">
+                    @php
+                        $isApproved = $borrowing->status == 'approved' || $borrowing->returned_at;
+                        $isActive = $borrowing->status == 'approved';
+                        // Step 3 (Digunakan) dianggap aktif jika approved, tapi garis ke-4 (Selesai) butuh returned_at
+                        // Wait, logic check:
+                        // S1 -> S2: Blue if Approved.
+                        // S2 -> S3: Blue if Active (Usually same as Approved? Or is there a separate trigger? In logic above isActive is just status == approved).
+                        // S3 -> S4: Blue if Returned.
+                        
+                        $isRejected = $borrowing->status == 'rejected';
+                        $isDone = $borrowing->returned_at;
+                    @endphp
 
                     {{-- 1. PENGAJUAN --}}
-                    <div class="flex gap-4 mb-8">
-                        <div class="w-8 h-8 rounded-full bg-blue-500 border-2 border-white shadow flex items-center justify-center shrink-0">
-                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <div class="flex gap-4">
+                        <div class="flex flex-col items-center">
+                            <div class="w-8 h-8 rounded-full bg-blue-500 border-2 border-white shadow flex items-center justify-center shrink-0 z-10">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </div>
+                            {{-- Garis ke Step 2 --}}
+                            <div class="w-0.5 flex-grow {{ $isApproved ? 'bg-blue-500' : 'bg-gray-200' }}"></div>
                         </div>
-                        <div>
+                        <div class="pb-8 pt-1">
                             <p class="font-bold text-gray-900">Permintaan Diajukan</p>
                             <p class="text-sm text-gray-500">{{ $borrowing->created_at->translatedFormat('d F Y, H:i') }}</p>
                         </div>
                     </div>
 
                     {{-- 2. PERSETUJUAN --}}
-                    <div class="flex gap-4 mb-8">
-                        @php $isApproved = $borrowing->status == 'approved' || $borrowing->returned_at; @endphp
-                        <div class="w-8 h-8 rounded-full {{ $isApproved ? 'bg-blue-500' : ($borrowing->status == 'rejected' ? 'bg-red-500' : 'bg-gray-300') }} border-2 border-white shadow flex items-center justify-center shrink-0">
-                            @if($borrowing->status == 'rejected')
-                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                            @else
-                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                            @endif
+                    <div class="flex gap-4">
+                        <div class="flex flex-col items-center">
+                            <div class="w-8 h-8 rounded-full {{ $isApproved ? 'bg-blue-500' : ($isRejected ? 'bg-red-500' : 'bg-gray-200') }} border-2 border-white shadow flex items-center justify-center shrink-0 z-10">
+                                @if($isRejected)
+                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                @elseif($isApproved)
+                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                @else
+                                    <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
+                                @endif
+                            </div>
+                            {{-- Garis ke Step 3 --}}
+                            <div class="w-0.5 flex-grow {{ $isActive ? 'bg-blue-500' : 'bg-gray-200' }}"></div>
                         </div>
-                        <div class="w-full">
-                            <p class="font-bold {{ $isApproved || $borrowing->status == 'rejected' ? 'text-gray-900' : 'text-gray-500' }}">
-                                {{ $borrowing->status == 'rejected' ? 'Ditolak Admin' : 'Disetujui Admin' }}
+                        <div class="pb-8 pt-1 w-full">
+                            <p class="font-bold {{ $isApproved || $isRejected ? 'text-gray-900' : 'text-gray-500' }}">
+                                {{ $isRejected ? 'Ditolak Admin' : 'Disetujui Admin' }}
                             </p>
                             @if($borrowing->status == 'pending')
                                 <p class="text-xs text-gray-400 mb-2">Menunggu persetujuan...</p>
                             @elseif($isApproved)
                                 <p class="text-sm text-gray-500">{{ ($borrowing->approved_at ?? $borrowing->updated_at)->translatedFormat('d F Y, H:i') }}</p>
-                            @elseif($borrowing->status == 'rejected')
+                            @elseif($isRejected)
                                 <p class="text-sm text-red-500 italic mt-1">"{{ $borrowing->admin_note }}"</p>
                             @endif
                         </div>
                     </div>
 
                     {{-- 3. BARANG DIGUNAKAN --}}
-                    <div class="flex gap-4 mb-8">
-                        @php $isActive = $borrowing->status == 'approved'; @endphp
-                        <div class="w-8 h-8 rounded-full {{ $isActive ? 'bg-blue-500' : 'bg-gray-300' }} border-2 border-white shadow flex items-center justify-center shrink-0">
-                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <div class="flex gap-4">
+                        <div class="flex flex-col items-center">
+                            <div class="w-8 h-8 rounded-full {{ $isActive ? 'bg-blue-500' : 'bg-gray-200' }} border-2 border-white shadow flex items-center justify-center shrink-0 z-10">
+                                @if($isActive)
+                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                @else
+                                    <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
+                                @endif
+                            </div>
+                            {{-- Garis ke Step 4 --}}
+                            <div class="w-0.5 flex-grow {{ $isDone ? 'bg-blue-500' : 'bg-gray-200' }}"></div>
                         </div>
-                        <div>
+                        <div class="pb-8 pt-1">
                             <p class="font-bold {{ $isActive ? 'text-gray-900' : 'text-gray-500' }}">Barang Digunakan</p>
                             @if($isActive)
-                                <p class="text-sm text-gray-500">Estimasi: {{ $totalDurasi ?? '-' }}</p>
+                                <p class="text-sm text-gray-500">{{ ($borrowing->approved_at ?? $borrowing->updated_at)->translatedFormat('d F Y, H:i') }}</p>
                             @endif
                         </div>
                     </div>
 
                     {{-- 4. SELESAI --}}
                     <div class="flex gap-4">
-                        @php $isDone = $borrowing->returned_at; @endphp
-                        <div class="w-8 h-8 rounded-full {{ $isDone ? 'bg-green-500' : 'bg-gray-300' }} border-2 border-white shadow flex items-center justify-center shrink-0">
-                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <div class="flex flex-col items-center">
+                            <div class="w-8 h-8 rounded-full {{ $isDone ? 'bg-green-500' : 'bg-gray-200' }} border-2 border-white shadow flex items-center justify-center shrink-0 z-10">
+                                @if($isDone)
+                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                @else
+                                    <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
+                                @endif
+                            </div>
                         </div>
-                        <div>
+                        <div class="pt-1">
                             <p class="font-bold {{ $isDone ? 'text-gray-900' : 'text-gray-500' }}">Dikembalikan</p>
                             @if($isDone) <p class="text-sm text-gray-500">{{ $borrowing->returned_at->translatedFormat('d F Y, H:i') }}</p> @endif
                         </div>
@@ -258,6 +289,22 @@
         </div>
 
         <div class="space-y-6">
+            {{-- FOTO ASET (ATAS TOTAL DURASI) --}}
+            <div class="bg-white rounded-lg shadow overflow-hidden mb-6">
+                <div class="relative w-full h-56 bg-gray-100 flex items-center justify-center group">
+                    @if($borrowing->asset->image)
+                        <img src="{{ asset('storage/' . $borrowing->asset->image) }}" class="w-full h-full object-contain p-2 hover:scale-105 transition-transform duration-300" alt="{{ $borrowing->asset->name }}">
+                    @else
+                        <div class="flex flex-col items-center justify-center text-gray-400">
+                            <svg class="h-12 w-12 mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span class="text-xs">Tidak ada foto</span>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
             @php 
                 // Cek status terlambat
                 $isOverdue = false;
@@ -268,18 +315,18 @@
             <div class="bg-gradient-to-br {{ $isOverdue ? 'from-red-500 to-red-600' : 'from-blue-500 to-blue-600' }} rounded-lg shadow p-6 text-white">
                 <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    {{ $borrowing->status == 'approved' && !$borrowing->returned_at ? ($isOverdue ? 'Terlambat' : 'Sisa Waktu') : 'Total Durasi' }}
+                    {{ $borrowing->status == 'approved' && !$borrowing->returned_at ? ($isOverdue ? 'Terlambat' : 'Sisa Waktu') : 'Tanggal Pengembalian' }}
                 </h3>
                 
                 <div class="text-center">
                     <div class="text-2xl font-bold font-mono">
-                        {{ $borrowing->status == 'approved' && !$borrowing->returned_at ? ($sisaWaktu ?? '-') : ($totalDurasi ?? '-') }}
+                        {{ $borrowing->status == 'approved' && !$borrowing->returned_at ? ($sisaWaktu ?? '-') : ($borrowing->return_date ? $borrowing->return_date->translatedFormat('d F Y, H:i') : '-') }}
                     </div>
                     <p class="text-white text-opacity-80 text-sm mt-2">
                         @if($borrowing->status == 'approved' && !$borrowing->returned_at)
-                             Batas Kembali: {{ $borrowing->return_date ? $borrowing->return_date->translatedFormat('d M Y') : 'Tidak ditentukan' }}
+                             Batas Kembali: {{ $borrowing->return_date ? $borrowing->return_date->translatedFormat('d F Y, H:i') : 'Tidak ditentukan' }}
                         @else
-                             Durasi Peminjaman
+                             Batas Waktu
                         @endif
                     </p>
                 </div>
