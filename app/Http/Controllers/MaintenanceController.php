@@ -36,18 +36,56 @@ class MaintenanceController extends Controller
     public function create(Request $request)
     {
         $asset = null;
+        $maintenanceError = null;
+        
         if ($request->has('asset_id')) {
             $asset = Asset::find($request->asset_id);
+            
+            if ($asset) {
+                // VALIDASI KETAT: Hanya status 'broken' yang boleh dibuat tiket perbaikan
+                switch ($asset->status) {
+                    case 'maintenance':
+                        // Cek apakah ada tiket perbaikan aktif untuk aset ini
+                        $activeTicket = Maintenance::where('asset_id', $asset->id)
+                            ->where('status', 'on_process')
+                            ->first();
+                        
+                        if ($activeTicket) {
+                            return redirect()->route('maintenances.show', $activeTicket)
+                                ->with('warning', 'Aset ini sudah memiliki tiket perbaikan aktif (ID: #' . $activeTicket->id . '). Selesaikan tiket yang ada sebelum membuat tiket baru.');
+                        }
+                        // Jika tidak ada tiket aktif tapi status maintenance (inkonsisten), redirect ke katalog
+                        return redirect()->route('assets.index')
+                            ->with('error', 'Aset ini sudah dalam status perbaikan. Periksa daftar tiket perbaikan.');
+                        
+                    case 'available':
+                        return redirect()->route('assets.index')
+                            ->with('error', 'Aset dengan status "Available" tidak perlu diperbaiki karena masih berfungsi normal.');
+                        
+                    case 'deployed':
+                        return redirect()->route('assets.index')
+                            ->with('error', 'Aset dengan status "Deployed" sedang digunakan. Tarik aset terlebih dahulu jika ingin diperbaiki.');
+                        
+                    case 'broken':
+                        // Status valid, lanjutkan ke form
+                        break;
+                        
+                    default:
+                        return redirect()->route('assets.index')
+                            ->with('error', 'Status aset tidak valid untuk perbaikan.');
+                }
+            }
         }
         
-        // Hanya aset yang statusnya 'available' atau 'broken' yang bisa diservis (Logic bebas)
-        // Tapi sementara kita izinkan semua kecuali yang sedang maintenance
-        $assets = Asset::with('holder')->where('status', '!=', 'maintenance')->get();
+        // Hanya aset dengan status 'broken' (rusak) yang ditampilkan di dropdown
+        // Karena hanya aset rusak yang perlu diperbaiki
+        $assets = Asset::with('holder')->where('status', 'broken')->get();
 
         return view('maintenances.create', [
             'title' => 'Input Perbaikan Baru',
             'assets' => $assets,
-            'selectedAsset' => $asset
+            'selectedAsset' => $asset,
+            'maintenanceError' => $maintenanceError
         ]);
     }
 
@@ -86,8 +124,13 @@ class MaintenanceController extends Controller
                 $description = "[Prioritas: {$priorityLabel}] " . $description;
             }
 
+            if ($asset->status === 'deployed') {
+                return back()->with('error', 'Aset sedang dipinjam (Status: Deployed). Harap proses pengembalian terlebih dahulu.');
+            }
+
             Maintenance::create([
                 'asset_id' => $request->asset_id,
+                'user_id' => auth()->id(), // Teknisi yang membuat tiket
                 'vendor_name' => $request->vendor_name,
                 'start_date' => $request->start_date,
                 'problem_description' => $description,

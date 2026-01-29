@@ -84,7 +84,7 @@
                         <p class="text-xs text-gray-500 mb-1">Waktu Selesai</p>
                         <div class="flex items-center gap-2 text-green-700 font-medium">
                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            {{ \Carbon\Carbon::parse($maintenance->completion_date)->translatedFormat('l, d F Y') }}
+                            {{ \Carbon\Carbon::parse($maintenance->completion_date)->translatedFormat('l, d F Y') }} <span class="text-green-400">|</span> {{ \Carbon\Carbon::parse($maintenance->completion_date)->format('H:i') }}
                         </div>
                     </div>
                     @endif

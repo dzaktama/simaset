@@ -129,6 +129,7 @@
                     <tr>
                         <th class="px-6 py-4 font-bold tracking-wider w-40">Waktu</th>
                         <th class="px-6 py-4 font-bold tracking-wider">Aset</th>
+                        <th class="px-6 py-4 font-bold tracking-wider">Teknisi</th>
                         <th class="px-6 py-4 font-bold tracking-wider">Aktivitas / Keterangan</th>
                         <th class="px-6 py-4 font-bold tracking-wider">Status</th>
                         <th class="px-6 py-4 font-bold tracking-wider text-right">Aksi</th>
@@ -140,7 +141,7 @@
                         {{-- TIMESTAMP COL --}}
                         <td class="px-6 py-4">
                             <div class="flex flex-col">
-                                <span class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{{ $maintain->updated_at->format('d M Y') }}</span>
+                                <span class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{{ $maintain->updated_at->translatedFormat('d M Y') }}</span>
                                 <span class="text-xl font-mono font-bold text-indigo-900">{{ $maintain->updated_at->format('H:i') }}</span>
                             </div>
                         </td>
@@ -156,6 +157,28 @@
                                     <div class="text-[10px] text-gray-500 font-mono mt-0.5 uppercase bg-gray-100 px-1.5 py-0.5 rounded w-fit">{{ $maintain->asset->serial_number }}</div>
                                 </div>
                             </div>
+                        </td>
+
+                        {{-- TEKNISI COL (NEW) --}}
+                        <td class="px-6 py-4">
+                            @if($maintain->user)
+                                <div class="flex items-center gap-2">
+                                    <div class="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-700 flex-shrink-0">
+                                        {{ substr($maintain->user->name, 0, 1) }}
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-gray-900 text-sm">{{ $maintain->user->name }}</div>
+                                        <div class="text-[10px] text-gray-500">{{ ucfirst(str_replace('_', ' ', $maintain->user->role)) }}</div>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="flex items-center gap-2 text-gray-400">
+                                    <div class="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-400 flex-shrink-0">
+                                        ?
+                                    </div>
+                                    <span class="text-sm italic">Belum terdata</span>
+                                </div>
+                            @endif
                         </td>
 
                         {{-- ACTIVITY COL --}}
@@ -216,7 +239,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="px-6 py-8 text-center bg-gray-50">
+                        <td colspan="6" class="px-6 py-8 text-center bg-gray-50">
                             <div class="flex flex-col items-center justify-center text-gray-400">
                                 <svg class="w-12 h-12 mb-2 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                                 <p class="text-sm font-medium">Belum ada aktivitas log tercatat.</p>

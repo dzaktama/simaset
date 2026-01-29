@@ -157,3 +157,118 @@
         </table>
     </div>
 </div>
+
+{{-- 2. LOG AKTIVITAS SISTEM --}}
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
+    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 rounded-t-xl flex flex-col md:flex-row justify-between items-center gap-4">
+        <div>
+            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Log Aktivitas Sistem
+            </h3>
+            <p class="text-xs text-gray-500 mt-0.5">Riwayat aktivitas publik terkini (Transparan).</p>
+        </div>
+        
+        {{-- Search Form --}}
+        <form action="{{ route('dashboard') }}" method="GET" class="w-full md:w-auto">
+            <div class="relative">
+                <input type="text" name="search" value="{{ request('search') }}" 
+                    class="w-full md:w-64 pl-9 pr-4 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow" 
+                    placeholder="Cari aktivitas...">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+                @if(request('search'))
+                    <a href="{{ route('dashboard') }}" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-red-500 transition-colors">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </a>
+                @endif
+            </div>
+        </form>
+    </div>
+    
+    {{-- Scrollable Table Container --}}
+    <div class="overflow-x-auto max-h-[500px] overflow-y-auto" id="user-activity-log-scroll">
+        <table class="w-full text-sm text-left">
+            <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+                <tr>
+                    <th class="px-6 py-3 font-semibold">User</th>
+                    <th class="px-6 py-3 font-semibold">Aksi</th>
+                    <th class="px-6 py-3 font-semibold">Detail</th>
+                    <th class="px-6 py-3 font-semibold text-right">Waktu</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 bg-white">
+                @forelse($activities ?? [] as $log)
+                <tr class="hover:bg-gray-50 transition">
+                    {{-- User --}}
+                    <td class="px-6 py-3 whitespace-nowrap">
+                        <div class="flex items-center gap-3">
+                            <div class="h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-gray-600 bg-gray-200">
+                                {{ substr($log->user->name ?? 'S', 0, 1) }}
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900">{{ $log->user->name ?? 'Sistem' }}</p>
+                                <p class="text-[10px] text-gray-500">{{ $log->user->role ?? '-' }}</p>
+                            </div>
+                        </div>
+                    </td>
+
+                    {{-- Aksi (Badge) --}}
+                    <td class="px-6 py-3 whitespace-nowrap">
+                        @php
+                            $badges = [
+                                'approved' => ['bg' => 'bg-green-100', 'text' => 'text-green-700', 'label' => 'Disetujui'],
+                                'rejected' => ['bg' => 'bg-red-100', 'text' => 'text-red-700', 'label' => 'Ditolak'],
+                                'returned' => ['bg' => 'bg-blue-100', 'text' => 'text-blue-700', 'label' => 'Dikembalikan'],
+                                'created'  => ['bg' => 'bg-indigo-100', 'text' => 'text-indigo-700', 'label' => 'Dibuat'],
+                                'updated'  => ['bg' => 'bg-yellow-100', 'text' => 'text-yellow-700', 'label' => 'Diupdate'],
+                                'deleted'  => ['bg' => 'bg-gray-100', 'text' => 'text-gray-700', 'label' => 'Dihapus'],
+                            ];
+                            $type = $badges[$log->action] ?? ['bg' => 'bg-gray-50', 'text' => 'text-gray-600', 'label' => $log->action];
+                        @endphp
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $type['bg'] }} {{ $type['text'] }}">
+                            {{ $type['label'] }}
+                        </span>
+                    </td>
+
+                    {{-- Detail --}}
+                    <td class="px-6 py-3">
+                        <p class="text-indigo-600 font-medium text-xs mb-0.5">{{ $log->asset->name ?? 'Aset Tidak Dikenal' }}</p>
+                        <p class="text-xs text-gray-500 italic truncate max-w-xs">
+                            "{{ $log->notes ?? '-' }}"
+                        </p>
+                    </td>
+
+                    {{-- Waktu (Format Lengkap) --}}
+                    <td class="px-6 py-3 text-right whitespace-nowrap">
+                        <div class="flex flex-col items-end">
+                            <span class="text-sm font-bold text-gray-900">
+                                {{ $log->created_at->translatedFormat('d M Y') }}
+                            </span>
+                            <span class="text-xs text-gray-500 font-mono">
+                                {{ $log->created_at->format('H:i') }} WIB
+                            </span>
+                        </div>
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="4" class="px-6 py-8 text-center text-gray-500 italic">
+                        Tidak ada aktivitas publik.
+                    </td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+    
+    {{-- Footer Info (No Pagination - All Data Displayed) --}}
+    <div class="px-6 py-3 border-t border-gray-200 bg-gray-50 rounded-b-xl flex justify-between items-center">
+        <span class="text-xs text-gray-500">Menampilkan semua data (Auto-scroll) • Total {{ is_countable($activities) ? count($activities) : 0 }} Aktivitas</span>
+        <button onclick="document.getElementById('user-activity-log-scroll').scrollTo({top: 0, behavior: 'smooth'})" class="text-xs text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1">
+            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
+            Ke Atas
+        </button>
+    </div>
+</div>

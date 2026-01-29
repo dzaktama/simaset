@@ -154,9 +154,10 @@
         </form>
     </div>
     
-    <div class="overflow-x-auto">
+    {{-- Scrollable Table Container --}}
+    <div class="overflow-x-auto max-h-[500px] overflow-y-auto" id="activity-log-scroll">
         <table class="w-full text-sm text-left">
-            <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-200">
+            <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
                 <tr>
                     <th class="px-6 py-3 font-semibold">User / Aktor</th>
                     <th class="px-6 py-3 font-semibold">Aksi</th>
@@ -190,6 +191,11 @@
                                 'created'  => ['bg' => 'bg-indigo-100', 'text' => 'text-indigo-700', 'label' => 'Dibuat'],
                                 'updated'  => ['bg' => 'bg-yellow-100', 'text' => 'text-yellow-700', 'label' => 'Diupdate'],
                                 'deleted'  => ['bg' => 'bg-gray-100', 'text' => 'text-gray-700', 'label' => 'Dihapus'],
+                                // Status Tambahan
+                                'status_change' => ['bg' => 'bg-purple-100', 'text' => 'text-purple-700', 'label' => 'Ubah Status'],
+                                'check_out'     => ['bg' => 'bg-orange-100', 'text' => 'text-orange-700', 'label' => 'Barang Keluar'],
+                                'check_in'      => ['bg' => 'bg-teal-100', 'text' => 'text-teal-700', 'label' => 'Barang Masuk'],
+                                'maintenance'   => ['bg' => 'bg-red-100', 'text' => 'text-red-700', 'label' => 'Perbaikan'],
                             ];
                             $type = $badges[$log->action] ?? ['bg' => 'bg-gray-50', 'text' => 'text-gray-600', 'label' => $log->action];
                         @endphp
@@ -206,11 +212,11 @@
                         </p>
                     </td>
 
-                    {{-- Waktu (Format Baru) --}}
+                    {{-- Waktu (Format Lengkap) --}}
                     <td class="px-6 py-3 text-right whitespace-nowrap">
                         <div class="flex flex-col items-end">
                             <span class="text-sm font-bold text-gray-900">
-                                {{ $log->created_at->format('d M Y') }}
+                                {{ $log->created_at->translatedFormat('d M Y') }}
                             </span>
                             <span class="text-xs text-gray-500 font-mono">
                                 {{ $log->created_at->format('H:i') }} WIB
@@ -229,8 +235,56 @@
         </table>
     </div>
 
-    {{-- Pagination Links --}}
-    <div class="px-6 py-4 border-t border-gray-200">
-        {{ $activities->links() }}
+    {{-- Footer Info (Scrollable Indicator) --}}
+    <div class="px-6 py-3 border-t border-gray-200 bg-gray-50 rounded-b-xl flex justify-between items-center">
+        <span class="text-xs text-gray-500">Menampilkan semua data (Auto-scroll) • Total {{ count($activities) }} Aktivitas</span>
+        <button onclick="document.getElementById('activity-log-scroll').scrollTo({top: 0, behavior: 'smooth'})" class="text-xs text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1">
+            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
+            Ke Atas
+        </button>
     </div>
 </div>
+
+{{-- SCRIPT: Real-time Search (AJAX) --}}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.querySelector('input[name="search_log"]');
+        const listContainer = document.getElementById('activity-log-scroll');
+        let debounceTimer;
+
+        if(searchInput) {
+            searchInput.addEventListener('input', function() {
+                clearTimeout(debounceTimer);
+                const query = this.value;
+
+                debounceTimer = setTimeout(() => {
+                    // Update URL tanpa reload (opsional, agar kalau di-refresh tetap ada searchnya)
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('search_log', query);
+                    url.searchParams.set('scrollTo', 'activity-log');
+                    window.history.pushState({}, '', url);
+
+                    // Fetch Data Baru
+                    fetch(url, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.text())
+                    .then(html => {
+                        // Parse HTML hasil fetch untuk mengambil bagian tabel saja
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        const newTableContent = doc.getElementById('activity-log-scroll').innerHTML;
+                        
+                        // Ganti isi tabel lama dengan yang baru
+                        if(listContainer && newTableContent) {
+                            listContainer.innerHTML = newTableContent;
+                        }
+                    })
+                    .catch(error => console.error('Error fetching search results:', error));
+                }, 300); // Delay 300ms agar tidak spam request
+            });
+        }
+    });
+</script>

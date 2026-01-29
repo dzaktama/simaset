@@ -96,7 +96,7 @@
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                                 </div>
-                                <input type="date" name="start_date" value="{{ date('Y-m-d') }}" class="pl-10 w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition shadow-sm" required>
+                                <input type="date" name="start_date" value="{{ date('Y-m-d') }}" min="{{ date('Y-m-d') }}" class="pl-10 w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition shadow-sm" required>
                             </div>
                         </div>
                         <div>
@@ -243,16 +243,7 @@
             filterStatus: '',
             
             init() {
-                // Initial Load
-                this.updateAssetList();
-
-                if(initialAssetId) {
-                    this.selectedAsset = allAssets.find(a => a.id == initialAssetId);
-                    // Set value and trigger change for Select2
-                    $('#assetSelect').val(initialAssetId).trigger('change');
-                }
-
-                // Init Select2
+                // 1. INIT Select2 FIRST (before populating options)
                 $('#assetSelect').select2({
                     placeholder: "Cari Aset...",
                     allowClear: true,
@@ -266,6 +257,18 @@
                     const id = e.target.value;
                     this.selectedAsset = id ? allAssets.find(a => a.id == id) : null;
                 });
+
+                // 2. POPULATE options after Select2 is ready
+                this.updateAssetList();
+
+                // 3. SET initial value if coming from redirect (e.g. from gear button)
+                if (initialAssetId) {
+                    this.selectedAsset = allAssets.find(a => a.id == initialAssetId);
+                    // Use setTimeout to ensure Select2 has fully rendered
+                    setTimeout(() => {
+                        $('#assetSelect').val(initialAssetId).trigger('change.select2');
+                    }, 100);
+                }
             },
 
             updateAssetList() {
@@ -277,27 +280,25 @@
                     ? allAssets.filter(a => a.status === this.filterStatus)
                     : allAssets;
 
-                // Rebuild Options
+                // Rebuild Options (Keep the first empty option)
                 $select.empty().append('<option value="">-- Cari Serial Number / Nama Aset --</option>');
                 
                 filtered.forEach(asset => {
                     // Create option manually to ensure Select2 picks it up
                     const optionText = `${asset.serial_number} - ${asset.name}`;
-                    const option = new Option(optionText, asset.id, false, false);
+                    // Check if this is the initial asset we need to select
+                    const isSelected = (asset.id == initialAssetId);
+                    const option = new Option(optionText, asset.id, isSelected, isSelected);
                     $select.append(option);
                 });
 
-                // Restore Value if still valid in filtered list
-                if(currentVal && filtered.find(a => a.id == currentVal)) {
-                    $select.val(currentVal);
-                } else if(initialAssetId && !currentVal && filtered.find(a => a.id == initialAssetId)) {
-                     // If we have an initial ID (e.g. from redirect) and it matches, select it
-                     $select.val(initialAssetId);
-                } else {
-                    $select.val(null); // Clear if filtered out
-                }
+                // Refresh Select2 UI to show new options
+                $select.trigger('change.select2');
                 
-                $select.trigger('change');
+                // Restore previous selection if still valid
+                if (currentVal && filtered.find(a => a.id == currentVal)) {
+                    $select.val(currentVal).trigger('change.select2');
+                }
             }
         }
     }

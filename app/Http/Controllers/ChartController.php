@@ -29,27 +29,49 @@ class ChartController extends Controller
     public function getData(Request $request)
     {
         $type = $request->query('type');
-        $range = $request->query('range', 'year'); // month, year, all
+        $mode = $request->query('mode', 'month'); // day, month, year
+        $startDateReq = $request->query('startDate');
+        $endDateReq = $request->query('endDate');
 
-        // Date Filtering Logic
-        $startDate = match($range) {
-            'month' => now()->startOfMonth(),
-            'year' => now()->startOfYear(),
-            default => now()->subYears(5)
-        };
+        // Set default dates if not provided
+        if ($startDateReq && $endDateReq) {
+            $startDate = Carbon::parse($startDateReq)->startOfDay();
+            $endDate = Carbon::parse($endDateReq)->endOfDay();
+        } else {
+            // Default based on mode
+            $endDate = now()->endOfDay();
+            $startDate = match($mode) {
+                'day' => now()->startOfMonth(),
+                'month' => now()->startOfYear(),
+                'year' => now()->subYears(5),
+                default => now()->startOfYear()
+            };
+        }
 
         switch ($type) {
-            // 1. Biaya Maintenance (Bulanan)
+            // 1. Biaya Maintenance
             case 'maintenanceCost':
-                $data = Maintenance::selectRaw("DATE_FORMAT(completion_date, '%Y-%m') as date, SUM(cost) as total")
+            case 'maintenanceCost':
+                // Grouping format based on mode
+                $dateFormat = match($mode) {
+                    'day' => '%Y-%m-%d',
+                    'month' => '%Y-%m',
+                    default => '%Y'
+                };
+                
+                $data = Maintenance::selectRaw("DATE_FORMAT(completion_date, '$dateFormat') as date, SUM(cost) as total")
                     ->where('status', 'completed')
-                    ->where('completion_date', '>=', $startDate)
+                    ->whereBetween('completion_date', [$startDate, $endDate])
                     ->groupBy('date')
                     ->orderBy('date')
                     ->get();
                 
                 return response()->json([
-                    'labels' => $data->pluck('date')->map(fn($d) => Carbon::createFromFormat('Y-m', $d)->translatedFormat('F Y')),
+                    'labels' => $data->pluck('date')->map(function($d) use ($mode) {
+                        if($mode == 'day') return Carbon::parse($d)->format('d/m');
+                        if($mode == 'month') return Carbon::createFromFormat('Y-m', $d)->translatedFormat('M Y');
+                        return $d;
+                    }),
                     'data' => $data->pluck('total'),
                     'label' => 'Total Biaya (Rp)'
                 ]);
@@ -170,17 +192,93 @@ class ChartController extends Controller
                     'data' => $data->pluck('total')
                 ]);
 
-            // 10. Tren Pembelian Aset
             case 'purchaseTrend':
-                $data = Asset::selectRaw("DATE_FORMAT(purchase_date, '%Y') as year, COUNT(*) as total")
-                    ->groupBy('year')
-                    ->orderBy('year')
+                 $dateFormat = match($mode) {
+                    'day' => '%Y-%m-%d',
+                    'month' => '%Y-%m',
+                    default => '%Y'
+                };
+
+                $data = Asset::selectRaw("DATE_FORMAT(purchase_date, '$dateFormat') as date, COUNT(*) as total")
+                    ->whereBetween('purchase_date', [$startDate, $endDate])
+                    ->groupBy('date')
+                    ->orderBy('date')
                     ->get();
 
                 return response()->json([
-                    'labels' => $data->pluck('year'),
+                     'labels' => $data->pluck('date')->map(function($d) use ($mode) {
+                        if($mode == 'day') return Carbon::parse($d)->format('d/m');
+                        if($mode == 'month') return Carbon::createFromFormat('Y-m', $d)->translatedFormat('M Y');
+                        return $d;
+                    }),
                     'data' => $data->pluck('total'),
-                    'label' => 'Unit Dibeli'
+                    'label' => 'Unit Dibeli',
+                ]);
+
+            case 'borrowingTrend':
+                $dateFormat = match($mode) {
+                    'day' => '%Y-%m-%d',
+                    'month' => '%Y-%m',
+                    default => '%Y'
+                };
+
+                // Query for Approved
+                $approvedData = AssetRequest::selectRaw("DATE_FORMAT(request_date, '$dateFormat') as date, COUNT(*) as total")
+                    ->where('status', 'approved')
+                    ->whereBetween('request_date', [$startDate, $endDate])
+                    ->groupBy('date')
+                    ->orderBy('date')
+                    ->get()
+                    ->pluck('total', 'date');
+
+                // Query for Rejected
+                $rejectedData = AssetRequest::selectRaw("DATE_FORMAT(request_date, '$dateFormat') as date, COUNT(*) as total")
+                    ->where('status', 'rejected')
+                    ->whereBetween('request_date', [$startDate, $endDate])
+                    ->groupBy('date')
+                    ->orderBy('date')
+                    ->get()
+                    ->pluck('total', 'date');
+
+                // Generate Date Labels
+                $labels = [];
+                $approveArr = [];
+                $rejectArr = [];
+
+                $period = new \Carbon\CarbonPeriod($startDate, '1 ' . $mode, $endDate);
+                foreach ($period as $date) {
+                    $key = $date->format(match($mode) { 'day' => 'Y-m-d', 'month' => 'Y-m', default => 'Y' });
+                    $label = match($mode) { 
+                        'day' => $date->format('d/m'), 
+                        'month' => $date->translatedFormat('M Y'), 
+                        default => $date->format('Y') 
+                    };
+                    
+                    $labels[] = $label;
+                    $approveArr[] = $approvedData[$key] ?? 0;
+                    $rejectArr[] = $rejectedData[$key] ?? 0;
+                }
+                
+                return response()->json([
+                    'labels' => $labels,
+                    'datasets' => [
+                        [
+                            'label' => 'Disetujui',
+                            'data' => $approveArr,
+                            'borderColor' => '#10B981', // green-500
+                            'backgroundColor' => 'rgba(16, 185, 129, 0.1)',
+                            'fill' => true,
+                            'tension' => 0.4
+                        ],
+                        [
+                            'label' => 'Ditolak',
+                            'data' => $rejectArr,
+                            'borderColor' => '#EF4444', // red-500
+                            'backgroundColor' => 'rgba(239, 68, 68, 0.1)',
+                            'fill' => true,
+                            'tension' => 0.4
+                        ]
+                    ]
                 ]);
         }
 
@@ -193,12 +291,22 @@ class ChartController extends Controller
     public function getDetail(Request $request)
     {
         $type = $request->query('type');
-        $range = $request->query('range', 'year');
-        $startDate = match($range) {
-            'month' => now()->startOfMonth(),
-            'year' => now()->startOfYear(),
-            default => now()->subYears(5)
-        };
+        $mode = $request->query('mode', 'month');
+        $startDateReq = $request->query('startDate');
+        $endDateReq = $request->query('endDate');
+
+         if ($startDateReq && $endDateReq) {
+            $startDate = Carbon::parse($startDateReq)->startOfDay();
+            $endDate = Carbon::parse($endDateReq)->endOfDay();
+        } else {
+            $endDate = now()->endOfDay();
+            $startDate = match($mode) {
+                'day' => now()->startOfMonth(),
+                'month' => now()->startOfYear(),
+                'year' => now()->subYears(5),
+                default => now()->startOfYear()
+            };
+        }
 
         $headers = [];
         $rows = [];
@@ -270,6 +378,94 @@ class ChartController extends Controller
                         $i->asset->category ?? '-',
                         $i->asset->name ?? '-',
                         Str::limit($i->problem_description, 40)
+                    ]);
+                    break;
+
+                case 'borrowingTrend':
+                    $title = 'Riwayat Transaksi Peminjaman (100 Terakhir)';
+                    $headers = ['Tanggal Request', 'Peminjam', 'Aset', 'Keperluan'];
+                    $items = AssetRequest::with(['user', 'asset'])
+                        ->where('status', 'approved')
+                        ->latest()
+                        ->take(100)
+                        ->get();
+                    $rows = $items->map(fn($i) => [
+                        $i->created_at->format('d/m/Y H:i'),
+                        $i->user->name ?? '-',
+                        $i->asset->name ?? '-',
+                        Str::limit($i->purpose, 40)
+                    ]);
+                    break;
+                
+                case 'purchaseTrend':
+                    $title = 'Daftar Aset (Diurutkan Tanggal Beli)';
+                    $headers = ['Tanggal Beli', 'Nama Aset', 'Harga', 'Status'];
+                    $items = Asset::orderByDesc('purchase_date')
+                        ->take(100)
+                        ->get();
+                    $rows = $items->map(fn($i) => [
+                        Carbon::parse($i->purchase_date)->format('d/m/Y'),
+                        $i->name,
+                        'Rp ' . number_format($i->purchase_price, 0, ',', '.'),
+                        ucfirst($i->status)
+                    ]);
+                    break;
+
+                case 'topUsers':
+                    $title = 'Peringkat Peminjam Teraktif';
+                    $headers = ['Nama User', 'Email', 'Total Peminjaman'];
+                    $items = AssetRequest::select('user_id', DB::raw('count(*) as total'))
+                         ->where('status', 'approved')
+                         ->with('user')
+                         ->groupBy('user_id')
+                         ->orderByDesc('total')
+                         ->take(50)
+                         ->get();
+                    $rows = $items->map(fn($i) => [
+                        $i->user->name ?? '-',
+                        $i->user->email ?? '-',
+                        $i->total . ' Kali'
+                    ]);
+                    break;
+
+                case 'assetAging':
+                    $title = 'Daftar Aset Berdasarkan Umur (Tua ke Muda)';
+                    $headers = ['Nama Aset', 'Tgl Beli', 'Umur (Tahun)', 'Kondisi'];
+                    $items = Asset::orderBy('purchase_date')->take(100)->get();
+                    $rows = $items->map(fn($i) => [
+                         $i->name,
+                         Carbon::parse($i->purchase_date)->format('d/m/Y'),
+                         Carbon::parse($i->purchase_date)->diffInYears(now()) . ' Tahun',
+                         ucfirst($i->condition) // Assuming 'condition' column exists or use status
+                    ]);
+                    break;
+                
+                 case 'departmentDist':
+                    $title = 'Distribusi Aset per Departemen/Role';
+                    $headers = ['Departemen/Role', 'Jumlah Aset'];
+                    // Logic similar to getData
+                    $hasDept = \Schema::hasColumn('users', 'department');
+                    $col = $hasDept ? 'users.department' : 'users.role';
+                    $items = Asset::join('users', 'assets.user_id', '=', 'users.id')
+                        ->select($col, DB::raw('count(*) as total'))
+                        ->groupBy($col)
+                        ->orderByDesc('total')
+                        ->get();
+                    $rows = $items->map(fn($i) => [
+                        ucfirst($i->{$hasDept ? 'department' : 'role'}),
+                        $i->total . ' Unit'
+                    ]);
+                    break;
+
+                 case 'ticketStats':
+                    $title = 'Status Tiket Perbaikan';
+                    $headers = ['Status', 'Jumlah Tiket'];
+                    $items = Maintenance::select('status', DB::raw('count(*) as total'))
+                        ->groupBy('status')
+                        ->get();
+                    $rows = $items->map(fn($i) => [
+                        ucfirst(str_replace('_', ' ', $i->status)),
+                        $i->total . ' Tiket'
                     ]);
                     break;
                 

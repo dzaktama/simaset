@@ -215,6 +215,49 @@
     </div>
 </div>
 
+{{-- MODAL ADD STOCK (Tambah Stok Aset Sejenis) --}}
+<div id="addStockModal" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true">
+    <div class="flex min-h-screen items-center justify-center p-4">
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity backdrop-blur-sm" onclick="closeAddStockModal()"></div>
+        <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-gray-100">
+            <form action="{{ route('assets.addStock') }}" method="POST">
+                @csrf
+                <input type="hidden" name="asset_id" id="stockAssetId">
+
+                <div class="bg-white px-6 pt-6 pb-4">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-gray-900">Tambah Stok Aset</h3>
+                        <button type="button" onclick="closeAddStockModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
+                    </div>
+
+                    <div class="p-4 bg-indigo-50 rounded-lg border border-indigo-100 mb-5">
+                        <p class="text-xs text-indigo-500 font-bold uppercase tracking-wider mb-1">Menambah Stok Untuk:</p>
+                        <p class="font-bold text-gray-800 text-lg" id="stockAssetName">-</p>
+                        <p class="text-xs text-gray-500" id="stockAssetCategory">-</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Jumlah Unit Baru</label>
+                            <div class="flex items-center gap-3">
+                                <button type="button" onclick="adjustStock(-1)" class="p-2 rounded bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold">-</button>
+                                <input type="number" name="quantity" id="stockQuantity" min="1" value="1" class="block w-full text-center rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-bold text-lg p-2 border">
+                                <button type="button" onclick="adjustStock(1)" class="p-2 rounded bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold">+</button>
+                            </div>
+                            <p class="text-[10px] text-gray-500 mt-2">Nomor Seri baru akan digenerate otomatis melanjutkan urutan terakhir.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-50 px-6 py-4 sm:flex sm:flex-row-reverse border-t border-gray-200">
+                    <button type="submit" class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-sm font-bold text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto transition">Simpan Tambahan</button>
+                    <button type="button" class="mt-3 w-full inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-bold text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto transition" onclick="closeAddStockModal()">Batal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
     function getImg(path) { return path ? `/storage/${path}` : ''; }
     function formatDateID(dateStr) { if(!dateStr) return '-'; const d = new Date(dateStr); return d.toLocaleDateString('id-ID', {day:'numeric',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})+' WIB'; }
@@ -397,16 +440,16 @@
 
         // Carousel Images
         let imgs=[]; 
-        if(asset.image) imgs.push(asset.image); 
-        if(asset.image2) imgs.push(asset.image2); 
-        if(asset.image3) imgs.push(asset.image3);
+        if(asset.image && asset.image !== 'null') imgs.push(asset.image); 
+        if(asset.image2 && asset.image2 !== 'null') imgs.push(asset.image2); 
+        if(asset.image3 && asset.image3 !== 'null') imgs.push(asset.image3);
         
         let slides='', dots='';
         totalSlides=imgs.length; currentSlide=0;
         
         if (imgs.length > 0) {
             imgs.forEach((im,i) => {
-                slides += `<div class="min-w-full h-full flex items-center justify-center bg-gray-50"><img src="${getImg(im)}" class="h-full object-contain p-4 mix-blend-multiply" onerror="this.src='https://placehold.co/800x600?text=Image+Error'"></div>`;
+                slides += `<div class="min-w-full h-full flex items-center justify-center bg-gray-50"><img src="${getImg(im)}" class="h-full object-contain p-4 mix-blend-multiply" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'flex flex-col items-center justify-center text-gray-400\\'><svg class=\\'w-12 h-12 mb-2\\' fill=\\'none\\' stroke=\\'currentColor\\' viewBox=\\'0 0 24 24\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'2\\' d=\\'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z\\'></path></svg><span class=\\'text-xs\\'>Gambar Tidak Ditemukan</span></div>';"></div>`;
                 dots += `<button onclick="goToSlide(${i})" class="w-2.5 h-2.5 rounded-full transition-all bg-white/50 border border-black/10 hover:bg-white hover:scale-110"></button>`;
             });
         } else {
@@ -536,4 +579,25 @@
         document.getElementById('loanModal').classList.remove('hidden');
     }
     function closeLoanModal(){ document.getElementById('loanModal').classList.add('hidden'); }
+
+    // --- ADD STOCK MODAL FUNCTIONS ---
+    function openAddStockModal(asset) {
+        document.getElementById('stockAssetId').value = asset.id;
+        document.getElementById('stockAssetName').innerText = asset.name;
+        document.getElementById('stockAssetCategory').innerText = asset.category;
+        document.getElementById('stockQuantity').value = 1;
+        document.getElementById('addStockModal').classList.remove('hidden');
+    }
+    
+    function closeAddStockModal() {
+        document.getElementById('addStockModal').classList.add('hidden');
+    }
+
+    function adjustStock(delta) {
+        const input = document.getElementById('stockQuantity');
+        let val = parseInt(input.value) || 0;
+        val += delta;
+        if(val < 1) val = 1;
+        input.value = val;
+    }
 </script>

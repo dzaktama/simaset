@@ -59,7 +59,7 @@ class AssetController extends Controller
                 });
             }
 
-            $activities = $logQuery->latest()->paginate(10, ['*'], 'history_page')->withQueryString();
+            $activities = $logQuery->latest()->get();
 
             // Kategori Chart
             $categories = Asset::select('category', DB::raw('count(*) as total'))
@@ -89,76 +89,99 @@ class AssetController extends Controller
                 
                 'activities' => $activities,
                 'categories' => $categories,
-                'totalAssets' => Asset::count(), // Tambahan variabel direct
+                'totalAssets' => Asset::count(), 
                 'deployedAssets' => Asset::where('status', 'deployed')->count(),
                 'maintenanceAssets' => Asset::where('status', 'maintenance')->count(),
                 'brokenAssets' => $brokenAssets,
-                'recentActivities' => AssetHistory::with(['asset', 'user'])->latest()->take(5)->get() // Versi simple untuk view baru
+                'recentActivities' => AssetHistory::with(['asset', 'user'])->latest()->take(5)->get()
             ]);
-
         } elseif ($role == 'service_center') {
              // --- LOGIC SERVICE CENTER ---
-             
-             // Hitung Stats Maintenance
-             $stats = [
-                 'on_process' => \App\Models\Maintenance::where('status', 'on_process')->count(),
-                 'completed_month' => \App\Models\Maintenance::where('status', 'completed')
-                                     ->whereMonth('completion_date', now()->month)
-                                     ->whereYear('completion_date', now()->year)
-                                     ->count(),
-                 'cost_month' => \App\Models\Maintenance::where('status', 'completed')
-                                     ->whereMonth('completion_date', now()->month)
-                                     ->whereYear('completion_date', now()->year)
-                                     ->sum('cost'),
-                 'broken' => Asset::where('status', 'broken')->count(),
-             ];
-
-             // 5 Aktivitas Terbaru
-             $recentMaintenances = \App\Models\Maintenance::with('asset')->latest()->take(5)->get();
-
-             return view('dashboard.service_center_view', [
-                 'title' => 'Dashboard Service Center',
-                 'stats' => $stats,
-                 'recentMaintenances' => $recentMaintenances
-             ]);
-
+             return redirect()->route('maintenances.index');
         } else {
-            // --- LOGIC KARYAWAN (DIPERBAIKI) ---
+            // --- LOGIC USER/EMPLOYEE ---
+            // 1. Data User
+            $myAssetsCount = Asset::where('user_id', $user->id)->count();
+            $myActiveAssets = Asset::where('user_id', $user->id)->latest()->take(3)->get();
             
-            // 1. Hitung Total Unit yang Sedang Dipinjam (Dari AssetRequest)
-            $myAssetsCount = AssetRequest::where('user_id', $user->id)
-                ->where('status', 'approved')
-                ->whereNull('returned_at')
-                ->sum('quantity');
-
-            // 2. Hitung Permintaan Pending
-            $pendingRequests = AssetRequest::where('user_id', $user->id)
-                ->where('status', 'pending')
-                ->count();
-
-            // 3. Ambil 5 Riwayat Terakhir (untuk Tabel Dashboard Baru)
-            $recentActivities = AssetRequest::with('asset')
-                ->where('user_id', $user->id)
-                ->latest()
-                ->take(5)
-                ->get();
-
-            // Variabel lama (myActiveAssets) tetap dikirim untuk kompatibilitas view lama jika ada
-            $myActiveAssets = Asset::where('user_id', $user->id)->latest()->take(3)->get(); 
+            // 2. Pending Requests
+            $pendingRequests = AssetRequest::where('user_id', $user->id)->where('status', 'pending')->count();
+            
+            // 3. User Activities (Log Pribadi)
+            $recentActivities = AssetHistory::where('user_id', $user->id)->latest()->take(5)->get();
 
             return view('home', [
                 'title' => 'Dashboard Karyawan',
-                'myAssetsCount' => $myAssetsCount, // Variabel Baru (Correct Logic)
-                'activeAssetsCount' => $myAssetsCount, // Variabel Lama (Alias)
-                'pendingRequests' => $pendingRequests, // Variabel Baru
-                'pendingRequestsCount' => $pendingRequests, // Variabel Lama (Alias)
-                'recentActivities' => $recentActivities, // Untuk Tabel Baru
-                'myRequests' => $recentActivities, // Variabel Lama (Alias)
-                'myActiveAssets' => $myActiveAssets // Tetap dikirim jaga-jaga
+                'myAssetsCount' => $myAssetsCount,
+                'activeAssetsCount' => $myAssetsCount, // Alias
+                'pendingRequests' => $pendingRequests,
+                'pendingRequestsCount' => $pendingRequests, // Alias
+                'recentActivities' => $recentActivities,
+                'myActiveAssets' => $myActiveAssets,
+                'activities' => [], // Empty for user
             ]);
         }
     }
 
+    // --- ADD STOCK FEATURE ---
+    public function addStock(Request $request)
+    {
+        $request->validate([
+            'asset_id' => 'required|exists:assets,id',
+            'quantity' => 'required|integer|min:1'
+        ]);
+
+        $parentAsset = Asset::find($request->asset_id);
+        $qtyToAdd = (int) $request->quantity;
+        
+        // 1. Logic No Seri Baru
+        $prefix = substr($parentAsset->serial_number, 0, 3); // Misal KEY
+        // Cari angka terakhir dari prefix ini di database
+        $lastAsset = Asset::where('serial_number', 'LIKE', "{$prefix}-%")->orderBy('id', 'desc')->first();
+        $newStartNumber = 1;
+        
+        if ($lastAsset) {
+            $parts = explode('-', $lastAsset->serial_number);
+            if (count($parts) == 2) {
+                $newStartNumber = (int)$parts[1] + 1;
+            }
+        }
+
+        DB::beginTransaction();
+        try {
+            for ($i = 0; $i < $qtyToAdd; $i++) {
+                $currentNumber = $newStartNumber + $i;
+                $newSN = sprintf('%s-%05d', $prefix, $currentNumber);
+                
+                // 2. Clone Data (Replicate)
+                $newAsset = $parentAsset->replicate();
+                $newAsset->serial_number = $newSN;
+                $newAsset->status = 'available'; // Default harus available
+                $newAsset->quantity = 1;         // Selalu 1 per record
+                
+                // Pastikan gambar dicopy PATH-nya saja (tidak upload ulang)
+                // $newAsset->image sudah otomatis tercopy oleh replicate()
+                
+                $newAsset->save();
+
+                // 3. Log History
+                AssetHistory::create([
+                    'asset_id' => $newAsset->id,
+                    'user_id' => auth()->id(),
+                    'action' => 'created', 
+                    'notes' => "Penambahan Stok Otomatis (Ref: {$parentAsset->serial_number})"
+                ]);
+            }
+             
+            DB::commit();
+            return back()->with('success', "Berhasil menambah $qtyToAdd unit baru (Mulai SN: $newStartNumber)");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Gagal menambah stok: ' . $e->getMessage());
+        }
+    }
+    // --- LOCATION MAP ---
     /**
      * Menampilkan Peta Lokasi Aset
      */
@@ -418,17 +441,25 @@ class AssetController extends Controller
 
         $lorong = $request->lorong ?? '-';
         $rak = $request->rak ?? '-';
-        $validatedData['location'] = "$lorong - Rak $rak";
+        
+        // LOGIC BARU: Jika status 'deployed', lokasi wajib kosong (karena barang di user)
+        if ($validatedData['status'] === 'deployed') {
+            $validatedData['lorong'] = null;
+            $validatedData['rak'] = null;
+            $validatedData['location'] = 'Deployed / Di User'; // Marker lokasi
+        } else {
+            $validatedData['location'] = "$lorong - Rak $rak";
+        }
 
-        if (!empty($validatedData['assigned_date'])) {
-            $validatedData['assigned_date'] = \Carbon\Carbon::parse($validatedData['assigned_date'])->format('Y-m-d H:i:s');
-        }
-        if (!empty($validatedData['return_date'])) {
-            $validatedData['return_date'] = \Carbon\Carbon::parse($validatedData['return_date'])->format('Y-m-d H:i:s');
-        }
+        // HAPUS LOGIC INPUT TANGGAL (Pindahkan ke sistem Peminjaman/Borrowing)
+        // Kita tidak lagi mengupdate assigned_date/return_date dari menu Edit Aset
+        // agar tidak menimpa data transaksi peminjaman (AssetRequest) yang berjalan.
+        unset($validatedData['assigned_date']);
+        unset($validatedData['return_date']);
 
         if ($validatedData['status'] === 'available') {
             $validatedData['user_id'] = null;
+            // Reset tanggal di tabel assets jika tersedia kembali
             $validatedData['assigned_date'] = null;
             $validatedData['return_date'] = null;
         }

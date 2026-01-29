@@ -35,6 +35,13 @@
               handleDrop(e) {
                   this.dragover = false;
                   const files = e.dataTransfer.files;
+                  this.processFiles(files);
+              },
+              handleBulkSelect(e) {
+                  const files = e.target.files;
+                  this.processFiles(files);
+              },
+              processFiles(files) {
                   if (files.length > 3) {
                       alert('Maksimal 3 foto sekaligus!');
                       return;
@@ -153,20 +160,13 @@
                                         <select name="user_id" class="w-full rounded-lg border border-blue-200 bg-white px-3 py-2.5 text-sm text-blue-900 font-medium focus:border-blue-600 focus:ring-0 cursor-pointer">
                                             <option value="">-- Pilih User --</option>
                                             @foreach($users as $user)
-                                                <option value="{{ $user->id }}" {{ $asset->user_id == $user->id ? 'selected' : '' }}>{{ $user->name }}</option>
+                                                <option value="{{ $user->id }}" {{ $asset->user_id == $user->id ? 'selected' : '' }}>{{ $user->name }} - {{ $user->employee_id ?? 'No ID' }}</option>
                                             @endforeach
                                         </select>
                                     </div>
-                                </div>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label class="block text-xs font-bold text-blue-800 mb-1">Tanggal Pinjam</label>
-                                        <input type="date" name="assigned_date" value="{{ old('assigned_date', $asset->assigned_date ? \Carbon\Carbon::parse($asset->assigned_date)->format('Y-m-d') : '') }}" class="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-medium text-blue-900 focus:border-blue-600 focus:ring-0">
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-bold text-blue-800 mb-1">Rencana Kembali</label>
-                                        <input type="date" name="return_date" value="{{ old('return_date', $asset->return_date ? \Carbon\Carbon::parse($asset->return_date)->format('Y-m-d') : '') }}" class="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-medium text-blue-900 focus:border-blue-600 focus:ring-0">
-                                    </div>
+                                    <p class="text-[10px] text-blue-600 mt-1.5 leading-tight">
+                                        *Untuk mengubah durasi, gunakan fitur <b>Perpanjang</b> di Detail Peminjaman.
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -186,8 +186,17 @@
                      x-on:dragleave.prevent="dragover = false"
                      x-on:drop.prevent="handleDrop($event)"
                      :class="{'ring-2 ring-indigo-500 bg-indigo-50': dragover}">
-                    <div class="bg-gray-50 px-5 py-3 border-b border-gray-200">
+                    <div class="bg-gray-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
                         <h3 class="text-xs font-extrabold text-gray-800 uppercase tracking-wider">Foto Dokumentasi</h3>
+                        {{-- TOMBOL UPLOAD 3 SEKALIGUS --}}
+                        <div>
+                            <input type="file" multiple accept="image/*" class="hidden" x-ref="bulkInput" @change="handleBulkSelect($event)">
+                            <button type="button" @click="$refs.bulkInput.click()" 
+                                class="bg-indigo-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold shadow-md hover:bg-indigo-700 transition flex items-center hover:scale-105 transform duration-200">
+                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                                Upload 3 Foto
+                            </button>
+                        </div>
                     </div>
                     
                     <div class="p-5 space-y-4">
@@ -254,22 +263,31 @@
                             <p class="text-xs text-blue-600 mt-1.5 font-medium">Ubah manual hanya jika stok fisik berubah.</p>
                         </div>
 
-                        {{-- Lokasi --}}
-                        <div class="group">
+                        {{-- Lokasi (Hanya muncul jika NOT deployed) --}}
+                        <div x-show="status !== 'deployed'" x-transition class="group">
                             <label class="block text-sm font-bold text-gray-700 mb-1.5">Lokasi Penyimpanan</label>
                             <div class="grid grid-cols-2 gap-3">
                                 <select name="lorong" class="block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium focus:border-indigo-600 focus:ring-0 transition-all">
+                                    <option value="">- Area -</option>
                                     @foreach(range('A', 'Z') as $char)
                                         <option value="Area {{ $char }}" {{ old('lorong', $asset->lorong) == "Area $char" ? 'selected' : '' }}>Area {{ $char }}</option>
                                     @endforeach
                                 </select>
                                 <select name="rak" class="block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium focus:border-indigo-600 focus:ring-0 transition-all">
+                                    <option value="">- Rak -</option>
                                     @for($i = 1; $i <= 50; $i++)
                                         @php $rakCode = 'R-' . str_pad($i, 2, '0', STR_PAD_LEFT); @endphp
                                         <option value="{{ $rakCode }}" {{ old('rak', $asset->rak) == $rakCode ? 'selected' : '' }}>{{ $rakCode }}</option>
                                     @endfor
                                 </select>
                             </div>
+                        </div>
+
+                         {{-- Info Lokasi Deployed --}}
+                         <div x-show="status === 'deployed'" class="bg-gray-100 p-3 rounded-lg border border-dashed border-gray-300 text-center">
+                            <p class="text-xs text-gray-500 font-semibold">
+                                📍 Aset sedang digunakan (Deployed).<br>Lokasi fisik mengikuti peminjam.
+                            </p>
                         </div>
                     </div>
                 </div>

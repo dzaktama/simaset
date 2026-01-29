@@ -313,9 +313,18 @@
                 }
             @endphp
             <div class="bg-gradient-to-br {{ $isOverdue ? 'from-red-500 to-red-600' : 'from-blue-500 to-blue-600' }} rounded-lg shadow p-6 text-white">
-                <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    {{ $borrowing->status == 'approved' && !$borrowing->returned_at ? ($isOverdue ? 'Terlambat' : 'Sisa Waktu') : 'Tanggal Pengembalian' }}
+                <h3 class="text-lg font-bold mb-4 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        {{ $borrowing->status == 'approved' && !$borrowing->returned_at ? ($isOverdue ? 'Terlambat' : 'Sisa Waktu') : 'Tanggal Pengembalian' }}
+                    </div>
+                    
+                    {{-- TOMBOL EDIT DURASI (ADMIN ONLY) --}}
+                    @if(in_array(auth()->user()->role, ['admin', 'super_admin']) && $borrowing->status === 'approved' && !$borrowing->returned_at)
+                        <button onclick="openExtendModal()" class="text-white hover:text-gray-200 transition p-1 bg-white/20 rounded-full" title="Ubah Durasi / Perpanjang">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                        </button>
+                    @endif
                 </h3>
                 
                 <div class="text-center">
@@ -365,9 +374,8 @@
                     </span>
                 @else
                     <span class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-yellow-100 text-yellow-800 font-semibold">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
-                            <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 1 1 0 000 2 1 1 0 100 2 2 2 0 01-2 2V7a2 2 0 01-2-2zm11-1a1 1 0 100 2 1 1 0 000-2zM8 8a1 1 0 100 2h4a1 1 0 100-2H8z" clip-rule="evenodd"></path>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                         Tertunda
                     </span>
@@ -408,6 +416,25 @@
                         Kembalikan Aset
                     </button>
                 @endif
+            @endif
+
+            {{-- [FITUR BARU] MENU BATALKAN PENGAJUAN (USER OWN) --}}
+            @if($borrowing->status === 'pending' && auth()->id() === $borrowing->user_id)
+                <div class="bg-white rounded-lg shadow p-6 border-t-4 border-gray-400">
+                    <h3 class="text-gray-900 font-bold mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Batalkan Pengajuan
+                    </h3>
+                    <p class="text-sm text-gray-600 mb-4">Jika Anda berubah pikiran atau tidak jadi meminjam aset ini, Anda dapat membatalkan pengajuan ini.</p>
+                    
+                    <form action="{{ route('borrowing.cancel', $borrowing->id) }}" method="POST">
+                        @csrf
+                        <button type="submit" class="w-full bg-gray-100 text-gray-700 px-4 py-3 rounded-lg font-semibold hover:bg-red-50 hover:text-red-600 hover:border-red-200 border border-gray-200 transition flex items-center justify-center gap-2" onclick="return confirm('Yakin ingin membatalkan pengajuan ini? Data akan dihapus.')">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            Batalkan Pengajuan
+                        </button>
+                    </form>
+                </div>
             @endif
         </div>
     </div>
@@ -536,6 +563,64 @@
             </div>
         </form>
     </div>
+    </div>
+</div>
+
+{{-- MODAL EXTEND (PERPANJANG DURASI) --}}
+<div id="extendModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full animate-fade-in-down">
+        <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-center justify-between rounded-t-lg">
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Ubah Durasi Peminjaman
+            </h3>
+            <button type="button" onclick="closeExtendModal()" class="text-white hover:text-blue-100">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+
+        <form method="POST" action="{{ route('borrowing.extend', $borrowing->id) }}" class="p-6">
+            @csrf
+            @method('PUT')
+            
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">Tanggal Baru <span class="text-red-500">*</span></label>
+                    <input type="date" name="new_return_date" 
+                        value="{{ $borrowing->return_date ? \Carbon\Carbon::parse($borrowing->return_date)->format('Y-m-d') : '' }}" 
+                        min="{{ now()->format('Y-m-d') }}"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">Jam Baru <span class="text-red-500">*</span></label>
+                    <input type="time" name="new_return_time" 
+                        value="{{ $borrowing->return_date ? \Carbon\Carbon::parse($borrowing->return_date)->format('H:i') : '' }}" 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 -mt-2 mb-4">
+                Waktu baru harus setelah waktu saat ini.
+            </p>
+
+            <div class="mb-6">
+                <label class="block text-sm font-semibold text-gray-900 mb-2">Alasan Perubahan (Opsional)</label>
+                <textarea name="reason_extend" rows="2" placeholder="Contoh: User meminta perpanjangan..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"></textarea>
+            </div>
+
+            <div class="flex gap-3">
+                <button type="button" onclick="closeExtendModal()" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition">
+                    Batal
+                </button>
+                <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition">
+                    Simpan Perubahan
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script>
@@ -560,13 +645,24 @@
     // Close modal when clicking outside
     window.onclick = function(event) {
         let returnModal = document.getElementById('returnModal');
-        let rejectModal = document.getElementById('rejectModal');
         if (event.target == returnModal) {
             closeReturnModal();
         }
         if (event.target == rejectModal) {
             closeRejectModal();
         }
+        if (event.target == document.getElementById('extendModal')) {
+            closeExtendModal();
+        }
+    }
+
+    // === EXTEND MODAL ===
+    function openExtendModal() {
+        document.getElementById('extendModal').classList.remove('hidden');
+    }
+
+    function closeExtendModal() {
+        document.getElementById('extendModal').classList.add('hidden');
     }
 </script>
 @endsection

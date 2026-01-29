@@ -11,6 +11,7 @@ class Maintenance extends Model
 
     protected $fillable = [
         'asset_id',
+        'user_id', // Teknisi yang membuat tiket
         'vendor_name',
         'start_date',
         'completion_date',
@@ -20,8 +21,19 @@ class Maintenance extends Model
         'status'
     ];
 
+    /**
+     * Relasi ke aset yang sedang diperbaiki
+     */
     public function asset()
     {
         return $this->belongsTo(Asset::class);
+    }
+
+    /**
+     * Relasi ke user (teknisi/service center) yang membuat tiket
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

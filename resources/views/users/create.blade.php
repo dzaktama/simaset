@@ -2,7 +2,7 @@
 
 @section('container')
 <div class="w-full px-4 sm:px-6 lg:px-8 py-6 bg-gray-50 min-h-screen">
-    {{-- Header Section --}}
+    {{-- Header Section: Judul Halaman dan Tombol Kembali --}}
     <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Tambah Pengguna</h2>
@@ -15,8 +15,16 @@
     </div>
 
     <form action="/users" method="POST" @submit="confirmSave($event)" x-data="{
+        // --- LOGIKA UTAMA ALPINE JS UNTUK HAK AKSES ---
+
+        // Role saat ini (default: user)
         currentRole: '{{ old('role', 'user') }}',
-        isCustomMode: false, // Mode Kustom untuk override lock
+        
+        // Mode Custom: Jika true, user bisa edit checkbox permission yang terkunci (mandatori)
+        isCustomMode: false, 
+
+        // Daftar Permission Wajib per Role (Locked)
+        // Permission ini akan otomatis tercentang dan terkunci jika mode custom mati
         mandatory: {
             'admin': ['dashboard.view', 'dashboard.stats', 'asset.view', 'asset.create', 'asset.edit', 'asset.delete', 'asset.export', 'borrow.action', 'report.view', 'maintenance.view', 'chat.access', 'user.view', 'user.create', 'user.action', 'user.delete'],
             'super_admin': ['dashboard.view', 'dashboard.stats', 'asset.view', 'asset.create', 'asset.edit', 'asset.delete', 'asset.export', 'borrow.action', 'borrow.return', 'report.view', 'maintenance.view', 'chat.access', 'user.view', 'user.create', 'user.edit', 'user.delete'],
@@ -25,18 +33,26 @@
             'user': ['dashboard.view', 'asset.view', 'borrow.view', 'borrow.request', 'chat.access'],
             'staff': ['dashboard.view', 'asset.view', 'borrow.view', 'borrow.request', 'chat.access']
         },
+        
+        // Helper: Centang SEMUA box dalam satu grup
         checkAll(group) { document.querySelectorAll('.' + group).forEach(cb => cb.checked = true); },
+        
+        // Helper: Hapus centang SEMUA dalam satu grup (kecuali yang terkunci)
         uncheckAll(group) { 
             document.querySelectorAll('.' + group).forEach(cb => {
                 if(!this.isLocked(cb.value)) cb.checked = false;
             }); 
         },
+
+        // Cek apakah permission tertentu harus terkunci (tidak bisa di-uncheck)
         isLocked(perm) {
             if (this.isCustomMode) return false; // Lepas lock jika mode custom
             if (!this.currentRole) return false;
             let list = this.mandatory[this.currentRole] || [];
             return list.includes(perm);
         },
+
+        // Terapkan permission wajib berdasarkan role yang dipilih
         checkMandatory() {
             if (this.isCustomMode) return;
             let list = this.mandatory[this.currentRole] || [];
@@ -45,16 +61,21 @@
                 if(el) { el.checked = true; }
             });
         },
+
+        // Event Handler: Saat role berubah di dropdown
         updateRole(role) {
             // Reset custom mode saat ganti role (opsional, agar konsisten)
             this.isCustomMode = false;
             this.currentRole = role;
             this.applyPreset(role);
         },
+
+        // Logic Presets: Mengatur checkbox default selain mandatori
         applyPreset(role) {
+            // Reset semua dulu
             document.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
             
-            // Logika dasar
+            // Logika dasar penentuan checkbox tambahan permission
             if (role === 'admin' || role === 'super_admin') { 
                 this.checkAll('perm-asset'); 
                 this.checkAll('perm-borrow'); 
@@ -81,17 +102,23 @@
                 document.querySelector('input[value=\'chat.access\']').checked = true;
             }
             
+            // Terakhir, pastikan mandatori tercentang
             this.checkMandatory();
         },
-        // Konfirmasi Ganda
+
+        // Konfirmasi Ganda Sebelum Submit Form
         confirmSave(e) {
             e.preventDefault();
             if(!confirm('Apakah Anda yakin data user baru ini sudah benar?')) return;
             if(!confirm('Konfirmasi Keamanan: Perubahan hak akses akan diterapkan untuk user baru ini. Lanjutkan?')) return;
             e.target.submit();
         },
+        
+        // Utilitas Tanggal &  ID
         currentDate: new Date().toISOString().slice(0, 7).replace('-', ''),
         employeeIdPreview: 'EMP-' + new Date().toISOString().slice(0, 7).replace('-', '') + '-XXX',
+        
+        // Init: Jalankan saat load halaman
         init() {
             this.checkMandatory();
         }
@@ -213,8 +240,10 @@
 
             {{-- BAGIAN KANAN: Permissions (8 Kolom) --}}
             <div class="lg:col-span-8">
+                {{-- PANEL KANAN: Permission Selector (Khusus Super Admin) --}}
                 @if(auth()->user()->role === 'super_admin')
                 <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden h-full flex flex-col">
+                    {{-- Header Panel Biru Gelap --}}
                     <div class="p-5 md:p-6 bg-gradient-to-r from-gray-900 to-gray-800 text-white flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                         <div>
                             <h3 class="text-xl font-bold flex items-center gap-2">
@@ -223,6 +252,8 @@
                                 </div>
                                 Kontrol Hak Akses
                             </h3>
+                            
+                            {{-- Toggle Mode Custom --}}
                             <div class="flex items-center gap-2 mt-1 ml-9">
                                 <label class="inline-flex items-center cursor-pointer group">
                                     <input type="checkbox" x-model="isCustomMode" class="sr-only peer">
@@ -245,6 +276,7 @@
                             </div>
                         </div>
                         
+                        {{-- Tombol Preset Cepat --}}
                         <div class="flex flex-wrap gap-2">
                             <span class="text-[10px] font-bold uppercase tracking-wider text-gray-500 self-center mr-1">Preset:</span>
                             <button type="button" @click="applyPreset('super_admin')" class="px-2.5 py-1.5 rounded-md text-[10px] font-bold bg-amber-500 text-white hover:bg-amber-600 transition shadow-lg shadow-amber-500/30">SUPER ADMIN</button>
