@@ -4,7 +4,7 @@
 <div class="p-6">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold text-gray-800">Perbaikan & Pemeliharaan (Maintenance)</h1>
-        @if(auth()->user()->role == 'admin' || auth()->user()->role == 'super_admin' || auth()->user()->role == 'service_center')
+        @if(auth()->user()->role?->slug == 'admin' || auth()->user()->role?->slug == 'super_admin' || auth()->user()->role?->slug == 'service_center')
         <a href="{{ route('maintenances.create') }}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 font-medium">
             + Input Perbaikan Baru
         </a>

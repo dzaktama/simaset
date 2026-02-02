@@ -82,7 +82,7 @@ class AuthController extends Controller
         // Jadi kita harus cek apakah session 'impersonator_id' SUDAH ADA (berarti sedang impersonate)
         // ATAU role user saat ini adalah super_admin.
         
-        $canImpersonate = $originalUser->role === 'super_admin' || session()->has('impersonator_id');
+        $canImpersonate = $originalUser->role?->slug === 'super_admin' || session()->has('impersonator_id');
 
         if (!$canImpersonate) {
             abort(403, 'Unauthorized action.');

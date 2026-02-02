@@ -87,11 +87,12 @@
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            @if($user->role == 'super_admin')
+                            @php $roleSlug = optional($user->role)->slug; @endphp
+                            @if($roleSlug == 'super_admin')
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Super Admin</span>
-                            @elseif($user->role == 'admin')
+                            @elseif($roleSlug == 'admin')
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">Administrator</span>
-                            @elseif($user->role == 'service_center')
+                            @elseif($roleSlug == 'service_center')
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-orange-100 text-orange-800">Service Center</span>
                             @else
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Karyawan</span>
@@ -105,7 +106,8 @@
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div class="flex justify-end gap-2">
                                 {{-- TOMBOL LOGIN AS (SUPER ADMIN ONLY) --}}
-                                @if(auth()->user()->role == 'super_admin' && auth()->id() != $user->id)
+                                {{-- TOMBOL LOGIN AS (SUPER ADMIN ONLY) --}}
+                                @if(auth()->user()->role?->slug == 'super_admin' && auth()->id() != $user->id)
                                     <a href="{{ route('impersonate', $user->id) }}" class="text-white bg-indigo-600 hover:bg-indigo-700 p-2 rounded-lg border border-indigo-600 transition shadow-sm" title="Login Sebagai {{ $user->name }}">
                                         {{-- Icon Monitor / Desktop --}}
                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -240,9 +242,12 @@
             
             // Format tampilan Role agar lebih manusiawi
             let roleText = 'Karyawan';
-            if (user.role === 'super_admin') roleText = 'Super Admin';
-            else if (user.role === 'admin') roleText = 'Administrator';
-            else if (user.role === 'service_center') roleText = 'Service Center';
+            // user.role sekarang object, jadi cek slug-nya
+            let roleSlug = user.role ? user.role.slug : ''; 
+            
+            if (roleSlug === 'super_admin') roleText = 'Super Admin';
+            else if (roleSlug === 'admin') roleText = 'Administrator';
+            else if (roleSlug === 'service_center') roleText = 'Service Center';
             
             document.getElementById('modalUserRole').innerText = roleText;
             document.getElementById('modalUserNIP').innerText = user.employee_id || '-';

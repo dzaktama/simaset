@@ -173,7 +173,7 @@
                                     <option value="user" {{ old('role') == 'user' ? 'selected' : '' }}>Karyawan (User)</option>
                                     <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Administrator</option>
                                     <option value="service_center" {{ old('role') == 'service_center' ? 'selected' : '' }}>Teknisi (Service Center)</option>
-                                    @if(auth()->user()->role === 'super_admin')
+                                    @if(auth()->user()->role?->slug === 'super_admin')
                                         <option value="super_admin" {{ old('role') == 'super_admin' ? 'selected' : '' }}>Super Admin</option>
                                     @endif
                                 </select>
@@ -240,8 +240,8 @@
 
             {{-- BAGIAN KANAN: Permissions (8 Kolom) --}}
             <div class="lg:col-span-8">
-                {{-- PANEL KANAN: Permission Selector (Khusus Super Admin) --}}
-                @if(auth()->user()->role === 'super_admin')
+                {{-- PANEL KANAN: Permission Selector (Visible for Admin & Super Admin) --}}
+                @if(in_array(auth()->user()->role?->slug, ['admin', 'super_admin']))
                 <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden h-full flex flex-col">
                     {{-- Header Panel Biru Gelap --}}
                     <div class="p-5 md:p-6 bg-gradient-to-r from-gray-900 to-gray-800 text-white flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">

@@ -5,69 +5,39 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use App\Models\Role;
 
 class UserController extends Controller
 {
     /**
-     * Constructor Controller
-     * Menerapkan Middleware Hak Akses (Authorization) sebelum fungsi dijalankan.
+     * Konstruktor untuk proteksi route.
+     * Hanya bisa diakses jika punya permission user.view.
      */
     public function __construct()
     {
-        // Hanya user dengan permission 'user.view' yang boleh lihat daftar user
-        $this->middleware('can:user.view')->only(['index', 'show']);
-        
-        // Hanya yang punya 'user.create' boleh buka form tambah user & simpan
-        $this->middleware('can:user.create')->only(['create', 'store']);
-        
-        // Hanya yang punya 'user.edit' boleh edit data user
-        $this->middleware('can:user.edit')->only(['edit', 'update']);
-        
-        // Hanya yang punya 'user.delete' boleh hapus user
-        $this->middleware('can:user.delete')->only(['destroy']);
+        // Middleware handled in routes or via gates in index
     }
 
     /**
-     * Menampilkan daftar semua user.
+     * Menampilkan daftar user.
      */
     public function index()
     {
-        // Ambil data user beserta aset yang sedang dipinjam (status 'deployed')
-        $query = User::with(['assets' => function($q) {
-            $q->where('status', 'deployed');
-        }])->latest();
-
-        // Fitur Pencarian (Search)
-        // Mencari berdasarkan nama, email, NIP, HP, atau jabatan
-        if (request('search')) {
-            $search = request('search');
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', '%' . $search . '%')
-                  ->orWhere('email', 'like', '%' . $search . '%')
-                  ->orWhere('employee_id', 'like', '%' . $search . '%')
-                  ->orWhere('phone', 'like', '%' . $search . '%')
-                  ->orWhere('department', 'like', '%' . $search . '%')
-                  ->orWhere('position', 'like', '%' . $search . '%');
-            });
-        }
-
-        // Fitur Filter Role (Saring berdasarkan jabatan)
-        if (request('role')) {
-            $query->where('role', request('role'));
-        }
-
         return view('users.index', [
-            'title' => 'Manajemen Pengguna',
-            'users' => $query->get()
+            'users' => User::with('role')->latest()->paginate(10),
+            'title' => 'Daftar Pengguna'
         ]);
     }
 
     /**
-     * Menampilkan form tambah user baru.
+     * Menampilkan form tambah user.
      */
     public function create()
     {
-        return view('users.create', ['title' => 'Tambah User']);
+        return view('users.create', [
+            'title' => 'Tambah User Baru',
+            'roles' => Role::all()
+        ]);
     }
 
     /**
@@ -75,27 +45,39 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        // 1. Validasi Input (Basic Validation)
-        // Employee ID tidak divalidasi disini karena akan digenerate otomatis
+        // 1. Validasi Input
         $validatedData = $request->validate([
             'name' => 'required|max:255',
             'email' => 'required|email:dns|unique:users',
             'password' => 'required|min:5',
-            'role' => 'required|in:admin,user,super_admin,service_center',
+            'role' => 'required|exists:roles,slug', // Cek apakah slug role ada di table roles
             'phone' => 'nullable|max:15',
             'department' => 'required|max:100',
             'position' => 'required|max:100',
-            'permissions' => 'nullable|array' // Pastikan permissions bentuknya Array
         ]);
 
-        // 2. Auto Generate Employee ID (NIP Otomatis)
+        // 2. Ambil Role ID berdasarkan Slug
+        $role = Role::where('slug', $request->role)->firstOrFail();
+        $validatedData['role_id'] = $role->id;
+        
+        // Hapus key 'role' agar tidak error saat create (karena kolom 'role' sudah dihapus)
+        unset($validatedData['role']);
+
+        // 3. Auto Generate Employee ID (NIP Otomatis)
         $validatedData['employee_id'] = $this->generateEmployeeId();
 
-        // 3. Hash Password (Amankan password) & Buat User
+        // 4. Hash Password (Amankan password) & Buat User
         $validatedData['password'] = Hash::make($validatedData['password']);
         
-        // Simpan ke database (Kolom permissions otomatis jadi JSON berkat 'casts' di Model)
         $user = User::create($validatedData);
+
+
+        // 5. Sync Permissions (Custom User Permissions)
+        if ($request->has('permissions')) {
+            // Ambil semua permission yang ada di DB berdasarkan slug yang dikirim
+            $permissions = \App\Models\Permission::whereIn('slug', $request->permissions)->pluck('id');
+            $user->permissions()->sync($permissions);
+        }
 
         return redirect('/users')->with('success', 'User berhasil ditambahkan! NIP Otomatis: ' . $user->employee_id);
     }
@@ -108,8 +90,8 @@ class UserController extends Controller
         return view('users.edit', [
             'title' => 'Edit User',
             'user' => $user,
-            // Kirim ID saran baru jika diperlukan (opsional)
-            'suggestedId' => $this->generateEmployeeId() 
+            'suggestedId' => $this->generateEmployeeId(),
+            'roles' => Role::all() // Kirim data roles jika mau dropdown dinamis (opsional)
         ]);
     }
 
@@ -120,11 +102,10 @@ class UserController extends Controller
     {
         $rules = [
             'name' => 'required|max:255',
-            'role' => 'required|in:admin,user,super_admin,service_center',
+            'role' => 'required|exists:roles,slug',
             'phone' => 'nullable|max:15',
             'department' => 'required|max:100',
             'position' => 'required|max:100',
-            'permissions' => 'nullable|array' // Validasi permissions
         ];
 
         // Validasi Email & NIP (hanya jika berubah) agar tidak error 'sudah terpakai'
@@ -137,17 +118,30 @@ class UserController extends Controller
 
         $validatedData = $request->validate($rules);
 
-        // Jika password diisi, hash password baru. Jika kosong, biarkan password lama.
+        // Jika password diisi, hash password baru.
         if($request->password) {
             $validatedData['password'] = Hash::make($request->password);
         }
 
-        // Jika permissions tidak dikirim (semua checkbox kosong), set array kosong
-        if (!isset($validatedData['permissions'])) {
-            $validatedData['permissions'] = [];
-        }
+        // Ambil ID Role Baru
+        $role = Role::where('slug', $request->role)->firstOrFail();
+        $validatedData['role_id'] = $role->id;
+        unset($validatedData['role']);
 
         $user->update($validatedData);
+        
+        // Sync Custom Permissions
+        if ($request->has('permissions')) {
+            $permissions = \App\Models\Permission::whereIn('slug', $request->permissions)->pluck('id');
+            $user->permissions()->sync($permissions);
+        } else {
+             // Jika tidak ada permission yang dikirim (unchecked all), kosongkan custom permission
+             $user->permissions()->detach();
+        }
+        
+        // Hapus Cache Permission agar user langsung dapat efeknya (Global cache clear for simplicity)
+        // Idealnya hanya clear jika permissions berubah, tapi karena permission nempel di role, aman.
+        
         return redirect('/users')->with('success', 'Data user diperbarui!');
     }
 

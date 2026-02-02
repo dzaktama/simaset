@@ -15,6 +15,7 @@
     
     <style>
         body { font-family: 'Inter', sans-serif; }
+        [x-cloak] { display: none !important; }
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #1f2937; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 5px; }

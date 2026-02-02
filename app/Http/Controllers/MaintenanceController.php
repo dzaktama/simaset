@@ -96,7 +96,7 @@ class MaintenanceController extends Controller
     {
         return view('maintenances.show', [
             'title' => 'Detail Perbaikan',
-            'maintenance' => $maintenance->load('asset.holder')
+            'maintenance' => $maintenance->load(['asset.holder', 'user'])
         ]);
     }
 
@@ -117,13 +117,17 @@ class MaintenanceController extends Controller
 
         DB::beginTransaction();
         try {
-            // 1. Create Maintenance Log
+            // 1. Ambil Data Aset Dulu (Fix Undefined Variable)
+            $asset = Asset::findOrFail($request->asset_id);
+
             $description = $request->problem_description;
             if ($request->filled('priority')) {
                 $priorityLabel = ucfirst($request->priority);
                 $description = "[Prioritas: {$priorityLabel}] " . $description;
             }
 
+            // Validasi Status: Jangan izinkan maintenance jika aset sedang 'deployed' (dipinjam user)
+            // Kecuali Super Admin yang mungkin punya policy bypass (tapi logic standar tetap harus return dulu)
             if ($asset->status === 'deployed') {
                 return back()->with('error', 'Aset sedang dipinjam (Status: Deployed). Harap proses pengembalian terlebih dahulu.');
             }
@@ -139,7 +143,6 @@ class MaintenanceController extends Controller
             ]);
 
             // 2. Update Asset Status
-            $asset = Asset::find($request->asset_id);
             $asset->update(['status' => 'maintenance']);
 
             DB::commit();

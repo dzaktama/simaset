@@ -208,8 +208,8 @@
                                 {{ substr($log->user->name ?? 'S', 0, 1) }}
                             </div>
                             <div>
-                                <p class="font-medium text-gray-900">{{ $log->user->name ?? 'Sistem' }}</p>
-                                <p class="text-[10px] text-gray-500">{{ $log->user->role ?? '-' }}</p>
+                                <p class="font-medium text-gray-900">{{ $log->user?->name ?? 'Sistem' }}</p>
+                                <p class="text-[10px] text-gray-500">{{ $log->user?->role?->name ?? '-' }}</p>
                             </div>
                         </div>
                     </td>

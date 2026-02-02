@@ -84,7 +84,7 @@
     // 5. Jam Digital (DIHAPUS - Pindah ke Topbar Global)
 
     // 6. Chart Logic (KODE ASLI ANDA - TIDAK DIUBAH)
-    @if(in_array(session('impersonate_role', auth()->user()->role), ['admin', 'super_admin']))
+    @if(in_array(session('impersonate_role', auth()->user()->role?->slug), ['admin', 'super_admin']))
     (function(){
         const borrowCanvas = document.getElementById('borrowTrendChart');
         const assetCanvas = document.getElementById('assetAdditionChart');

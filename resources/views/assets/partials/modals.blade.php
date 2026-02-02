@@ -277,7 +277,7 @@
 
     // Helper Global
     let currentAssetData = null;
-    const authRole = "{{ auth()->user()->role }}";
+    const authRole = "{{ auth()->user()->role?->slug }}";
 
     // Update Function: Menerima qrCodeBase64
     function openDetailModal(asset, holder, qrCodeBase64) {

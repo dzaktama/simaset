@@ -15,7 +15,7 @@
     </div>
 
     <form action="/users/{{ $user->id }}" method="POST" @submit="confirmSave($event)" x-data="{
-        currentRole: '{{ old('role', $user->role) }}',
+        currentRole: '{{ old('role', $user->role?->slug) }}',
         isCustomMode: false, // Mode Kustom untuk edit manual
         mandatory: {
             'admin': ['dashboard.view', 'dashboard.stats', 'asset.view', 'asset.create', 'asset.edit', 'asset.delete', 'asset.export', 'borrow.action', 'report.view', 'maintenance.view', 'chat.access', 'user.view', 'user.create', 'user.action', 'user.delete'],
@@ -154,11 +154,11 @@
                             <label class="block text-sm font-bold text-gray-700 mb-1.5">Role Pengguna <span class="text-red-500">*</span></label>
                             <div class="relative">
                                 <select name="role" @change="updateRole($event.target.value, $event)" class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 font-medium focus:border-indigo-600 focus:bg-white focus:ring-0 appearance-none cursor-pointer transition-all">
-                                    <option value="user" {{ old('role', $user->role) == 'user' ? 'selected' : '' }}>Karyawan (User)</option>
-                                    <option value="admin" {{ old('role', $user->role) == 'admin' ? 'selected' : '' }}>Administrator</option>
-                                    <option value="service_center" {{ old('role', $user->role) == 'service_center' ? 'selected' : '' }}>Teknisi (Service Center)</option>
-                                    @if(auth()->user()->role === 'super_admin')
-                                        <option value="super_admin" {{ old('role', $user->role) == 'super_admin' ? 'selected' : '' }}>Super Admin</option>
+                                    <option value="user" {{ old('role', $user->role?->slug) == 'user' ? 'selected' : '' }}>Karyawan (User)</option>
+                                    <option value="admin" {{ old('role', $user->role?->slug) == 'admin' ? 'selected' : '' }}>Administrator</option>
+                                    <option value="service_center" {{ old('role', $user->role?->slug) == 'service_center' ? 'selected' : '' }}>Teknisi (Service Center)</option>
+                                    @if(auth()->user()->role?->slug === 'super_admin')
+                                        <option value="super_admin" {{ old('role', $user->role?->slug) == 'super_admin' ? 'selected' : '' }}>Super Admin</option>
                                     @endif
                                 </select>
                                 <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
@@ -234,7 +234,7 @@
 
             {{-- BAGIAN KANAN: Permissions (8 Kolom) --}}
             <div class="lg:col-span-8">
-                @if(auth()->user()->role === 'super_admin')
+                @if(auth()->user()->role?->slug === 'super_admin')
                 <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden h-full flex flex-col">
                     <div class="p-5 md:p-6 bg-gradient-to-r from-gray-900 to-gray-800 text-white flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                         <div>
@@ -277,7 +277,7 @@
                     
                     <div class="p-5 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-5 flex-grow bg-gray-50">
                         @php
-                            $userPerms = $user->permissions ?? []; // Ambil permission user saat ini
+                            $userPerms = $user->permissions->pluck('slug')->toArray() ?? []; // Ambil permission user saat ini (slug array)
                             
                             $groups = [
                                 [

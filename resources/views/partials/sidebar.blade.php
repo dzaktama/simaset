@@ -44,7 +44,7 @@
             @endcan
 
             {{-- Analytics (Only Admin/Super) --}}
-            @if(in_array(auth()->user()->role, ['admin', 'super_admin']))
+            @if(in_array(optional(auth()->user()->role)->slug, ['admin', 'super_admin']))
             <a href="{{ route('analytics.index') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('analytics.*') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
                 <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('analytics.*') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
                 <span>Pusat Data</span>
@@ -154,7 +154,31 @@
         </nav>
         @endcanany
 
-        {{-- SECTION: PERSONAL --}}
+        {{-- SECTION: MANAJEMEN GUDANG (BARU) --}}
+        @can('asset.view')
+        <div class="mt-6 mb-2 px-3"><div class="h-px bg-gray-200 mb-2"></div><p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Manajemen Gudang</p></div>
+        <nav class="space-y-1">
+            <a href="{{ route('warehouse.index') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('warehouse.index') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
+                <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('warehouse.index') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                <span>Dashboard Gudang</span>
+            </a>
+            
+            <a href="{{ route('warehouse.createMove') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('warehouse.createMove') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
+                <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('warehouse.createMove') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                <span>Mutasi Aset</span>
+            </a>
+
+            <a href="{{ route('warehouse.history') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('warehouse.history') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
+                <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('warehouse.history') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>Riwayat Pindah</span>
+            </a>
+
+            <a href="{{ route('assets.map') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('assets.map') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">
+                <svg class="shrink-0 h-5 w-5 mr-3 {{ request()->routeIs('assets.map') ? 'text-white' : 'text-gray-400 group-hover:text-indigo-600' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                <span>Peta Lokasi</span>
+            </a>
+        </nav>
+        @endcan
         <div class="mt-6 mb-2 px-3"><div class="h-px bg-gray-200 mb-2"></div><p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Area Pribadi</p></div>
         <nav class="space-y-1">
             <a href="{{ route('assets.my') }}" class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 {{ request()->routeIs('assets.my') ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-600 hover:bg-indigo-50' }}">

@@ -16,7 +16,7 @@
     </div>
 
     {{-- Tombol Edit (Hanya Terlihat oleh Admin) --}}
-    @if(in_array(auth()->user()->role, ['admin', 'super_admin']))
+    @if(in_array(auth()->user()->role?->slug, ['admin', 'super_admin']))
     <div class="mb-6 flex justify-end">
         <button @click="showEditModal = true" class="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-indigo-700 transition shadow-sm">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -60,6 +60,25 @@
                             <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                             {{ $maintenance->asset->lorong ?? '-' }} / Rak {{ $maintenance->asset->rak ?? '-' }}
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Kartu Iformasi Pelapor (BARU) --}}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+                <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">Informasi Pelapor</h3>
+                <div class="flex items-center gap-4">
+                    <div class="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg">
+                        {{ substr($maintenance->user->name ?? '?', 0, 1) }}
+                    </div>
+                    <div>
+                        <p class="font-bold text-gray-900">{{ $maintenance->user->name ?? 'Unknown User' }}</p>
+                        <p class="text-xs text-gray-500">{{ $maintenance->user->email ?? '-' }}</p>
+                        @if($maintenance->user && $maintenance->user->role)
+                            <span class="inline-block mt-1 px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-bold uppercase rounded-sm">
+                                {{ $maintenance->user->role->name ?? 'User' }}
+                            </span>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -130,7 +149,7 @@
                                 <p class="text-[10px] uppercase font-bold text-gray-400">Total Biaya</p>
                                 <p class="text-xl font-bold text-gray-900">Rp {{ number_format($maintenance->cost, 0, ',', '.') }}</p>
                             </div>
-                            @if(in_array(auth()->user()->role, ['admin', 'super_admin']))
+                            @if(in_array(auth()->user()->role?->slug, ['admin', 'super_admin']))
                             <div class="ml-auto">
                                 <button onclick="document.getElementById('editForm').classList.toggle('hidden')" class="text-sm font-bold text-indigo-600 hover:text-indigo-800 underline">
                                     Edit Data

@@ -11,13 +11,13 @@
         </div>
         
         <div class="flex gap-3">
-            @if(in_array(auth()->user()->role, ['admin', 'super_admin']))
+            @if(in_array(auth()->user()->role?->slug, ['admin', 'super_admin']))
             <a href="{{ route('assets.create') }}" class="group relative inline-flex items-center justify-center px-5 py-2.5 text-sm font-bold text-white transition-all duration-200 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-lg shadow-indigo-500/30 hover:-translate-y-0.5">
                 <svg class="w-5 h-5 mr-2 -ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 Tambah Aset
             </a>
             @endif
-            @if(in_array(auth()->user()->role, ['admin', 'super_admin']))
+            @if(in_array(auth()->user()->role?->slug, ['admin', 'super_admin']))
                 <a href="{{ route('assets.map') }}" class="inline-flex items-center justify-center px-5 py-2.5 text-sm font-bold text-gray-700 transition-all duration-200 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 text-gray-700">
                     <svg class="w-5 h-5 mr-2 -ml-1 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
@@ -100,6 +100,9 @@
                                             </div>
                                             <div>
                                                 <div class="text-sm font-bold text-gray-900">{{ $name }}</div>
+                                                <div class="text-xs text-gray-500 font-mono mt-1">
+                                                    {{ $group->count() > 1 ? $group->count() . ' Unit (Berbagai SN)' : $group->first()->serial_number }}
+                                                </div>
                                                 <div class="text-xs text-indigo-600 font-medium flex items-center gap-1 mt-1">
                                                     <span x-text="expanded ? 'Tutup Daftar' : 'Lihat ' + {{ $group->count() }} + ' Unit'"></span>
                                                     <svg x-show="!expanded" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
@@ -138,7 +141,7 @@
                                             @endforeach
                                             <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1 group/stock">
                                                 Total {{ $group->sum('quantity') }}
-                                                @if(in_array(auth()->user()->role, ['admin', 'super_admin']))
+                                                @if(in_array(auth()->user()->role?->slug, ['admin', 'super_admin']))
                                                 <button type="button" 
                                                         onclick="event.stopPropagation(); openAddStockModal({{ $group->first()->makeHidden(['image', 'image2', 'image3']) }})" 
                                                         class="ml-1 p-0.5 rounded hover:bg-indigo-200 text-indigo-500 hover:text-indigo-800 transition" 
@@ -244,7 +247,7 @@
                                         </div>
                                         <div>
                                             <div class="text-sm font-bold text-gray-900">{{ $asset->name }}</div>
-                                            <div class="text-xs text-gray-500 font-mono mt-0.5">{{ $asset->serial_number }}</div>
+                                            <div class="text-xs text-gray-500 font-mono mt-0.5 bg-gray-100 px-1 rounded w-fit">{{ $asset->serial_number }}</div>
                                         </div>
                                     </div>
                                 </td>

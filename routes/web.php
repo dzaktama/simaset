@@ -38,6 +38,7 @@ Route::middleware(['auth'])->group(function () {
     // GRUP A: UMUM (Bisa diakses Semua Karyawan/User)
     // ====================================================
     Route::get('/home', [AssetController::class, 'dashboard'])->name('dashboard');
+    
     Route::get('/charts/asset-stats', [AssetController::class, 'chartsData'])->name('charts.assets'); // Dipakai di dashboard
     Route::get('/charts/borrow-stats', [AssetController::class, 'borrowStats'])->name('charts.borrows');
     
@@ -77,6 +78,14 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/assets/add-stock', [AssetController::class, 'addStock'])->name('assets.addStock'); // ROUTE BARU: Tambah Stok
     Route::resource('assets', AssetController::class)->except(['index', 'show']); // Index/Show bisa diakses publik/login
     Route::resource('maintenances', App\Http\Controllers\MaintenanceController::class);
+
+    // 1.b MANAJEMEN GUDANG (BARU)
+    Route::controller(App\Http\Controllers\WarehouseController::class)->prefix('warehouse')->name('warehouse.')->group(function() {
+        Route::get('/', 'index')->name('index'); // Dashboard Gudang
+        Route::get('/move/{id?}', 'createMove')->name('createMove'); // Form Mutasi
+        Route::post('/move', 'storeMove')->name('storeMove'); // Proses Simpan
+        Route::get('/history', 'history')->name('history'); // Riwayat Perpindahan
+    });
     
     // 2. SIRKULASI (Admin/Staff Operasional)
     // Aksi Admin Peminjaman

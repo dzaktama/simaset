@@ -31,96 +31,156 @@ class AssetController extends Controller
      * Menampilkan Dashboard Utama
      * [MODIFIKASI] Menggabungkan Logic Admin Search Log & Logic Karyawan Baru
      */
+    /**
+     * Menampilkan Dashboard Utama (Dispatcher)
+     * Mengarahkan user ke dashboard yang sesuai dengan rolenya
+     */
     public function dashboard(Request $request)
     {
-
         $user = auth()->user();
-        
-        // [FIX] Cek Role Efektif (Prioritaskan Impersonation Session)
-        $role = session('impersonate_role', $user->role);
+        $realRoleSlug = optional($user->role)->slug;
+        $role = session('impersonate_role', $realRoleSlug);
 
-        // Jika Role adalah Admin atau Super Admin, Tampilkan Dashboard Admin
         if (in_array($role, ['admin', 'super_admin'])) {
-            
-            // --- LOGIC ADMIN (DIPERTAHANKAN) ---
-            $logQuery = AssetHistory::with(['user', 'asset']);
-
-            if ($request->has('search_log') && $request->search_log != '') {
-                $search = $request->search_log;
-                $logQuery->where(function($q) use ($search) {
-                    $q->whereHas('user', function($u) use ($search) {
-                        $u->where('name', 'like', "%{$search}%");
-                    })
-                    ->orWhereHas('asset', function($a) use ($search) {
-                        $a->where('name', 'like', "%{$search}%");
-                    })
-                    ->orWhere('action', 'like', "%{$search}%")
-                    ->orWhere('notes', 'like', "%{$search}%");
-                });
-            }
-
-            $activities = $logQuery->latest()->get();
-
-            // Kategori Chart
-            $categories = Asset::select('category', DB::raw('count(*) as total'))
-                ->groupBy('category')
-                ->pluck('total', 'category')
-                ->toArray();
-            
-            // Hitung Broken Assets
-            $brokenAssets = Asset::whereIn('status', ['broken', 'missing'])->count();
-
-            return view('home', [
-                'title' => 'Dashboard Admin',
-                'stats' => [
-                    'total' => Asset::count(),
-                    'available' => Asset::where('status', 'available')->count(),
-                    'deployed' => Asset::where('status', 'deployed')->count(),
-                    'maintenance' => Asset::whereIn('status', ['maintenance', 'broken'])->count(),
-                    'pending_requests' => AssetRequest::where('status', 'pending')->count(),
-                ],
-                'listTotal' => Asset::with('holder')->latest()->get(),
-                'listAvailable' => Asset::where('status', 'available')->latest()->get(),
-                'listDeployed' => Asset::where('status', 'deployed')->with('holder')->latest()->get(),
-                'listMaintenance' => Asset::whereIn('status', ['maintenance', 'broken'])->with('holder')->latest()->get(),
-                
-                'listPending' => AssetRequest::with(['user', 'asset'])->where('status', 'pending')->latest()->get(),
-                'recentRequests' => AssetRequest::with(['user', 'asset'])->where('status', 'pending')->latest()->take(5)->get(),
-                
-                'activities' => $activities,
-                'categories' => $categories,
-                'totalAssets' => Asset::count(), 
-                'deployedAssets' => Asset::where('status', 'deployed')->count(),
-                'maintenanceAssets' => Asset::where('status', 'maintenance')->count(),
-                'brokenAssets' => $brokenAssets,
-                'recentActivities' => AssetHistory::with(['asset', 'user'])->latest()->take(5)->get()
-            ]);
+            return $this->adminDashboardView($request);
         } elseif ($role == 'service_center') {
-             // --- LOGIC SERVICE CENTER ---
-             return redirect()->route('maintenances.index');
+            return $this->serviceCenterDashboardView();
         } else {
-            // --- LOGIC USER/EMPLOYEE ---
-            // 1. Data User
-            $myAssetsCount = Asset::where('user_id', $user->id)->count();
-            $myActiveAssets = Asset::where('user_id', $user->id)->latest()->take(3)->get();
-            
-            // 2. Pending Requests
-            $pendingRequests = AssetRequest::where('user_id', $user->id)->where('status', 'pending')->count();
-            
-            // 3. User Activities (Log Pribadi)
-            $recentActivities = AssetHistory::where('user_id', $user->id)->latest()->take(5)->get();
-
-            return view('home', [
-                'title' => 'Dashboard Karyawan',
-                'myAssetsCount' => $myAssetsCount,
-                'activeAssetsCount' => $myAssetsCount, // Alias
-                'pendingRequests' => $pendingRequests,
-                'pendingRequestsCount' => $pendingRequests, // Alias
-                'recentActivities' => $recentActivities,
-                'myActiveAssets' => $myActiveAssets,
-                'activities' => [], // Empty for user
-            ]);
+            return $this->userDashboardView($user);
         }
+    }
+
+    /**
+     * View Dashboard Admin (Internal Helper)
+     */
+    private function adminDashboardView(Request $request) 
+    {
+        // --- LOGIC ADMIN ---
+        $logQuery = AssetHistory::with(['user', 'asset']);
+
+        if ($request->has('search_log') && $request->search_log != '') {
+            $search = $request->search_log;
+            $logQuery->where(function($q) use ($search) {
+                $q->whereHas('user', function($u) use ($search) {
+                    $u->where('name', 'like', "%{$search}%");
+                })
+                ->orWhereHas('asset', function($a) use ($search) {
+                    $a->where('name', 'like', "%{$search}%");
+                })
+                ->orWhere('action', 'like', "%{$search}%")
+                ->orWhere('notes', 'like', "%{$search}%");
+            });
+        }
+
+        $activities = $logQuery->latest()->get();
+
+        // Kategori Chart
+        $categories = Asset::select('category', DB::raw('count(*) as total'))
+            ->groupBy('category')
+            ->pluck('total', 'category')
+            ->toArray();
+        
+        // Hitung Broken Assets
+        $brokenAssets = Asset::whereIn('status', ['broken', 'missing'])->count();
+
+        return view('home', [
+            // 'dashboard_type' removed (default to role-based view logic in blade)
+            'title' => 'Dashboard Admin',
+            'stats' => [
+                'total' => Asset::count(),
+                'available' => Asset::where('status', 'available')->count(),
+                'deployed' => Asset::where('status', 'deployed')->count(),
+                'maintenance' => Asset::whereIn('status', ['maintenance', 'broken'])->count(),
+                'pending_requests' => AssetRequest::where('status', 'pending')->count(),
+            ],
+            'listTotal' => Asset::with('holder')->latest()->get(),
+            'listAvailable' => Asset::where('status', 'available')->latest()->get(),
+            'listDeployed' => Asset::where('status', 'deployed')->with('holder')->latest()->get(),
+            'listMaintenance' => Asset::whereIn('status', ['maintenance', 'broken'])->with('holder')->latest()->get(),
+            
+            'listPending' => AssetRequest::with(['user', 'asset'])->where('status', 'pending')->latest()->get(),
+            'recentRequests' => AssetRequest::with(['user', 'asset'])->where('status', 'pending')->latest()->take(5)->get(),
+            
+            'activities' => $activities,
+            'categories' => $categories,
+            'totalAssets' => Asset::count(), 
+            'deployedAssets' => Asset::where('status', 'deployed')->count(),
+            'maintenanceAssets' => Asset::where('status', 'maintenance')->count(),
+            'brokenAssets' => $brokenAssets,
+            'recentActivities' => AssetHistory::with(['asset', 'user'])->latest()->take(5)->get()
+        ]);
+    }
+
+    /**
+     * View Dashboard Service Center (Internal Helper)
+     */
+    private function serviceCenterDashboardView()
+    {
+         // --- LOGIC SERVICE CENTER ---
+         $totalRepairs = \App\Models\Maintenance::count();
+         $pendingRepairs = \App\Models\Maintenance::where('status', 'pending')->count();
+         $onProgressRepairs = \App\Models\Maintenance::where('status', 'in_progress')->count();
+         $completedRepairs = \App\Models\Maintenance::where('status', 'completed')->count();
+
+         $listMaintenance = \App\Models\Maintenance::with(['asset', 'user'])->latest()->take(5)->get();
+
+         return view('home', [
+            // 'dashboard_type' removed
+            'title' => 'Dashboard Service Center',
+            'stats' => [ 
+                'total' => $totalRepairs,
+                'maintenance' => $pendingRepairs,   
+                'deployed' => $onProgressRepairs, 
+                'available' => $completedRepairs, 
+                'pending_requests' => 0
+            ],
+            // Pass empty/null for unused vars to prevent errors in shared view
+            'listTotal' => collect([]), 
+            'listAvailable' => collect([]), 
+            'listDeployed' => collect([]),
+            'listMaintenance' => $listMaintenance, 
+            'listPending' => collect([]), 
+            'recentRequests' => collect([]), 
+            'activities' => collect([]), 
+            'categories' => [], 
+            'recentActivities' => collect([]),
+            'totalAssets' => $totalRepairs, 'deployedAssets' => $onProgressRepairs,
+            'maintenanceAssets' => $pendingRepairs, 'brokenAssets' => 0,
+         ]);
+    }
+
+    /**
+     * View Dashboard User/Employee (Internal Helper)
+     */
+    private function userDashboardView($user)
+    {
+        // --- LOGIC USER/EMPLOYEE ---
+        if (!$user) $user = auth()->user();
+
+        $myAssetsCount = Asset::where('user_id', $user->id)->count();
+        $myActiveAssets = Asset::where('user_id', $user->id)->latest()->take(3)->get();
+        $pendingRequests = AssetRequest::where('user_id', $user->id)->where('status', 'pending')->count();
+        $recentActivities = AssetHistory::where('user_id', $user->id)->latest()->take(5)->get();
+
+        return view('home', [
+            // 'dashboard_type' removed
+            'title' => 'Dashboard Karyawan',
+            'myAssetsCount' => $myAssetsCount,
+            'activeAssetsCount' => $myAssetsCount, 
+            'pendingRequests' => $pendingRequests,
+            'pendingRequestsCount' => $pendingRequests,
+            'recentActivities' => $recentActivities,
+            'myActiveAssets' => $myActiveAssets,
+            'activities' => collect([]), 
+            // Null safety for admin properties if view expects them
+            'stats' => [], 'categories' => [],
+            'listTotal' => collect([]), 
+            'listAvailable' => collect([]), 
+            'listDeployed' => collect([]),
+            'listMaintenance' => collect([]),
+            'listPending' => collect([]),
+            'recentRequests' => collect([])
+        ]);
     }
 
     // --- ADD STOCK FEATURE ---

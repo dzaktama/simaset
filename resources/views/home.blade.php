@@ -6,7 +6,7 @@
     {{-- Header Dashboard --}}
     @include('dashboard.header')
 
-    @if(in_array(session('impersonate_role', auth()->user()->role), ['admin', 'super_admin']))
+    @if(in_array(session('impersonate_role', optional(auth()->user()->role)->slug), ['admin', 'super_admin']))
         {{-- === VIEW ADMIN === --}}
         
         {{-- Statistik Cards --}}
@@ -20,6 +20,10 @@
 
         {{-- Modals --}}
         @include('dashboard.modals')
+
+    @elseif(session('impersonate_role', optional(auth()->user()->role)->slug) == 'service_center')
+        {{-- === VIEW SERVICE CENTER === --}}
+        @include('dashboard.service_center_view')
 
     @else
         {{-- === VIEW USER === --}}

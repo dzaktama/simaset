@@ -34,7 +34,6 @@ class User extends Authenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'permissions' => 'array',
     ];
 
     // Daftar kolom yang boleh diisi secara massal (Mass Assignment)
@@ -42,32 +41,51 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role',
+        'role_id', // Ganti 'role' & 'permissions' dengan 'role_id'
         'employee_id',
         'phone',      
         'department', 
         'position',   
-        'permissions',
     ];
+
+    /**
+     * Relasi ke Role (Many-to-One)
+     */
+    public function role()
+    {
+        return $this->belongsTo(Role::class);
+    }
+
+    /**
+     * Relasi ke Permission (Many-to-Many)
+     * Untuk Custom Permission per User (Override Role Defaults)
+     */
+    public function permissions()
+    {
+        return $this->belongsToMany(Permission::class, 'permission_user');
+    }
 
     /**
      * Fungsi Utama Cek Hak Akses (Has Permission)
      * Dipanggil oleh Gate di AppServiceProvider.
      * 
      * @param string $permission Nama izin (contoh: 'asset.create')
-     * @return bool True jika punya izin, False jika tidak
+     * @return bool
      */
     public function hasPermission($permission)
     {
-        // 1. Super Admin: Punya akses mutlak (God Mode)
-        // Jika role-nya super_admin, selalu return true tanpa cek array.
-        if ($this->role === 'super_admin') {
+        // 1. Super Admin Bypass (Cek role slug)
+        // Gunakan optional() untuk menghindari error jika role_id null
+        if (optional($this->role)->slug === 'super_admin') {
             return true;
         }
 
-        // 2. User Biasa / Admin Biasa:
-        // Cek apakah string permission ada di dalam array permissions miliknya.
-        // Operator '?? []' digunakan untuk mencegah error jika permissions bernilai null.
-        return in_array($permission, $this->permissions ?? []);
+        // 2. Cek Custom Permission User (Override)
+        if ($this->permissions->contains('slug', $permission)) {
+            return true;
+        }
+
+        // 3. Cek Permission dari Role Default
+        return $this->role ? $this->role->permissions->contains('slug', $permission) : false;
     }
 }

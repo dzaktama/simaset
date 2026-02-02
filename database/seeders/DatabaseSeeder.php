@@ -9,6 +9,8 @@ use App\Models\AssetRequest;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
+use App\Models\Role; // Import Model Role
+
 class DatabaseSeeder extends Seeder
 {
     /**
@@ -16,11 +18,18 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // 0. JALANKAN SEEDER PERMISSION & ROLE TERLEBIH DAHULU
+        $this->call(RolePermissionSeeder::class);
+
+        // Ambil ID Role yang sudah dibuat
+        $adminRole = Role::where('slug', 'admin')->first();
+        $userRole = Role::where('slug', 'user')->first();
+
         // 1. BUAT USER (1 ADMIN + 9 KARYAWAN)
         $admin = User::create([
             'name' => 'Administrator IT',
             'email' => 'admin@vitech.asia',
-            'role' => 'admin',
+            'role_id' => $adminRole->id, // Gunakan Relasi Role ID
             'password' => Hash::make('admin123'), 
         ]);
 
@@ -43,7 +52,7 @@ class DatabaseSeeder extends Seeder
                 'email' => $data['email'],
                 'department' => $data['department'],
                 'position' => $data['position'],
-                'role' => 'user',
+                'role_id' => $userRole->id, // Gunakan Relasi Role ID
                 'password' => Hash::make('user123'),
             ]);
         }

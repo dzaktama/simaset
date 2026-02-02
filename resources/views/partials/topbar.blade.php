@@ -51,7 +51,7 @@
                     $notifCount = 0;
                     $notifications = collect();
 
-                    if(auth()->user()->role == 'admin') {
+                    if(optional(auth()->user()->role)->slug == 'admin') {
                         // Admin: Cari yang statusnya Pending
                         $notifications = \App\Models\AssetRequest::with(['user', 'asset'])
                             ->where('status', 'pending')
@@ -110,7 +110,7 @@
                                 </div>
                                 <div>
                                     <p class="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition">
-                                        @if(auth()->user()->role == 'admin')
+                                        @if(optional(auth()->user()->role)->slug == 'admin')
                                             {{ $notif->user->name ?? 'User' }}
                                         @else
                                             Permintaan {{ ucfirst($notif->status) }}
@@ -173,10 +173,10 @@
                     <p class="text-sm font-bold text-gray-900 truncate">
                         {{ auth()->user()->name }}
                     </p>
-                    <p class="text-[10px] text-gray-500 uppercase">{{ auth()->user()->role }}</p>
+                    <p class="text-[10px] text-gray-500 uppercase">{{ optional(auth()->user()->role)->name }}</p>
                     
                     {{-- DROPDOWN KHUSUS SUPER ADMIN (ASLI) --}}
-                    @if(auth()->user()->role === 'super_admin' && !session('impersonator_id'))
+                    @if(optional(auth()->user()->role)->slug === 'super_admin' && !session('impersonator_id'))
                         <div class="mt-2 pt-2 border-t border-gray-100">
                             <p class="text-[10px] uppercase font-bold text-gray-400 mb-1">Mode Override</p>
                             <a href="{{ route('users.index') }}" class="block text-xs text-indigo-600 hover:text-indigo-800 font-bold">
@@ -194,7 +194,7 @@
                     @endif
                 </div>
                 
-                @if(auth()->user()->role === 'admin')
+                @if(optional(auth()->user()->role)->slug === 'admin')
                     <a href="{{ route('users.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Kelola User</a>
                 @endif
                 <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Profile Saya</a>

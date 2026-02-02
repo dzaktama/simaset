@@ -508,7 +508,8 @@
 @php
     $formattedUsers = $users->map(function($u) {
         $roles = ['admin' => 'Administrator', 'super_admin' => 'Super Admin', 'service_center' => 'Teknisi Service', 'user' => 'Karyawan'];
-        $u['role_label'] = $roles[$u->role] ?? ucfirst($u->role);
+        $roleSlug = $u->role?->slug;
+        $u['role_label'] = $roles[$roleSlug] ?? ($u->role?->name ?? 'Karyawan');
         return $u;
     });
 

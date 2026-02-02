@@ -320,7 +320,7 @@
                     </div>
                     
                     {{-- TOMBOL EDIT DURASI (ADMIN ONLY) --}}
-                    @if(in_array(auth()->user()->role, ['admin', 'super_admin']) && $borrowing->status === 'approved' && !$borrowing->returned_at)
+                    @if(in_array(auth()->user()->role?->slug, ['admin', 'super_admin']) && $borrowing->status === 'approved' && !$borrowing->returned_at)
                         <button onclick="openExtendModal()" class="text-white hover:text-gray-200 transition p-1 bg-white/20 rounded-full" title="Ubah Durasi / Perpanjang">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                         </button>
@@ -383,7 +383,7 @@
             </div>
 
             {{-- [FITUR BARU] MENU TINDAKAN ADMIN --}}
-            @if(in_array(auth()->user()->role, ['admin', 'super_admin']) && $borrowing->status === 'pending')
+            @if(in_array(auth()->user()->role?->slug, ['admin', 'super_admin']) && $borrowing->status === 'pending')
                 <div class="bg-white rounded-lg shadow p-6 border-t-4 border-yellow-500">
                     <h3 class="text-gray-900 font-bold mb-4 flex items-center gap-2">
                         <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
@@ -408,7 +408,7 @@
 
             {{-- TOMBOL RETURN UNTUK ADMIN / USER --}}
             @if(($borrowing->status === 'active' || $borrowing->status === 'approved') && !$borrowing->returned_at)
-                @if(in_array(auth()->user()->role, ['admin', 'super_admin']) || auth()->id() === $borrowing->user_id)
+                @if(in_array(auth()->user()->role?->slug, ['admin', 'super_admin']) || auth()->id() === $borrowing->user_id)
                     <button type="button" onclick="openReturnModal()" class="w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-lg">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3"></path>
@@ -449,7 +449,7 @@
         <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
         <div class="relative inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-            <form id="returnForm" method="POST" action="{{ in_array(auth()->user()->role, ['admin', 'super_admin']) ? route('borrowing.return', $borrowing->id) : route('borrowing.return_user', $borrowing->id) }}">
+            <form id="returnForm" method="POST" action="{{ in_array(auth()->user()->role?->slug, ['admin', 'super_admin']) ? route('borrowing.return', $borrowing->id) : route('borrowing.return_user', $borrowing->id) }}">
                 @csrf
                 
                 {{-- Header --}}

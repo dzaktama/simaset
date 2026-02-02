@@ -30,11 +30,11 @@
                     <td class="px-6 py-4">
                         <div class="flex items-center gap-3">
                             <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs shrink-0">
-                                {{ substr($req->user->name, 0, 1) }}
+                                {{ substr($req->user?->name ?? '?', 0, 1) }}
                             </div>
                             <div>
-                                <p class="font-bold text-gray-900">{{ $req->user->name }}</p>
-                                <p class="text-xs text-gray-500">{{ $req->user->email }}</p>
+                                <p class="font-bold text-gray-900">{{ $req->user?->name ?? 'Unknown User' }}</p>
+                                <p class="text-xs text-gray-500">{{ $req->user?->email ?? '-' }}</p>
                             </div>
                         </div>
                     </td>
@@ -105,7 +105,7 @@
 
                             {{-- Tombol Reject (Pake Form Langsung kalau gapake Modal JS) --}}
                             {{-- Tapi sebaiknya pakai Modal Reject di `modals.blade.php` --}}
-                            <button onclick="openRejectModal({{ $req->id }}, '{{ $req->user->name }}', '{{ $req->asset->name }}')" 
+                            <button onclick="openRejectModal({{ $req->id }}, '{{ $req->user?->name ?? 'Unknown' }}', '{{ $req->asset?->name ?? 'Unknown Asset' }}')" 
                                     class="p-1.5 rounded-lg border border-red-200 text-red-600 hover:text-white hover:bg-red-600 hover:border-red-600 transition shadow-sm" 
                                     title="Tolak Permintaan">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -175,8 +175,8 @@
                                 {{ substr($log->user->name ?? 'S', 0, 1) }}
                             </div>
                             <div>
-                                <p class="font-medium text-gray-900">{{ $log->user->name ?? 'Sistem' }}</p>
-                                <p class="text-[10px] text-gray-500">{{ $log->user->role ?? '-' }}</p>
+                                <p class="font-medium text-gray-900">{{ $log->user?->name ?? 'Sistem' }}</p>
+                                <p class="text-[10px] text-gray-500">{{ $log->user?->role?->name ?? '-' }}</p>
                             </div>
                         </div>
                     </td>
