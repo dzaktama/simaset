@@ -18,8 +18,28 @@ class ChartController extends Controller
      */
     public function index()
     {
+        // 1. Total Asset & Growth (Dummy logic for growth for now, or compare with last month)
+        $totalAssets = Asset::count();
+        
+        // 2. Valuation
+        $totalValuation = Asset::sum('purchase_price');
+
+        // 3. Compliance Rate (On Time / Total Returned)
+        $returned = AssetRequest::whereNotNull('returned_at')->count();
+        $late = AssetRequest::whereNotNull('returned_at')
+            ->whereColumn('returned_at', '>', 'return_date')
+            ->count();
+        $complianceRate = $returned > 0 ? round((($returned - $late) / $returned) * 100) : 100;
+
+        // 4. Active Tickets
+        $activeTickets = Maintenance::whereIn('status', ['pending', 'in_progress'])->count();
+
         return view('analytics.index', [
-            'title' => 'Pusat Analisis Data'
+            'title' => 'Pusat Analisis Data',
+            'totalAssets' => $totalAssets,
+            'totalValuation' => $totalValuation,
+            'complianceRate' => $complianceRate,
+            'activeTickets' => $activeTickets
         ]);
     }
 
@@ -265,18 +285,20 @@ class ChartController extends Controller
                         [
                             'label' => 'Disetujui',
                             'data' => $approveArr,
-                            'borderColor' => '#10B981', // green-500
-                            'backgroundColor' => 'rgba(16, 185, 129, 0.1)',
-                            'fill' => true,
-                            'tension' => 0.4
+                            'borderColor' => 'rgb(54, 162, 235)', // Blue
+                            'backgroundColor' => 'rgba(54, 162, 235, 0.5)',
+                            'fill' => false,
+                            'tension' => 0.4,
+                            'yAxisID' => 'y',
                         ],
                         [
                             'label' => 'Ditolak',
                             'data' => $rejectArr,
-                            'borderColor' => '#EF4444', // red-500
-                            'backgroundColor' => 'rgba(239, 68, 68, 0.1)',
-                            'fill' => true,
-                            'tension' => 0.4
+                            'borderColor' => 'rgb(255, 99, 132)', // Red
+                            'backgroundColor' => 'rgba(255, 99, 132, 0.5)',
+                            'fill' => false,
+                            'tension' => 0.4,
+                            'yAxisID' => 'y1',
                         ]
                     ]
                 ]);
@@ -467,6 +489,24 @@ class ChartController extends Controller
                         ucfirst(str_replace('_', ' ', $i->status)),
                         $i->total . ' Tiket'
                     ]);
+                    break;
+                
+                case 'valuation':
+                    $title = 'Rincian Valuasi Aset';
+                    $headers = ['Nama Aset', 'Tgl Beli', 'Umur', 'Harga Beli (Awal)', 'Nilai Buku (Saat Ini)', 'Depresiasi'];
+                    $items = Asset::all(); // Get all to calculate total valuation details
+                    
+                    // Sort by purchase price desc
+                    $items = $items->sortByDesc('purchase_price');
+
+                    $rows = $items->map(fn($i) => [
+                        $i->name,
+                        $i->purchase_date ? $i->purchase_date->format('d/m/Y') : '-',
+                        $i->purchase_date ? $i->purchase_date->diffForHumans(null, true) : '-',
+                        'Rp ' . number_format($i->purchase_price, 0, ',', '.'),
+                        'Rp ' . number_format($i->current_value, 0, ',', '.'),
+                        $i->purchase_price > 0 ? round((($i->purchase_price - $i->current_value) / $i->purchase_price) * 100) . '%' : '0%'
+                    ])->values(); // Reset keys for JSON
                     break;
                 
                 default:
