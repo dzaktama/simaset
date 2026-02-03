@@ -87,25 +87,12 @@
 </head>
 <body>
 
-    {{-- PHP HELPER: Convert Image to Base64 --}}
-    @php
-        function imgToBase64($path) {
-            if (!file_exists($path)) return null;
-            $type = pathinfo($path, PATHINFO_EXTENSION);
-            $data = file_get_contents($path);
-            return 'data:image/' . $type . ';base64,' . base64_encode($data);
-        }
-        
-        $logoPath = public_path('img/logoVitechAsia.png');
-        $logoBase64 = imgToBase64($logoPath);
-    @endphp
-
     {{-- HEADER --}}
     <table class="header-table">
         <tr>
             <td width="80">
-                @if($logoBase64)
-                    <img src="{{ $logoBase64 }}" style="width: 80px; height: auto;">
+                @if(isset($logoBase64) && !empty($logoBase64))
+                     <img src="{{ $logoBase64 }}" style="width: 80px; height: auto;">
                 @else
                     <b>LOGO</b>
                 @endif
@@ -136,6 +123,8 @@
         </table>
     </div>
 
+
+
     {{-- TABEL DATA --}}
     <table class="data">
         <thead>
@@ -157,19 +146,8 @@
                 {{-- FOTO ASET --}}
                 @if(isset($showImages) && $showImages)
                 <td class="text-center">
-                    @php
-                        $assetImgBase64 = null;
-                        if($asset->image) {
-                            $fullPath = storage_path('app/public/' . $asset->image);
-                            if(!file_exists($fullPath)) {
-                                $fullPath = public_path('storage/' . $asset->image);
-                            }
-                            $assetImgBase64 = imgToBase64($fullPath);
-                        }
-                    @endphp
-
-                    @if($assetImgBase64)
-                        <img src="{{ $assetImgBase64 }}" style="width: 40px; height: 40px; object-fit: cover; border: 1px solid #ccc;">
+                    @if(!empty($asset->image_base64))
+                        <img src="{{ $asset->image_base64 }}" style="width: 40px; height: 40px; object-fit: cover; border: 1px solid #ccc;">
                     @else
                         <span style="color: #ccc; font-size: 8px;">-</span>
                     @endif

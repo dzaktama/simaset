@@ -26,12 +26,16 @@
         // Daftar Permission Wajib per Role (Locked)
         // Permission ini akan otomatis tercentang dan terkunci jika mode custom mati
         mandatory: {
-            'admin': ['dashboard.view', 'dashboard.stats', 'asset.view', 'asset.create', 'asset.edit', 'asset.delete', 'asset.export', 'borrow.action', 'report.view', 'maintenance.view', 'chat.access', 'user.view', 'user.create', 'user.action', 'user.delete'],
-            'super_admin': ['dashboard.view', 'dashboard.stats', 'asset.view', 'asset.create', 'asset.edit', 'asset.delete', 'asset.export', 'borrow.action', 'borrow.return', 'report.view', 'maintenance.view', 'chat.access', 'user.view', 'user.create', 'user.edit', 'user.delete'],
-            'service_center': ['dashboard.view', 'maintenance.view', 'maintenance.create', 'maintenance.action', 'return.verify', 'asset.view', 'chat.access'],
-            'tek': ['dashboard.view', 'maintenance.view', 'maintenance.create', 'maintenance.action', 'return.verify', 'asset.view', 'chat.access'],
-            'user': ['dashboard.view', 'asset.view', 'borrow.view', 'borrow.request', 'chat.access'],
-            'staff': ['dashboard.view', 'asset.view', 'borrow.view', 'borrow.request', 'chat.access']
+            // Super Admin - SATU-SATUNYA yang wajib punya user management
+            'super_admin': ['dashboard.view', 'dashboard.stats', 'asset.view', 'asset.create', 'asset.edit', 'asset.delete', 'asset.export', 'borrow.action', 'return.verify', 'report.view', 'maintenance.view', 'chat.access', 'user.view', 'user.create', 'user.edit', 'user.delete'],
+            // Admin - TANPA user management (user.*)
+            'admin': ['dashboard.view', 'dashboard.stats', 'asset.view', 'asset.create', 'asset.edit', 'asset.delete', 'asset.export', 'borrow.action', 'return.verify', 'report.view', 'maintenance.view', 'chat.access'],
+            // Teknisi - Fokus maintenance & verifikasi
+            'service_center': ['dashboard.view', 'asset.view', 'maintenance.view', 'maintenance.create', 'maintenance.action', 'return.verify', 'chat.access'],
+            'tek': ['dashboard.view', 'asset.view', 'maintenance.view', 'maintenance.create', 'maintenance.action', 'return.verify', 'chat.access'],
+            // Staff - Hanya akses dasar (view, request, lapor)
+            'user': ['dashboard.view', 'asset.view', 'borrow.view', 'borrow.request', 'maintenance.create', 'chat.access'],
+            'staff': ['dashboard.view', 'asset.view', 'borrow.view', 'borrow.request', 'maintenance.create', 'chat.access']
         },
         
         // Helper: Centang SEMUA box dalam satu grup
@@ -57,8 +61,9 @@
             if (this.isCustomMode) return;
             let list = this.mandatory[this.currentRole] || [];
             list.forEach(perm => {
-                let el = document.querySelector(`input[value='${perm}']`);
-                if(el) { el.checked = true; }
+                // Update selector to find ALL matching inputs (for both views)
+                let els = document.querySelectorAll(`input[value='${perm}']`);
+                els.forEach(el => el.checked = true);
             });
         },
 
@@ -72,38 +77,94 @@
 
         // Logic Presets: Mengatur checkbox default selain mandatori
         applyPreset(role) {
-            // Reset semua dulu
+            // Reset semua checkbox dulu
             document.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
             
-            // Logika dasar penentuan checkbox tambahan permission
-            if (role === 'admin' || role === 'super_admin') { 
-                this.checkAll('perm-asset'); 
-                this.checkAll('perm-borrow'); 
-                this.checkAll('perm-maint'); 
-                this.checkAll('perm-report'); 
-                this.checkAll('perm-user'); 
-                this.checkAll('perm-monitor');
-                this.checkAll('perm-chat');
+            // =====================================================
+            // SUPER ADMIN - AKSES PENUH KE SEMUA FITUR
+            // =====================================================
+            if (role === 'super_admin') { 
+                // Legacy groups (Default view) - ALL
+                this.checkAll('perm-asset');
+                this.checkAll('perm-borrow');
+                this.checkAll('perm-maint');
+                this.checkAll('perm-report');
+                this.checkAll('perm-user');     // SUPER ADMIN saja yang boleh manage user
+                this.checkAll('perm-others');
+                // Section groups (Sections view) - ALL
+                this.checkAll('sec-master');
+                this.checkAll('sec-trans');
+                this.checkAll('sec-report');
+                this.checkAll('sec-util');      // Termasuk user management
             }
+            // =====================================================
+            // ADMINISTRATOR - SEMUA KECUALI MANAJEMEN USER
+            // =====================================================
+            else if (role === 'admin') { 
+                // Legacy view - semua kecuali user management
+                this.checkAll('perm-asset');
+                this.checkAll('perm-borrow');
+                this.checkAll('perm-maint');
+                this.checkAll('perm-report');
+                this.checkAll('perm-others');   // Chat & Dashboard
+                // TIDAK checkAll('perm-user') - Admin tidak boleh manage user
+                
+                // Section view
+                this.checkAll('sec-master');
+                this.checkAll('sec-trans');
+                this.checkAll('sec-report');
+                // Untuk sec-util, hanya berikan 'borrow.request' (Aset Saya)
+                this.setChecked('borrow.request');
+                // TIDAK beri akses user.view, user.create, user.edit, user.delete
+            }
+            // =====================================================
+            // TEKNISI - FOKUS MAINTENANCE & SERVIS
+            // =====================================================
             else if (role === 'service_center' || role === 'tek') { 
-                this.checkAll('perm-maint'); 
-                document.querySelector('input[value=\'asset.view\']').checked = true; 
-                document.querySelector('input[value=\'borrow.view\']').checked = true; 
-                document.querySelector('input[value=\'return.verify\']').checked = true; 
-                document.querySelector('input[value=\'dashboard.view\']').checked = true;
-                document.querySelector('input[value=\'chat.access\']').checked = true;
+                // Akses dasar
+                this.setChecked('dashboard.view');
+                this.setChecked('asset.view');
+                this.setChecked('asset.map');       // Lokasi barang
+                this.setChecked('chat.access');
+                
+                // Fokus maintenance
+                this.setChecked('maintenance.view');
+                this.setChecked('maintenance.create');
+                this.setChecked('maintenance.action');
+                
+                // Peminjaman (hanya lihat & verifikasi kembali)
+                this.setChecked('borrow.view');
+                this.setChecked('return.verify');
+                
+                // TIDAK beri akses: asset.create, asset.edit, asset.delete, borrow.action, user.*, report.export
             }
+            // =====================================================
+            // STAFF - END USER BASIC (PALING TERBATAS)
+            // =====================================================
             else if (role === 'user' || role === 'staff') { 
-                document.querySelector('input[value=\'asset.view\']').checked = true; 
-                document.querySelector('input[value=\'borrow.view\']').checked = true; 
-                document.querySelector('input[value=\'borrow.request\']').checked = true; 
-                document.querySelector('input[value=\'maintenance.create\']').checked = true; 
-                document.querySelector('input[value=\'dashboard.view\']').checked = true;
-                document.querySelector('input[value=\'chat.access\']').checked = true;
+                // Akses dasar
+                this.setChecked('dashboard.view');
+                this.setChecked('asset.view');      // Lihat katalog saja
+                this.setChecked('chat.access');
+                
+                // Peminjaman (hanya ajukan & lihat history sendiri)
+                this.setChecked('borrow.request');
+                this.setChecked('borrow.view');
+                
+                // Maintenance (hanya lapor kerusakan)
+                this.setChecked('maintenance.create');
+                
+                // TIDAK beri akses: asset.edit, asset.delete, asset.create, borrow.action, 
+                // return.verify, maintenance.action, user.*, report.*, export, dll
             }
             
             // Terakhir, pastikan mandatori tercentang
             this.checkMandatory();
+        },
+        
+        // Helper baru untuk set checked all instances
+        setChecked(val) {
+             document.querySelectorAll(`input[value='${val}']`).forEach(el => el.checked = true);
         },
 
         // Konfirmasi Ganda Sebelum Submit Form
@@ -242,7 +303,7 @@
             <div class="lg:col-span-8">
                 {{-- PANEL KANAN: Permission Selector (Visible for Admin & Super Admin) --}}
                 @if(in_array(auth()->user()->role?->slug, ['admin', 'super_admin']))
-                <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden h-full flex flex-col">
+                <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden h-full flex flex-col" x-data="{ viewMode: 'legacy' }">
                     {{-- Header Panel Biru Gelap --}}
                     <div class="p-5 md:p-6 bg-gradient-to-r from-gray-900 to-gray-800 text-white flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                         <div>
@@ -253,8 +314,10 @@
                                 Kontrol Hak Akses
                             </h3>
                             
-                            {{-- Toggle Mode Custom --}}
-                            <div class="flex items-center gap-2 mt-1 ml-9">
+                            
+                            {{-- Toggle View Mode (Legacy vs Section) --}}
+                            <div class="flex items-center gap-4 mt-1 ml-9">
+                                {{-- Toggle Custom Mode --}}
                                 <label class="inline-flex items-center cursor-pointer group">
                                     <input type="checkbox" x-model="isCustomMode" class="sr-only peer">
                                     <div class="relative w-10 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
@@ -273,6 +336,18 @@
                                         </template>
                                     </span>
                                 </label>
+
+                                {{-- Toggle View Mode --}}
+                                <div class="flex items-center bg-gray-700 rounded-lg p-0.5"> 
+                                    <button type="button" @click="viewMode = 'legacy'" :class="viewMode === 'legacy' ? 'bg-gray-500 text-white shadow-sm' : 'text-gray-400 hover:text-white'" class="px-2 py-1 rounded-md text-[10px] font-bold transition-all flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                                        DEFAULT
+                                    </button>
+                                    <button type="button" @click="viewMode = 'sections'" :class="viewMode === 'sections' ? 'bg-indigo-500 text-white shadow-sm' : 'text-gray-400 hover:text-white'" class="px-2 py-1 rounded-md text-[10px] font-bold transition-all flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                                        SECTIONS
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         
@@ -286,103 +361,157 @@
                         </div>
                     </div>
                     
-                    <div class="p-5 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-5 flex-grow bg-gray-50">
+                    <div class="p-5 md:p-6 flex-grow bg-gray-50">
                         @php
-                            $groups = [
+                            // 1. DEFAULT VIEW - Per Jenis Fitur (6 Groups)
+                            $legacyGroups = [
                                 [
                                     'id' => 'perm-asset',
                                     'title' => 'Manajemen Aset',
-                                    'color' => 'blue',
                                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />',
-                                    'items' => ['asset.view'=>'Lihat Data', 'asset.create'=>'Input Baru', 'asset.edit'=>'Edit Data', 'asset.delete'=>'Hapus Data', 'asset.export'=>'Export Excel']
+                                    'items' => ['asset.view'=>'Lihat Aset', 'asset.create'=>'Input Baru', 'asset.edit'=>'Edit Aset', 'asset.delete'=>'Hapus Aset', 'asset.export'=>'Export Excel', 'asset.map'=>'Lokasi Barang']
                                 ],
                                 [
                                     'id' => 'perm-borrow',
                                     'title' => 'Sirkulasi / Peminjaman',
-                                    'color' => 'amber',
                                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />',
-                                    'items' => ['borrow.view'=>'History Pinjam', 'borrow.request'=>'Ajukan Pinjam', 'borrow.action'=>'Approval (ACC)', 'borrow.return'=>'Proses Kembali', 'return.verify'=>'Verifikasi Balik (Admin)']
+                                    'items' => ['borrow.view'=>'History Pinjam', 'borrow.request'=>'Ajukan Pinjam', 'borrow.action'=>'Approval (ACC)', 'return.verify'=>'Verifikasi Kembali']
                                 ],
                                 [
                                     'id' => 'perm-maint',
                                     'title' => 'Maintenance & Servis',
-                                    'color' => 'rose',
                                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />',
                                     'items' => ['maintenance.view'=>'Jadwal Servis', 'maintenance.create'=>'Lapor Rusak', 'maintenance.action'=>'Update Status']
                                 ],
                                 [
                                     'id' => 'perm-report',
-                                    'title' => 'Laporan & Utility',
-                                    'color' => 'violet',
+                                    'title' => 'Laporan & Statistik',
                                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />',
-                                    'items' => ['report.view'=>'Akses Laporan', 'report.export'=>'Download PDF']
+                                    'items' => ['report.view'=>'Akses Laporan', 'report.export'=>'Download PDF', 'dashboard.stats'=>'Lihat Statistik']
                                 ],
                                 [
                                     'id' => 'perm-user',
-                                    'title' => 'Manajemen Pengguna',
-                                    'color' => 'slate',
+                                    'title' => 'Manajemen User',
                                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />',
-                                    'items' => ['user.view'=>'Lihat Daftar', 'user.create'=>'Tambah User', 'user.edit'=>'Edit Data', 'user.delete'=>'Hapus User']
+                                    'items' => ['user.view'=>'Lihat Daftar', 'user.create'=>'Tambah User', 'user.edit'=>'Edit User', 'user.delete'=>'Hapus User']
                                 ],
                                 [
-                                    'id' => 'perm-monitor',
-                                    'title' => 'Monitoring & Dashboard',
-                                    'color' => 'cyan',
-                                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />',
-                                    'items' => ['dashboard.view'=>'Akses Dashboard', 'dashboard.stats'=>'Lihat Statistik']
+                                    'id' => 'perm-others',
+                                    'title' => 'Lainnya',
+                                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />',
+                                    'items' => ['chat.access'=>'Akses Chat', 'dashboard.view'=>'Akses Dashboard']
+                                ]
+                            ];
+
+                            // 2. SECTIONS VIEW - Per Section Sidebar (4 Groups)
+                            $sectionGroups = [
+                                [
+                                    'id' => 'sec-master',
+                                    'title' => 'MASTER',
+                                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />',
+                                    'items' => [
+                                        'dashboard.view' => 'Dashboard',
+                                        'asset.view' => 'Katalog Aset',
+                                        'asset.map' => 'Lokasi Barang'
+                                    ]
                                 ],
                                 [
-                                    'id' => 'perm-chat',
-                                    'title' => 'Komunikasi Team',
-                                    'color' => 'teal',
-                                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />',
-                                    'items' => ['chat.access'=>'Akses Chat']
+                                    'id' => 'sec-trans',
+                                    'title' => 'TRANSAKSI',
+                                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />',
+                                    'items' => [
+                                        'chat.access' => 'Pesan & Diskusi',
+                                        'asset.create' => 'Input Aset Baru',
+                                        'maintenance.create' => 'Lapor Kerusakan',
+                                        'borrow.action' => 'Approval Peminjaman',
+                                        'return.verify' => 'Verifikasi Pengembalian',
+                                        'asset.edit' => 'Mutasi Aset',
+                                        'maintenance.action' => 'Perbaikan Barang'
+                                    ]
+                                ],
+                                [
+                                    'id' => 'sec-report',
+                                    'title' => 'LAPORAN',
+                                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />',
+                                    'items' => [
+                                        'dashboard.stats' => 'Pusat Data',
+                                        'report.view' => 'Laporan & Audit',
+                                        'report.export' => 'Export Data',
+                                        'borrow.view' => 'Riwayat Peminjaman'
+                                    ]
+                                ],
+                                [
+                                    'id' => 'sec-util',
+                                    'title' => 'UTILITAS',
+                                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />',
+                                    'items' => [
+                                        'borrow.request' => 'Aset Saya',
+                                        'user.view' => 'Manajemen User',
+                                        'user.create' => 'Tambah User',
+                                        'user.edit' => 'Edit User',
+                                        'user.delete' => 'Hapus User'
+                                    ]
                                 ]
                             ];
                         @endphp
 
-                        @foreach($groups as $group)
-                        <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-3 hover:border-{{ $group['color'] }}-300 transition-colors duration-200">
-                            <div class="flex justify-between items-center mb-3 pb-2 border-b border-gray-100">
-                                <h4 class="font-bold text-gray-800 text-sm flex items-center">
-                                    <span class="p-1 bg-{{ $group['color'] }}-100 text-{{ $group['color'] }}-600 rounded mr-2">
-                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">{!! $group['icon'] !!}</svg>
-                                    </span>
-                                    {{ $group['title'] }}
-                                </h4>
-                                <div class="flex gap-1.5 text-[10px] font-bold">
-                                    <button type="button" @click="checkAll('{{ $group['id'] }}')" class="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition">ALL</button>
-                                    <button type="button" @click="uncheckAll('{{ $group['id'] }}')" class="px-1.5 py-0.5 text-gray-400 hover:text-red-500 transition">CLR</button>
+                        {{-- VIEW MODE: DEFAULT - Per Jenis Fitur --}}
+                        <div x-show="viewMode === 'legacy'" class="grid grid-cols-1 md:grid-cols-2 gap-4 transition-all duration-300">
+                            @foreach($legacyGroups as $group)
+                            <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                                <div class="flex justify-between items-center mb-3 pb-2 border-b border-gray-100">
+                                    <h4 class="font-bold text-gray-800 text-sm flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">{!! $group['icon'] !!}</svg>
+                                        {{ $group['title'] }}
+                                    </h4>
+                                    <div class="flex gap-1.5 text-[10px] font-bold">
+                                        <button type="button" @click="checkAll('{{ $group['id'] }}')" class="px-2 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition">ALL</button>
+                                        <button type="button" @click="uncheckAll('{{ $group['id'] }}')" class="px-2 py-1 text-red-400 hover:text-red-500 hover:bg-red-50 rounded transition">CLR</button>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    @foreach($group['items'] as $val => $label)
+                                    <label class="relative flex items-center justify-between p-2.5 rounded-lg border border-gray-200 bg-white hover:border-indigo-400 hover:bg-gray-50 transition-all cursor-pointer group">
+                                        <span class="text-xs font-medium text-gray-700 group-hover:text-gray-900">{{ $label }}</span>
+                                        <input type="checkbox" name="permissions[]" value="{{ $val }}" 
+                                            @click="if(isLocked('{{ $val }}')) $event.preventDefault()"
+                                            class="{{ $group['id'] }} w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer"
+                                            :class="{ 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed': isLocked('{{ $val }}') }">
+                                    </label>
+                                    @endforeach
                                 </div>
                             </div>
-                            <div class="grid grid-cols-2 gap-2">
-                                @foreach($group['items'] as $val => $label)
-                                <label class="relative flex cursor-pointer group">
-                                    <input type="checkbox" name="permissions[]" value="{{ $val }}" 
-                                        @click="if(isLocked('{{ $val }}')) $event.preventDefault()"
-                                        class="{{ $group['id'] }} peer sr-only">
-                                    
-                                    <div class="w-full p-2 rounded-md border border-gray-100 bg-gray-50 
-                                            text-gray-600 text-xs font-semibold text-center transition-all duration-200
-                                            peer-checked:border-{{ $group['color'] }}-500 peer-checked:bg-{{ $group['color'] }}-50 peer-checked:text-{{ $group['color'] }}-700
-                                            peer-focus:ring-2 peer-focus:ring-{{ $group['color'] }}-200
-                                            hover:border-gray-300 hover:bg-white
-                                            flex items-center justify-center"
-                                            :class="{'opacity-75 cursor-not-allowed bg-gray-100 !border-gray-300': isLocked('{{ $val }}')}">
-                                        <span class="mr-1 opacity-0 peer-checked:opacity-100 transition-opacity absolute left-2 text-{{ $group['color'] }}-600">
-                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                        </span>
-                                        <span class="transition-transform duration-200 peer-checked:translate-x-1">{{ $label }}</span>
-                                        <template x-if="isLocked('{{ $val }}')">
-                                            <svg class="w-2.5 h-2.5 ml-1 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
-                                        </template>
-                                    </div>
-                                </label>
-                                @endforeach
-                            </div>
+                            @endforeach
                         </div>
-                        @endforeach
-                    </div>
+
+                        {{-- VIEW MODE: SECTIONS - Per Section Sidebar --}}
+                        <div x-show="viewMode === 'sections'" class="grid grid-cols-1 md:grid-cols-2 gap-4 transition-all duration-300" style="display: none;">
+                            @foreach($sectionGroups as $group)
+                            <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+                                <div class="flex justify-between items-center mb-3 pb-2 border-b border-gray-100">
+                                    <h4 class="font-bold text-gray-800 text-sm flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">{!! $group['icon'] !!}</svg>
+                                        {{ $group['title'] }}
+                                    </h4>
+                                    <div class="flex gap-1.5 text-[10px] font-bold">
+                                        <button type="button" @click="checkAll('{{ $group['id'] }}')" class="px-2 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition">ALL</button>
+                                        <button type="button" @click="uncheckAll('{{ $group['id'] }}')" class="px-2 py-1 text-red-400 hover:text-red-500 hover:bg-red-50 rounded transition">CLR</button>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    @foreach($group['items'] as $val => $label)
+                                    <label class="relative flex items-center justify-between p-2.5 rounded-lg border border-gray-200 bg-white hover:border-indigo-400 hover:bg-gray-50 transition-all cursor-pointer group">
+                                        <span class="text-xs font-medium text-gray-700 group-hover:text-gray-900">{{ $label }}</span>
+                                        <input type="checkbox" name="permissions[]" value="{{ $val }}" 
+                                            @click="if(isLocked('{{ $val }}')) $event.preventDefault()"
+                                            class="{{ $group['id'] }} w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer"
+                                            :class="{ 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed': isLocked('{{ $val }}') }">
+                                    </label>
+                                    @endforeach
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
 
                     <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
                         <button type="submit" class="w-full flex items-center justify-center rounded-lg bg-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-lg hover:shadow-indigo-500/30 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all duration-200">

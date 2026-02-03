@@ -12,7 +12,14 @@
                     </h3>
                     <p class="text-sm text-indigo-100 mt-1 pl-8" id="chartDescription">Menampilkan jumlah aset yang diminta per periode</p>
                 </div>
+                <!-- Controls -->
                 <div class="flex items-center gap-2">
+                    {{-- Refresh Button --}}
+                    <button type="button" onclick="window.dashboardLoadCharts && window.dashboardLoadCharts()" title="Refresh Data" class="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition transform hover:scale-105 text-white">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                    </button>
+                    <div class="h-6 w-px bg-white/30 mx-1"></div>
+                    
                     <button id="prevChart" class="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition transform hover:scale-110">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                     </button>
@@ -38,6 +45,11 @@
 
         {{-- Charts Container --}}
         <div class="p-6 relative overflow-hidden" style="height: 380px;">
+            {{-- Loading Overlay --}}
+            <div id="chartLoading" class="absolute inset-0 bg-white z-20 flex flex-col items-center justify-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-indigo-600 mb-3"></div>
+                <p class="text-sm font-bold text-gray-600 animate-pulse">Memuat Data...</p>
+            </div>
             {{-- Chart 1: Tren Peminjaman --}}
             <div id="chartSlide0" class="absolute inset-0 p-6 transition-all duration-500 ease-out" style="opacity: 1; transform: translateX(0);">
                 <div class="relative w-full h-full">

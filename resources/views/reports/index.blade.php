@@ -73,7 +73,21 @@
                             {{-- Status --}}
                             <div>
                                 <select name="status" id="statusSelect" onchange="refreshPreview()" class="mt-1 block w-full px-3 py-2.5 text-base border-2 border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-lg font-medium text-gray-900">
-                                    {{-- Options filled by JS --}}
+                                    <option value="all">Semua Status</option>
+                                    {{-- Asset Statuses --}}
+                                    <optgroup label="Status Aset" id="optgroup-asset">
+                                        <option value="available">Available</option>
+                                        <option value="deployed">Deployed</option>
+                                        <option value="maintenance">Maintenance</option>
+                                        <option value="broken">Broken</option>
+                                    </optgroup>
+                                    {{-- Borrowing Statuses --}}
+                                    <optgroup label="Status Peminjaman" id="optgroup-borrowing" class="hidden">
+                                        <option value="pending">Menunggu Persetujuan</option>
+                                        <option value="approved">Sedang Dipinjam</option>
+                                        <option value="returned">Sudah Dikembalikan</option>
+                                        <option value="rejected">Ditolak</option>
+                                    </optgroup>
                                 </select>
                             </div>
                             {{-- Sort --}}
@@ -156,9 +170,10 @@
         <div class="bg-gray-300 rounded-xl shadow-inner border border-gray-400 h-full flex flex-col overflow-hidden relative">
             
             {{-- Loading Spinner --}}
-            <div id="loading-overlay" class="absolute inset-0 bg-white/90 z-20 flex flex-col items-center justify-center backdrop-blur-sm hidden">
-                <svg class="w-12 h-12 text-indigo-600 animate-spin mb-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                <span class="text-sm font-bold text-gray-600 animate-pulse">Memuat Preview...</span>
+            <div id="loading-overlay" class="absolute inset-0 bg-white z-20 flex flex-col items-center justify-center hidden">
+                <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mb-4"></div>
+                <h3 class="text-lg font-bold text-gray-800 animate-pulse">Sedang Menyiapkan Laporan...</h3>
+                <p class="text-sm text-gray-500">Mohon tunggu sebentar, data sedang diproses.</p>
             </div>
 
             {{-- Toolbar Info --}}
@@ -167,7 +182,12 @@
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                     LIVE PREVIEW
                 </span>
-                <span id="page-info" class="bg-gray-600 px-2 py-0.5 rounded">A4 Portrait</span>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="refreshPreview()" title="Refresh Preview" class="p-1 hover:bg-gray-600 rounded transition text-gray-300 hover:text-white focus:outline-none">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                    </button>
+                    <span id="page-info" class="bg-gray-600 px-2 py-0.5 rounded">A4 Portrait</span>
+                </div>
             </div>
 
             {{-- Iframe Preview --}}
@@ -203,37 +223,36 @@
         const type = document.getElementById('reportType').value;
         const catContainer = document.getElementById('categoryContainer');
         const imgContainer = document.getElementById('imagesContainer');
-        const statusSelect = document.getElementById('statusSelect');
         const dateSection = document.getElementById('dateFilterSection');
+        
+        // OptGroups
+        const optAsset = document.getElementById('optgroup-asset');
+        const optBorrow = document.getElementById('optgroup-borrowing');
 
         // 1. Toggle Filter Visibility
         if (type === 'borrowing') {
             catContainer.classList.add('hidden');
             imgContainer.classList.add('hidden');
-            dateSection.classList.remove('hidden'); // Show Date for Borrowing
+            dateSection.classList.remove('hidden'); 
             
-            updateSelectOptions(statusSelect, borrowingStatuses);
+            // Switch Status Options
+            if(optAsset) optAsset.classList.add('hidden');
+            if(optBorrow) optBorrow.classList.remove('hidden');
+            
+            // Reset selection to all if current selection is invalid for this type (optional logic)
+            document.getElementById('statusSelect').value = 'all';
 
         } else {
             catContainer.classList.remove('hidden');
             imgContainer.classList.remove('hidden');
-            dateSection.classList.add('hidden'); // Hide Date for Asset (Optional)
+            dateSection.classList.add('hidden');
             
-            updateSelectOptions(statusSelect, assetStatuses);
-        }
-    }
+            // Switch Status Options
+            if(optAsset) optAsset.classList.remove('hidden');
+            if(optBorrow) optBorrow.classList.add('hidden');
 
-    function updateSelectOptions(select, options) {
-        const oldVal = select.value;
-        select.innerHTML = '';
-        options.forEach(opt => {
-            const option = document.createElement('option');
-            option.value = opt.val;
-            option.innerText = opt.text;
-            select.appendChild(option);
-        });
-        const exists = options.some(o => o.val === oldVal);
-        select.value = exists ? oldVal : 'all';
+             document.getElementById('statusSelect').value = 'all';
+        }
     }
 
 
@@ -290,9 +309,20 @@
         
         iframe.src = `${pdfUrl}?${queryString}&t=${new Date().getTime()}`;
 
+        // SAFETY: Timeout 8 detik jika stuck
+        const loadTimeout = setTimeout(() => {
+             loading.classList.add('hidden');
+        }, 8000);
+
         iframe.onload = function() {
+            clearTimeout(loadTimeout);
             loading.classList.add('hidden');
         };
+        
+        iframe.onerror = function() {
+            clearTimeout(loadTimeout);
+            loading.innerHTML = '<span class="text-red-500 font-bold">Gagal memuat preview. Silakan coba lagi.</span>';
+        }
     }
 
     function downloadPdf() {

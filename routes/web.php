@@ -51,7 +51,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/assets/scan/{asset}', [AssetController::class, 'scanQr'])->name('assets.scan');
 
     // ==========================================
-    // FITUR CHAT (Percakapan Internal)
+    // GUIDES
+    Route::get('/guides', [App\Http\Controllers\GuideController::class, 'index'])->name('guides.index');
+    
+    // ASSETSUR CHAT (Percakapan Internal)
     // ==========================================
     // 1. Pintu masuk utama. Jika user akses /chat, arahkan ke halaman chat.
     Route::get('/chat', [App\Http\Controllers\ChatController::class, 'index'])->name('chat.index');
@@ -109,6 +112,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reports/pdf', [ReportController::class, 'exportPdf'])->name('reports.pdf');
         Route::get('/reports/excel', [ReportController::class, 'exportExcel'])->name('reports.excel');
     });
+
+    // Profile Routes
+    Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
 
     // 4. ANALYTICS (Pusat Data)
     Route::get('/analytics', [App\Http\Controllers\ChartController::class, 'index'])->name('analytics.index');

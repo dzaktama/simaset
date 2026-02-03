@@ -100,6 +100,35 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user)
     {
+        // =====================================================
+        // VALIDASI KEAMANAN: CEGAH SUPER ADMIN BUNUH DIRI
+        // =====================================================
+        
+        // 1. Cek apakah user yang sedang diedit adalah Super Admin
+        $isEditingSuperAdmin = $user->role?->slug === 'super_admin';
+        
+        // 2. Cek apakah role baru yang dipilih BUKAN super_admin (downgrade)
+        $isDowngrading = $request->role !== 'super_admin';
+        
+        // 3. Jika user mengedit dirinya sendiri DAN mencoba downgrade dari super_admin
+        if ($isEditingSuperAdmin && $isDowngrading && auth()->id() === $user->id) {
+            return back()->with('loginError', 'Tidak bisa menurunkan role Super Admin untuk akun Anda sendiri! Ini akan mengunci Anda dari sistem.')
+                         ->withInput();
+        }
+        
+        // 4. PERLINDUNGAN TAMBAHAN: Pastikan minimal ada 1 Super Admin tersisa
+        if ($isEditingSuperAdmin && $isDowngrading) {
+            $superAdminCount = User::whereHas('role', fn($q) => $q->where('slug', 'super_admin'))->count();
+            
+            if ($superAdminCount <= 1) {
+                return back()->with('loginError', 'Tidak bisa mengubah role! Sistem membutuhkan minimal 1 Super Admin aktif.')
+                             ->withInput();
+            }
+        }
+        
+        // =====================================================
+        // VALIDASI INPUT NORMAL
+        // =====================================================
         $rules = [
             'name' => 'required|max:255',
             'role' => 'required|exists:roles,slug',
@@ -176,9 +205,18 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
-        // Mencegah user menghapus dirinya sendiri
+        // 1. Mencegah user menghapus dirinya sendiri
         if(auth()->id() == $user->id) {
             return back()->with('loginError', 'Tidak bisa menghapus akun sendiri!');
+        }
+        
+        // 2. PERLINDUNGAN: Cegah hapus Super Admin terakhir
+        if ($user->role?->slug === 'super_admin') {
+            $superAdminCount = User::whereHas('role', fn($q) => $q->where('slug', 'super_admin'))->count();
+            
+            if ($superAdminCount <= 1) {
+                return back()->with('loginError', 'Tidak bisa menghapus Super Admin terakhir! Sistem membutuhkan minimal 1 Super Admin.');
+            }
         }
         
         $user->delete();

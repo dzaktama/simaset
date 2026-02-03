@@ -1,264 +1,183 @@
-<header class="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8 sticky top-0 z-30 w-full">
-    
-    {{-- Left Side: Hamburger & Title --}}
-    <div class="flex items-center gap-4">
-        {{-- Tombol Hamburger (Menu) --}}
-        <button id="topbar-toggle" type="button" class="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 p-1 rounded-md" 
-            onclick="handleSidebarToggle()">
-            <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-        </button>
-
-        {{-- Judul Halaman --}}
-        <h1 class="text-lg font-semibold text-gray-800 tracking-tight truncate">
-            {{ $title ?? 'Dashboard' }}
-        </h1>
-    </div>
-
-    {{-- Center: Date & Time (Hidden on mobile) --}}
-    <div class="hidden md:flex flex-1 items-center justify-center gap-6">
-        <div class="flex items-center gap-2 text-sm font-medium text-gray-500">
-            <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-            </svg>
-            <span>{{ now()->isoFormat('dddd, D MMMM Y') }}</span>
-        </div>
-        <div class="flex items-center gap-2 rounded-full bg-indigo-50 px-4 py-1.5 text-sm font-bold text-indigo-700 border border-indigo-100 shadow-sm">
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span id="global-clock" class="font-mono tracking-wide">{{ now()->format('H:i:s') }}</span>
-            <span class="text-xs font-extrabold">WIB</span>
-        </div>
-    </div>
-
-    {{-- Right Side: User Profile & Notif --}}
-    <div class="flex items-center gap-4">
+<header id="page-topbar" class="fixed top-0 right-0 left-0 z-30 bg-white border-b border-gray-200 transition-all duration-300 h-14" :class="sidebarOpen ? 'md:left-64' : 'md:left-0'">
+    <div class="flex items-center justify-between h-full px-1 gap-0">
         
-        {{-- FITUR NOTIFIKASI --}}
-        <div class="relative">
-            {{-- Tombol Notifikasi (Klik untuk Toggle) --}}
-            <button id="notif-button" type="button" onclick="toggleDropdown('notif-dropdown')" class="relative p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none">
-                <span class="sr-only">View notifications</span>
-                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-                
-                {{-- Logic PHP untuk Ambil Data Notifikasi --}}
-                @php
-                    $hasNotif = false;
-                    $notifCount = 0;
-                    $notifications = collect();
-
-                    if(optional(auth()->user()->role)->slug == 'admin') {
-                        // Admin: Cari yang statusnya Pending
-                        $notifications = \App\Models\AssetRequest::with(['user', 'asset'])
-                            ->where('status', 'pending')
-                            ->latest()
-                            ->take(5)
-                            ->get();
-                        $notifCount = \App\Models\AssetRequest::where('status', 'pending')->count();
-                    } else {
-                        // User: Cari yang statusnya Approved/Rejected (Terbaru)
-                        $notifications = \App\Models\AssetRequest::with('asset')
-                            ->where('user_id', auth()->id())
-                            ->whereIn('status', ['approved', 'rejected'])
-                            ->where('updated_at', '>=', now()->subDays(7)) // 7 hari terakhir
-                            ->latest('updated_at')
-                            ->take(5)
-                            ->get();
-                        $notifCount = $notifications->count();
-                    }
-                    
-                    if($notifCount > 0) $hasNotif = true;
-                @endphp
-
-                {{-- Dot Merah --}}
-                @if($hasNotif)
-                    <span class="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white animate-pulse"></span>
-                @endif
+        {{-- Left: Hamburger & Mobile Title --}}
+        <div class="flex items-center gap-2 shrink-0 px-2 h-full">
+            {{-- Hamburger Menu (Mobile) --}}
+            <button onclick="toggleMobileSidebar()" class="md:hidden text-gray-500 hover:text-indigo-600 transition-colors p-1">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
             </button>
+            
+            {{-- Desktop Sidebar Toggle (Always Visible on Desktop) --}}
+            <button @click="sidebarOpen = !sidebarOpen" class="hidden md:flex text-gray-500 hover:text-indigo-600 transition-colors p-1.5 rounded hover:bg-gray-100">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            </button>
+        </div>
 
-            {{-- Dropdown Menu Notifikasi (Hidden by default) --}}
-            <div id="notif-dropdown" class="absolute right-0 z-20 mt-2 w-80 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none hidden transition-all duration-200">
-                <div class="px-4 py-2 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                    <span class="text-sm font-bold text-gray-700">Notifikasi</span>
-                    @if($notifCount > 0)
-                        <span class="bg-red-100 text-red-800 text-[10px] font-bold px-2 py-0.5 rounded-full">{{ $notifCount > 5 ? '5+' : $notifCount }} Baru</span>
-                    @endif
-                </div>
+        {{-- Middle: Chrome-like Tabs (Scrollable & Full Height) --}}
+        <div class="flex-1 overflow-hidden h-full flex items-end" x-data="tabSystem()" x-init="initTabs()" @tab-update.window="handleTabUpdate($event.detail)">
+            <div class="flex items-end w-full overflow-x-auto custom-scrollbar md:pb-0 scroll-smooth h-full pt-2 px-1 gap-1">
+                
+                <template x-for="(tab, index) in tabs" :key="tab.url">
+                    <div 
+                        class="group relative flex items-center gap-1.5 px-3 min-w-[120px] max-w-[180px] rounded-t-lg transition-all duration-100 cursor-pointer select-none border-t border-r border-l h-full mt-auto pt-2.5"
+                        :class="currentUrl === tab.url ? 'bg-white text-indigo-700 border-gray-300 shadow-[0_-2px_5px_rgba(0,0,0,0.02)] z-10 font-bold' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100 hover:text-gray-700'"
+                        @click="navigateTab(tab.url)"
+                    >
+                        {{-- Icon (Dynamic HTML) --}}
+                        <div class="shrink-0 w-3.5 h-3.5 flex items-center justify-center" :class="currentUrl === tab.url ? 'text-indigo-600' : 'text-gray-400'" x-html="tab.icon"></div>
+                        
+                        <span class="truncate text-xs leading-tight" x-text="tab.title"></span>
 
-                <div class="max-h-64 overflow-y-auto custom-scrollbar">
-                    @forelse($notifications as $notif)
-                        <a href="{{ route('borrowing.show', $notif->id) }}" class="block px-4 py-3 hover:bg-gray-50 border-b border-gray-100 transition group">
-                            <div class="flex items-start gap-3">
-                                <div class="flex-shrink-0 mt-1">
-                                    @if($notif->status == 'pending')
-                                        <div class="h-8 w-8 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600">
-                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                        </div>
-                                    @elseif($notif->status == 'approved')
-                                        <div class="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center text-green-600">
-                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                                        </div>
-                                    @elseif($notif->status == 'rejected')
-                                        <div class="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center text-red-600">
-                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                                        </div>
-                                    @endif
-                                </div>
-                                <div>
-                                    <p class="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition">
-                                        @if(optional(auth()->user()->role)->slug == 'admin')
-                                            {{ $notif->user->name ?? 'User' }}
-                                        @else
-                                            Permintaan {{ ucfirst($notif->status) }}
-                                        @endif
-                                    </p>
-                                    <p class="text-xs text-gray-500 truncate w-48">
-                                        {{ $notif->asset->name ?? 'Aset' }} ({{ $notif->quantity }} Unit)
-                                    </p>
-                                    <p class="text-[10px] text-gray-400 mt-1">
-                                        {{ $notif->updated_at->diffForHumans() }}
-                                    </p>
-                                </div>
-                            </div>
-                        </a>
-                    @empty
-                        <div class="px-4 py-8 text-center">
-                            <svg class="mx-auto h-8 w-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
-                            <p class="text-xs text-gray-500 mt-2">Tidak ada notifikasi baru</p>
-                        </div>
-                    @endforelse
-                </div>
+                        {{-- Close Btn --}}
+                        <button @click.stop="closeTab(index)" class="ml-auto p-0.5 rounded text-gray-400 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 transition-all">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                        
+                        {{-- Active Indicator Line (Top) --}}
+                        <div x-show="currentUrl === tab.url" class="absolute top-[-1px] left-0 right-0 h-[2px] bg-indigo-600 rounded-t-lg z-20"></div>
+                        
+                        {{-- Mask Bottom Border to blend with content --}}
+                        <div x-show="currentUrl === tab.url" class="absolute bottom-[-1px] left-0 right-0 h-[3px] bg-white z-20"></div>
+                    </div>
+                </template>
 
-                <a href="{{ route('borrowing.index') }}" class="block px-4 py-2.5 text-xs text-center text-indigo-600 font-bold hover:bg-indigo-50 rounded-b-md border-t border-gray-100 transition">
-                    Lihat Semua Aktivitas
-                </a>
             </div>
         </div>
 
-        {{-- Profile Dropdown --}}
-        <div class="relative ml-3">
-            <button type="button" id="user-menu-button" onclick="toggleDropdown('user-menu-dropdown')" class="flex max-w-xs items-center rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" aria-expanded="false" aria-haspopup="true">
-                <span class="sr-only">Open user menu</span>
-                {{-- Avatar --}}
-                <div class="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold border border-indigo-200">
-                    {{ substr(auth()->user()->name, 0, 1) }}
-                </div>
-                <span class="ml-3 hidden text-sm font-medium text-gray-700 lg:block flex items-center gap-2">
-                    {{ auth()->user()->name }}
-                    
-                    @if(session('impersonator_id'))
-                        <div class="flex items-center gap-2 ml-2">
-                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800 border border-red-200">
-                                Mode Override
-                            </span>
-                            <a href="{{ route('impersonate.leave') }}" class="px-2 py-1 rounded bg-red-600 text-white text-[10px] font-bold hover:bg-red-700 transition shadow-sm" title="Kembali ke Super Admin">
-                                Exit
-                            </a>
-                        </div>
-                    @endif
-                </span>
-                <svg class="ml-1 hidden h-5 w-5 text-gray-400 lg:block" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                </svg>
-            </button>
-
-            {{-- Dropdown Menu (Toggle via Click) --}}
-            <div id="user-menu-dropdown" class="absolute right-0 z-20 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none hidden transition-all duration-200">
-                <div class="px-4 py-2 border-b border-gray-100">
-                    <p class="text-xs text-gray-500">Login sebagai</p>
-                    <p class="text-sm font-bold text-gray-900 truncate">
-                        {{ auth()->user()->name }}
-                    </p>
-                    <p class="text-[10px] text-gray-500 uppercase">{{ optional(auth()->user()->role)->name }}</p>
-                    
-                    {{-- DROPDOWN KHUSUS SUPER ADMIN (ASLI) --}}
-                    @if(optional(auth()->user()->role)->slug === 'super_admin' && !session('impersonator_id'))
-                        <div class="mt-2 pt-2 border-t border-gray-100">
-                            <p class="text-[10px] uppercase font-bold text-gray-400 mb-1">Mode Override</p>
-                            <a href="{{ route('users.index') }}" class="block text-xs text-indigo-600 hover:text-indigo-800 font-bold">
-                                + Pilih Akun untuk Login
-                            </a>
-                        </div>
-                    @endif
-
-                    @if(session('impersonator_id'))
-                        <div class="mt-2 pt-2 border-t border-gray-100">
-                            <a href="{{ route('impersonate.leave') }}" class="block text-xs text-red-600 hover:text-red-800 font-bold">
-                                ← Kembali ke Super Admin
-                            </a>
-                        </div>
-                    @endif
-                </div>
-                
-                @if(optional(auth()->user()->role)->slug === 'admin')
-                    <a href="{{ route('users.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Kelola User</a>
-                @endif
-                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Profile Saya</a>
-                
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Logout</button>
-                </form>
+        {{-- Right Side: Date/Time & Actions --}}
+        <div class="flex items-center gap-3 shrink-0 border-l border-gray-200 pl-3 pr-4 h-3/4 my-auto">
+                {{-- Date & Time (Small) --}}
+            <div class="hidden md:flex flex-col items-end mr-1">
+                <span class="text-[10px] font-bold text-gray-700" id="header-date">{{ now()->isoFormat('ddd, D MMM') }}</span>
+                <span class="text-[10px] font-mono text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded" id="header-clock">{{ now()->format('H:i') }}</span>
             </div>
+
+                {{-- Notification Bell --}}
+            <button class="relative p-1.5 text-gray-400 hover:text-indigo-600 transition-colors rounded-full hover:bg-gray-100">
+                <span class="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-red-500 border-2 border-white"></span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+            </button>
         </div>
     </div>
 </header>
 
 <script>
-    function updateGlobalClock() {
+    // Update Clock Script
+     setInterval(() => {
         const now = new Date();
-        const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/\./g, ':');
-        const clockEl = document.getElementById('global-clock');
-        if(clockEl) clockEl.innerText = timeString;
-    }
-    setInterval(updateGlobalClock, 1000);
-    updateGlobalClock(); // Run immediately
-</script>
+        const options = { weekday: 'short', day: 'numeric', month: 'short' };
+        document.getElementById('header-date').innerText = now.toLocaleDateString('id-ID', options);
+        document.getElementById('header-clock').innerText = now.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+    }, 1000);
 
-<script>
-    // Logic Sidebar (Tetap)
-    function handleSidebarToggle() {
-        if (window.innerWidth < 768) {
-            if (typeof toggleMobileSidebar === 'function') toggleMobileSidebar();
-        } else {
-            if (typeof toggleMinimize === 'function') toggleMinimize();
-        }
-    }
+    // Global function for PJAX sync
+    window.updateTabSystemWithUrl = function(url, title) {
+        // Dispatch Custom Event for Alpine to catch
+        window.dispatchEvent(new CustomEvent('tab-update', { detail: { url: url, title: title } }));
+    };
 
-    // Logic Baru: Toggle Dropdown Notif & Profile
-    function toggleDropdown(id) {
-        const dropdown = document.getElementById(id);
-        const allDropdowns = ['notif-dropdown', 'user-menu-dropdown'];
-        
-        // Tutup dropdown lain saat satu dibuka
-        allDropdowns.forEach(d => {
-            if (d !== id) {
-                document.getElementById(d).classList.add('hidden');
+    function tabSystem() {
+        // Helper to find icon from sidebar
+        const findIcon = (url) => {
+            // Normalize URL (remove query params)
+            const cleanUrl = url.split('?')[0];
+            // Find link in sidebar
+            const link = document.querySelector(`aside a[href^="${cleanUrl}"]`);
+            if (link) {
+                const svg = link.querySelector('svg');
+                if (svg) return svg.outerHTML;
             }
-        });
+            // Default Icon
+            return '<svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg>';
+        };
 
-        // Toggle dropdown yang diklik
-        if (dropdown.classList.contains('hidden')) {
-            dropdown.classList.remove('hidden');
-        } else {
-            dropdown.classList.add('hidden');
+        const storageKey = 'simaset_tabs_' + (window.currentUserId || 'guest');
+
+        return {
+            tabs: JSON.parse(localStorage.getItem(storageKey)) || [],
+            currentUrl: window.location.href,
+            
+            initTabs() {
+                this.$nextTick(() => {
+                    const title = document.title || 'Page';
+                    
+                    // Self-heal: Update ALL icons to ensure consistency and fix 'undefined'
+                    this.tabs.forEach(t => {
+                        t.icon = findIcon(t.url) || findIcon(''); // Fallback to default
+                    });
+
+                    if (!this.tabs.find(t => t.url === this.currentUrl)) {
+                        this.addTab(title, this.currentUrl);
+                    } else {
+                        // Refresh title for current tab
+                         const tab = this.tabs.find(t => t.url === this.currentUrl);
+                         if(tab) tab.title = title;
+                         this.saveTabs();
+                    }
+                });
+            },
+
+            handleTabUpdate(detail) {
+                if(this.currentUrl === detail.url) return;
+                this.currentUrl = detail.url;
+                if (!this.tabs.find(t => t.url === detail.url)) {
+                    this.addTab(detail.title, detail.url);
+                }
+            },
+
+            addTab(title, url) {
+                if (this.tabs.some(t => t.url === url)) return;
+                
+                // Limit tabs
+                if (this.tabs.length >= 8) this.tabs.shift();
+
+                this.tabs.push({ 
+                    title: title, 
+                    url: url,
+                    icon: findIcon(url) 
+                });
+                this.saveTabs();
+            },
+
+            closeTab(index) {
+                const tabToRemove = this.tabs[index];
+                this.tabs.splice(index, 1);
+                this.saveTabs();
+                
+                // If closed active tab, navigate to last tab or dashboard
+                if (tabToRemove.url === this.currentUrl) {
+                    if (this.tabs.length > 0) {
+                        this.navigateTab(this.tabs[this.tabs.length - 1].url);
+                    } else {
+                        this.navigateTab('{{ route('dashboard') }}');
+                    }
+                }
+            },
+
+            navigateTab(url) {
+                this.currentUrl = url;
+                if(typeof navigate === 'function') {
+                    navigate(url);
+                } else {
+                    window.location.href = url;
+                }
+            },
+
+            saveTabs() {
+                // Limit to 8 tabs
+                if(this.tabs.length > 8) this.tabs.shift();
+                try {
+                    localStorage.setItem(storageKey, JSON.stringify(this.tabs));
+                } catch(e) { console.error('Tab save failed', e); }
+            }
         }
     }
 
-    // Tutup dropdown saat klik di luar area
-    document.addEventListener('click', function(event) {
-        // Cek apakah yang diklik adalah tombol atau bagian dari dropdown
-        const isButton = event.target.closest('button'); // Tombol trigger
-        const isDropdown = event.target.closest('.absolute'); // Area dropdown itu sendiri
-        
-        // Jika klik di luar tombol DAN di luar dropdown, tutup semuanya
-        if (!isButton && !isDropdown) {
-            document.getElementById('notif-dropdown').classList.add('hidden');
-            document.getElementById('user-menu-dropdown').classList.add('hidden');
+    // Sidebar Toggle Logic (Proxied)
+    function handleSidebarToggle() {
+        if (typeof toggleMobileSidebar === 'function') {
+            toggleMobileSidebar();
         }
-    });
+    }
 </script>

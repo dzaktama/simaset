@@ -128,6 +128,9 @@
         document.getElementById('dot1').addEventListener('click', () => { currentSlide = 1; updateCarousel(); });
 
         async function loadCharts(range = 'monthly'){
+            const loading = document.getElementById('chartLoading');
+            if(loading) loading.classList.remove('hidden');
+
             try{
                 const borrowRes = await fetch(`/charts/borrow-stats?range=${range}`);
                 const borrowJson = await borrowRes.json();
@@ -171,8 +174,15 @@
                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
                 });
 
-            }catch(err){ console.error('Gagal load chart data:', err); }
+            }catch(err){ 
+                console.error('Gagal load chart data:', err); 
+            } finally {
+                const loading = document.getElementById('chartLoading');
+                if(loading) loading.classList.add('hidden');
+            }
         }
+
+        window.dashboardLoadCharts = loadCharts;
 
         loadCharts('monthly');
 

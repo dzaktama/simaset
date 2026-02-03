@@ -8,6 +8,17 @@
     
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     
     {{-- FONTS --}}
@@ -21,18 +32,32 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 5px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #6b7280; }
     </style>
+    </style>
+    <script>
+        window.currentUserId = {{ auth()->id() ?? 'null' }};
+    </script>
 </head>
-<body class="h-full antialiased">
+<body class="h-full antialiased" x-data="{ sidebarOpen: localStorage.getItem('sidebarOpen') !== 'false' }" x-init="$watch('sidebarOpen', val => localStorage.setItem('sidebarOpen', val))">
 
     <div class="min-h-screen relative flex">
         
-        @include('partials.sidebar')
+        {{-- Sidebar Wrapper with Alpine Binding --}}
+        <div :class="sidebarOpen ? 'w-64' : 'w-0 -ml-0'" class="fixed inset-y-0 left-0 z-40 bg-white border-r border-gray-100 transition-all duration-300 md:block hidden overflow-hidden transform" id="sidebar-desktop">
+             @include('partials.sidebar')
+        </div>
 
-        <div id="main-content" class="flex-1 flex flex-col min-w-0 md:pl-64 transition-all duration-300">
+        {{-- Mobile Sidebar (Off-canvas) --}}
+        <div class="fixed inset-0 z-40 md:hidden hidden transition-all duration-300 transform" id="mobile-sidebar-container">
+             {{-- Mobile Sidebar Logic handled separately or can be integrated --}}
+             @include('partials.sidebar')
+        </div>
+
+        <div id="main-content" class="flex-1 flex flex-col min-w-0 transition-all duration-300" :class="sidebarOpen ? 'md:pl-64' : 'pl-0'">
             
             @include('partials.topbar')
 
-            <main class="flex-1 py-8">
+            {{-- Main Content with padding-top to account for fixed header --}}
+            <main class="flex-1 py-8 pt-20" id="page-container">
                 <div class="w-full mx-auto px-4 sm:px-6 md:px-8">
                     
                     {{-- 1. ALERT SUKSES --}}
@@ -129,5 +154,140 @@
         })();
     </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</body>
-</html>
+
+    {{-- SIMPLE SPA/PJAX NAVIGATION --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Intercept Sidebar & Tab Links
+            document.body.addEventListener('click', (e) => {
+                const link = e.target.closest('a');
+                // Only intercept internal links, not those with target="_blank" or specific ignores
+                if (link && link.href && link.href.startsWith(window.location.origin) && !link.target && !link.getAttribute('download') && !link.dataset.noSpa) {
+                    
+                    e.preventDefault();
+                    navigate(link.href);
+                }
+            });
+            
+            // Handle Back/Forward Browser Buttons
+            window.addEventListener('popstate', (e) => {
+                if(e.state && e.state.html) {
+                    updateContent(e.state.html, document.title, false);
+                } else {
+                    location.reload(); // Fallback
+                }
+            });
+        });
+
+        async function navigate(url) {
+            // Show Loading Indicator (Optional: Add NProgress here if wanted)
+            const main = document.getElementById('page-container');
+            main.style.opacity = '0.5';
+            main.style.pointerEvents = 'none';
+
+            try {
+                const response = await fetch(url, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                
+                if (response.redirected) {
+                    window.location.href = response.url;
+                    return;
+                }
+
+                const html = await response.text();
+                
+                // Parse HTML to get Title and Container Content
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const newContent = doc.getElementById('page-container').innerHTML;
+                const title = doc.title;
+
+                updateContent(newContent, title, true, url);
+                
+            } catch (error) {
+                console.error('Navigation error:', error);
+                window.location.href = url; // Fallback to full load
+            } finally {
+                main.style.opacity = '1';
+                main.style.pointerEvents = 'auto';
+            }
+        }
+
+        function updateContent(html, title, pushState = true, url = null) {
+            const main = document.getElementById('page-container');
+            
+            // 1. Create a temporary container to parse the HTML and easily extract scripts
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            
+            // 2. Extract scripts BEFORE setting innerHTML (to avoid double execution issues or loss)
+            const scripts = Array.from(tempDiv.querySelectorAll('script'));
+            scripts.forEach(script => script.remove()); // Remove from temp to prevent auto-execution (though innerHTML normally doesn't exec scripts)
+            
+            // 3. Update DOM
+            main.innerHTML = tempDiv.innerHTML;
+            document.title = title;
+
+            if (pushState && url) {
+                history.pushState({ html: html, title: title }, title, url);
+            }
+            
+            // 4. Re-execute Scripts
+            scripts.forEach(oldScript => {
+                const newScript = document.createElement('script');
+                
+                // Copy attributes
+                Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                
+                // Copy content
+                newScript.textContent = oldScript.textContent;
+                
+                // Append to body (or main) to execute
+                document.body.appendChild(newScript);
+                
+                // Optional: remove after execution to keep DOM clean? 
+                // document.body.removeChild(newScript); 
+            });
+
+            // 5. Re-init Alpine
+            if (window.Alpine) {
+                window.Alpine.initTree(main);
+            }
+
+            // 6. Dispatch custom event for legacy/other scripts to hook into
+            window.dispatchEvent(new Event('content:loaded'));
+            
+            // 7. Update Sidebar Active States
+            updateActiveLinks(url || window.location.href);
+
+            // 8. Update Tab System
+            if(window.updateTabSystemWithUrl) window.updateTabSystemWithUrl(url || window.location.href, title);
+        }
+
+        function updateActiveLinks(url) {
+            // Remove all active classes
+            document.querySelectorAll('aside a').forEach(a => {
+                a.classList.remove('bg-indigo-50', 'text-indigo-700', 'border-l-4', 'border-indigo-600');
+                a.classList.add('text-gray-600', 'hover:bg-gray-50', 'hover:text-indigo-600');
+                
+                // Reset Icons
+                const icon = a.querySelector('svg');
+                if(icon) {
+                    icon.classList.remove('text-indigo-600');
+                    icon.classList.add('text-gray-400');
+                }
+
+                if (a.href === url) {
+                    // Set Active
+                    a.classList.add('bg-indigo-50', 'text-indigo-700', 'border-l-4', 'border-indigo-600');
+                    a.classList.remove('text-gray-600', 'hover:bg-gray-50', 'hover:text-indigo-600');
+                     // Active Icon
+                    if(icon) {
+                        icon.classList.add('text-indigo-600');
+                        icon.classList.remove('text-gray-400');
+                    }
+                }
+            });
+        }
+    </script>

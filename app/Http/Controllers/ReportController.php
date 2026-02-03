@@ -91,8 +91,13 @@ class ReportController extends Controller
     {
         // LOGIC UMUM: Setup Variabel Dasar
         $logoPath = public_path('img/logoVitechAsia.png');
-        $logoBase64 = $this->assetService->fileToBase64($logoPath);
-        
+        $logoBase64 = '';
+        try {
+            if(file_exists($logoPath)) {
+                $logoBase64 = $this->assetService->fileToBase64($logoPath);
+            }
+        } catch(\Exception $e) { $logoBase64 = ''; }
+
         $commonData = [
             'date' => now()->setTimezone('Asia/Jakarta')->translatedFormat('d F Y'),
             'printTime' => now()->setTimezone('Asia/Jakarta')->format('H:i'),
@@ -137,11 +142,15 @@ class ReportController extends Controller
                 $query->where('status', $request->status);
             }
 
-            $requests = $query->latest()->get();
+            $requests = $query->latest();
+            
+            // [OPTIMISASI] Limit data jika hanya Preview (bukan Download)
+            $requests = $requests->get();
             
             $data = array_merge($commonData, [
                 'title' => 'Laporan Riwayat Peminjaman',
-                'requests' => $requests
+                'requests' => $requests,
+                'isPreview' => $isPreview
             ]);
 
             $pdf = Pdf::loadView('pdf.borrowing_report', $data)
@@ -194,6 +203,7 @@ class ReportController extends Controller
                 default: $query->latest(); break;
             }
 
+            // [REVISI] Tampilkan SEMUA data sesuai request user (Unimited)
             $assets = $query->get();
 
             // Convert Images Logic
