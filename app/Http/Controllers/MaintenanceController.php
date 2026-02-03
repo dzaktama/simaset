@@ -11,9 +11,8 @@ class MaintenanceController extends Controller
 {
     public function __construct()
     {
+        // Permission check moved to individual methods for better UX (Redirect + Message)
         $this->middleware('can:maintenance.view')->only(['index', 'show']);
-        $this->middleware('can:maintenance.create')->only(['create', 'store']);
-        $this->middleware('can:maintenance.action')->only(['update']);
     }
     /**
      * Display a listing of the maintenance logs.
@@ -35,6 +34,10 @@ class MaintenanceController extends Controller
      */
     public function create(Request $request)
     {
+        // [SECURITY] Cegah Karyawan input perbaikan manual
+        if (\Illuminate\Support\Facades\Gate::denies('asset.edit')) {
+            return redirect()->route('dashboard')->with('error', 'Akses Ditolak! Hanya Teknisi/Admin yang boleh membuat tiket maintenance manual. Silakan gunakan fitur "Lapor Kerusakan" pada detail aset.');
+        }
         $asset = null;
         $maintenanceError = null;
         
@@ -105,6 +108,10 @@ class MaintenanceController extends Controller
      */
     public function store(Request $request)
     {
+        // [SECURITY]
+        if (\Illuminate\Support\Facades\Gate::denies('asset.edit')) {
+            abort(403, 'Unauthorized action.');
+        }
         $request->validate([
             'asset_id' => 'required|exists:assets,id',
             'vendor_name' => 'required|string',
@@ -160,6 +167,10 @@ class MaintenanceController extends Controller
      */
     public function update(Request $request, Maintenance $maintenance)
     {
+        // [SECURITY]
+        if (\Illuminate\Support\Facades\Gate::denies('asset.edit')) {
+            return redirect()->back()->with('error', 'Anda tidak memiliki hak akses untuk mengubah status perbaikan.');
+        }
         $request->validate([
             'status' => 'required|in:on_process,completed,cancelled',
             'vendor_name' => 'nullable|string',

@@ -160,7 +160,7 @@ class AssetController extends Controller
         $myAssetsCount = Asset::where('user_id', $user->id)->count();
         $myActiveAssets = Asset::where('user_id', $user->id)->latest()->take(3)->get();
         $pendingRequests = AssetRequest::where('user_id', $user->id)->where('status', 'pending')->count();
-        $recentActivities = AssetHistory::where('user_id', $user->id)->latest()->take(5)->get();
+        $recentActivities = AssetRequest::with('asset')->where('user_id', $user->id)->latest()->take(5)->get();
 
         return view('home', [
             // 'dashboard_type' removed

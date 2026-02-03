@@ -9,12 +9,19 @@ use Illuminate\Support\Facades\DB;
 
 class WarehouseController extends Controller
 {
+    // Constructor removed to allow custom redirect logic
+
     /**
      * Dashboard Gudang & Lokasi
      * Menampilkan statistik sebaran aset per lokasi.
      */
     public function index()
     {
+        // [SECURITY] Manual Gate Check
+        if (\Illuminate\Support\Facades\Gate::denies('asset.edit')) {
+            return redirect()->route('dashboard')->with('error', 'Akses Ditolak! Anda tidak memiliki izin mengakses Manajemen Gudang.');
+        }
+
         // 1. Ambil Statistik Lokasi (Group by location)
         // Abaikan lokasi null atau string kosong
         $locationStats = Asset::select('location', DB::raw('count(*) as total'))
@@ -48,6 +55,11 @@ class WarehouseController extends Controller
      */
     public function createMove(Request $request, $id = null)
     {
+        // [SECURITY] Manual Gate Check
+        if (\Illuminate\Support\Facades\Gate::denies('asset.edit')) {
+            return redirect()->back()->with('error', 'Akses Ditolak! Hanya Staff Gudang / Admin yang boleh memindahkan aset.');
+        }
+
         $selectedAsset = null;
         if ($id) {
             $selectedAsset = Asset::find($id);
@@ -67,6 +79,11 @@ class WarehouseController extends Controller
      */
     public function storeMove(Request $request)
     {
+        // [SECURITY] Manual Gate Check
+        if (\Illuminate\Support\Facades\Gate::denies('asset.edit')) {
+            return redirect()->route('dashboard')->with('error', 'Akses Ilegal! Percobaan mutasi aset tanpa izin telah dicatat.');
+        }
+
         $request->validate([
             'asset_id' => 'required|exists:assets,id',
             'target_location' => 'required|string|max:100',
