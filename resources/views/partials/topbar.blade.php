@@ -68,7 +68,7 @@
         const now = new Date();
         const options = { weekday: 'short', day: 'numeric', month: 'short' };
         document.getElementById('header-date').innerText = now.toLocaleDateString('id-ID', options);
-        document.getElementById('header-clock').innerText = now.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+        document.getElementById('header-clock').innerText = now.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit', second:'2-digit'});
     }, 1000);
 
     // Global function for PJAX sync
