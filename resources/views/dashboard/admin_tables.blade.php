@@ -132,7 +132,8 @@
 </div>
 
 {{-- 2. LOG AKTIVITAS SISTEM LENGKAP (SEARCHABLE & PAGINATED) --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-8" id="activity-log">
+{{-- 2. LOG AKTIVITAS SISTEM LENGKAP (SEARCHABLE & PAGINATED) --}}
+@include('dashboard.log_activity')
     <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 rounded-t-xl flex flex-col sm:flex-row justify-between items-center gap-4">
         <div>
             <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">

@@ -170,6 +170,7 @@ class UserController extends Controller
         
         // Hapus Cache Permission agar user langsung dapat efeknya (Global cache clear for simplicity)
         // Idealnya hanya clear jika permissions berubah, tapi karena permission nempel di role, aman.
+        \Illuminate\Support\Facades\Cache::forget('app_permissions');
         
         return redirect('/users')->with('success', 'Data user diperbarui!');
     }

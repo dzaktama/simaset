@@ -171,7 +171,7 @@ class AssetController extends Controller
             'pendingRequestsCount' => $pendingRequests,
             'recentActivities' => $recentActivities,
             'myActiveAssets' => $myActiveAssets,
-            'activities' => AssetHistory::with(['asset', 'user'])->latest()->take(10)->get(), 
+            'activities' => AssetHistory::with(['asset', 'user'])->latest()->get(), 
             // Null safety for admin properties if view expects them
             'stats' => [], 'categories' => [],
             'listTotal' => collect([]), 

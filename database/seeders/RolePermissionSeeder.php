@@ -26,7 +26,7 @@ class RolePermissionSeeder extends Seeder
 
         // 2. Define Permissions (Based on AppServiceProvider)
         $permissions = [
-            'asset.view', 'asset.create', 'asset.edit', 'asset.delete', 'asset.export',
+            'asset.view', 'asset.create', 'asset.edit', 'asset.delete', 'asset.export', 'asset.map',
             'borrow.view', 'borrow.request', 'borrow.action', 'borrow.return',
             'maintenance.view', 'maintenance.create', 'maintenance.action',
             'report.view', 'report.export',

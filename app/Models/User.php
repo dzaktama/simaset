@@ -74,18 +74,22 @@ class User extends Authenticatable
      */
     public function hasPermission($permission)
     {
-        // 1. Super Admin Bypass (Cek role slug)
-        // Gunakan optional() untuk menghindari error jika role_id null
+        // 1. Prioritas Utama: Cek Custom Permission User (Override)
+        // Jika user memiliki permission spesifik (dari checkbox Custom Mode),
+        // maka HANYA gunakan permission tersebut (abaikan Role & Bypass).
+        // Kita cek count() agar tidak query ulang jika relation sudah loaded.
+        if ($this->permissions->count() > 0) {
+             return $this->permissions->contains('slug', $permission);
+        }
+
+        // 2. Super Admin Bypass (Fallback)
+        // Hanya berlaku jika user TIDAK punya custom permissions (count == 0).
+        // Ini menjaga agar Super Admin "murni" tetap punya akses penuh.
         if (optional($this->role)->slug === 'super_admin') {
             return true;
         }
 
-        // 2. Cek Custom Permission User (Override)
-        if ($this->permissions->contains('slug', $permission)) {
-            return true;
-        }
-
-        // 3. Cek Permission dari Role Default
+        // 3. Fallback ke Permission Role Default
         return $this->role ? $this->role->permissions->contains('slug', $permission) : false;
     }
 }

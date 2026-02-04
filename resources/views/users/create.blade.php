@@ -22,6 +22,9 @@
         
         // Mode Custom: Jika true, user bisa edit checkbox permission yang terkunci (mandatori)
         isCustomMode: false, 
+        
+        // Mode Preview: Jika true, tampilkan preview sidebar
+        showSidebarPreview: false, 
 
         // Daftar Permission Wajib per Role (Locked)
         // Permission ini akan otomatis tercentang dan terkunci jika mode custom mati
@@ -37,14 +40,29 @@
             'user': ['dashboard.view', 'asset.view', 'borrow.view', 'borrow.request', 'maintenance.create', 'chat.access'],
             'staff': ['dashboard.view', 'asset.view', 'borrow.view', 'borrow.request', 'maintenance.create', 'chat.access']
         },
+        // selectedPermissions: Array yang menyimpan permission yang dipilih
+        // Default kosong karena User baru
+        selectedPermissions: [], 
         
         // Helper: Centang SEMUA box dalam satu grup
-        checkAll(group) { document.querySelectorAll('.' + group).forEach(cb => cb.checked = true); },
+        checkAll(group) { 
+            // Ambil semua value permission dari group ini
+            let els = document.querySelectorAll('.' + group);
+            els.forEach(el => {
+                if(!this.selectedPermissions.includes(el.value)) {
+                    this.selectedPermissions.push(el.value);
+                }
+            });
+        },
         
         // Helper: Hapus centang SEMUA dalam satu grup (kecuali yang terkunci)
         uncheckAll(group) { 
-            document.querySelectorAll('.' + group).forEach(cb => {
-                if(!this.isLocked(cb.value)) cb.checked = false;
+            let els = document.querySelectorAll('.' + group);
+            els.forEach(el => {
+                // Hanya hapus jika tidak terkunci
+                if(!this.isLocked(el.value)) {
+                     this.selectedPermissions = this.selectedPermissions.filter(p => p !== el.value);
+                }
             }); 
         },
 
@@ -61,9 +79,9 @@
             if (this.isCustomMode) return;
             let list = this.mandatory[this.currentRole] || [];
             list.forEach(perm => {
-                // Update selector to find ALL matching inputs (for both views)
-                let els = document.querySelectorAll(`input[value='${perm}']`);
-                els.forEach(el => el.checked = true);
+                 if(!this.selectedPermissions.includes(perm)) {
+                     this.selectedPermissions.push(perm);
+                 }
             });
         },
 
@@ -77,85 +95,53 @@
 
         // Logic Presets: Mengatur checkbox default selain mandatori
         applyPreset(role) {
-            // Reset semua checkbox dulu
-            document.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
+            // Reset semua checkbox (kosongkan array)
+            this.selectedPermissions = [];
             
             // =====================================================
             // SUPER ADMIN - AKSES PENUH KE SEMUA FITUR
             // =====================================================
             if (role === 'super_admin') { 
-                // Legacy groups (Default view) - ALL
+                // Manual push array permission
                 this.checkAll('perm-asset');
                 this.checkAll('perm-borrow');
                 this.checkAll('perm-maint');
                 this.checkAll('perm-report');
-                this.checkAll('perm-user');     // SUPER ADMIN saja yang boleh manage user
+                this.checkAll('perm-user'); 
                 this.checkAll('perm-others');
-                // Section groups (Sections view) - ALL
-                this.checkAll('sec-master');
-                this.checkAll('sec-trans');
-                this.checkAll('sec-report');
-                this.checkAll('sec-util');      // Termasuk user management
             }
             // =====================================================
             // ADMINISTRATOR - SEMUA KECUALI MANAJEMEN USER
             // =====================================================
             else if (role === 'admin') { 
-                // Legacy view - semua kecuali user management
                 this.checkAll('perm-asset');
                 this.checkAll('perm-borrow');
                 this.checkAll('perm-maint');
                 this.checkAll('perm-report');
-                this.checkAll('perm-others');   // Chat & Dashboard
-                // TIDAK checkAll('perm-user') - Admin tidak boleh manage user
-                
-                // Section view
-                this.checkAll('sec-master');
-                this.checkAll('sec-trans');
-                this.checkAll('sec-report');
-                // Untuk sec-util, hanya berikan 'borrow.request' (Aset Saya)
-                this.setChecked('borrow.request');
-                // TIDAK beri akses user.view, user.create, user.edit, user.delete
+                this.checkAll('perm-others');
+                // TIDAK checkAll('perm-user')
             }
             // =====================================================
             // TEKNISI - FOKUS MAINTENANCE & SERVIS
             // =====================================================
             else if (role === 'service_center' || role === 'tek') { 
                 // Akses dasar
-                this.setChecked('dashboard.view');
-                this.setChecked('asset.view');
-                this.setChecked('asset.map');       // Lokasi barang
-                this.setChecked('chat.access');
-                
-                // Fokus maintenance
-                this.setChecked('maintenance.view');
-                this.setChecked('maintenance.create');
-                this.setChecked('maintenance.action');
-                
-                // Peminjaman (hanya lihat & verifikasi kembali)
-                this.setChecked('borrow.view');
-                this.setChecked('return.verify');
-                
-                // TIDAK beri akses: asset.create, asset.edit, asset.delete, borrow.action, user.*, report.export
+                 let permissions = [
+                    'dashboard.view', 'asset.view', 'asset.map', 'chat.access',
+                    'maintenance.view', 'maintenance.create', 'maintenance.action',
+                    'borrow.view', 'return.verify'
+                ];
+                this.selectedPermissions.push(...permissions);
             }
             // =====================================================
             // STAFF - END USER BASIC (PALING TERBATAS)
             // =====================================================
             else if (role === 'user' || role === 'staff') { 
-                // Akses dasar
-                this.setChecked('dashboard.view');
-                this.setChecked('asset.view');      // Lihat katalog saja
-                this.setChecked('chat.access');
-                
-                // Peminjaman (hanya ajukan & lihat history sendiri)
-                this.setChecked('borrow.request');
-                this.setChecked('borrow.view');
-                
-                // Maintenance (hanya lapor kerusakan)
-                this.setChecked('maintenance.create');
-                
-                // TIDAK beri akses: asset.edit, asset.delete, asset.create, borrow.action, 
-                // return.verify, maintenance.action, user.*, report.*, export, dll
+                let permissions = [
+                    'dashboard.view', 'asset.view', 'chat.access',
+                    'borrow.request', 'borrow.view', 'maintenance.create'
+                ];
+                this.selectedPermissions.push(...permissions);
             }
             
             // Terakhir, pastikan mandatori tercentang
@@ -164,7 +150,9 @@
         
         // Helper baru untuk set checked all instances
         setChecked(val) {
-             document.querySelectorAll(`input[value='${val}']`).forEach(el => el.checked = true);
+             if(!this.selectedPermissions.includes(val)) {
+                this.selectedPermissions.push(val);
+             }
         },
 
         // Konfirmasi Ganda Sebelum Submit Form
@@ -181,122 +169,155 @@
         
         // Init: Jalankan saat load halaman
         init() {
-            this.checkMandatory();
+            // Apply preset awal sesuai default role (user)
+            this.applyPreset(this.currentRole);
         }
     }">
         @csrf
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             
-            {{-- BAGIAN KIRI: Form Input (4 Kolom) --}}
+            {{-- BAGIAN KIRI: Form Input / Preview Sidebar (4 Kolom) --}}
             <div class="lg:col-span-4 space-y-5">
                 
-                {{-- Card 1: Informasi Akun --}}
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div class="px-5 py-3 bg-indigo-50 border-b border-indigo-100 flex items-center">
-                        <div class="bg-indigo-100 p-1.5 rounded-md mr-3 text-indigo-600">
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                        </div>
-                        <h3 class="text-base font-bold text-indigo-900">Informasi Akun</h3>
-                    </div>
+                {{-- HEADER & TOGGLE SWITCH --}}
+                <div class="flex items-center justify-between mb-1">
+                    <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider">Preview</h3>
                     
-                    <div class="p-5 space-y-4">
-                        <div class="group">
-                            <label class="block text-sm font-bold text-gray-700 mb-1.5 group-focus-within:text-indigo-600">Nama Lengkap <span class="text-red-500">*</span></label>
-                            <input type="text" name="name" required value="{{ old('name') }}" 
-                                class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-600 focus:bg-white focus:ring-0 transition-all duration-200 font-medium" 
-                                placeholder="Masukkan nama lengkap">
-                            @error('name') <p class="text-red-600 text-xs mt-1 font-semibold flex items-center"><svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>{{ $message }}</p> @enderror
-                        </div>
+                    {{-- Toggle Button --}}
+                    <div class="flex items-center bg-gray-200 rounded-lg p-1 relative">
+                        <div class="w-24 h-7 bg-white rounded shadow-sm absolute transition-all duration-300 ease-out"
+                             :class="showSidebarPreview ? 'translate-x-24' : 'translate-x-0'"></div>
+                        
+                        <button type="button" @click="showSidebarPreview = false"
+                                class="relative z-10 w-24 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors duration-200"
+                                :class="!showSidebarPreview ? 'text-indigo-700' : 'text-gray-500 hover:text-gray-700'">
+                            Form Data
+                        </button>
+                        <button type="button" @click="showSidebarPreview = true"
+                                class="relative z-10 w-24 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors duration-200"
+                                :class="showSidebarPreview ? 'text-indigo-700' : 'text-gray-500 hover:text-gray-700'">
+                            Sidebar
+                        </button>
+                    </div>
+                </div>
 
-                        <div class="group">
-                            <label class="block text-sm font-bold text-gray-700 mb-1.5 group-focus-within:text-indigo-600">Email Kantor <span class="text-red-500">*</span></label>
-                            <div class="relative">
-                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 text-sm">@</span>
-                                <input type="email" name="email" required value="{{ old('email') }}" 
-                                    class="w-full rounded-lg border border-gray-300 bg-gray-50 pl-8 pr-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-600 focus:bg-white focus:ring-0 transition-all duration-200 font-medium" 
-                                    placeholder="nama@perusahaan.com">
+                {{-- MODE FORM INPUT --}}
+                <div x-show="!showSidebarPreview" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform scale-95" x-transition:enter-end="opacity-100 transform scale-100" class="space-y-5">
+                    
+                    {{-- Card 1: Informasi Akun --}}
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div class="px-5 py-3 bg-indigo-50 border-b border-indigo-100 flex items-center">
+                            <div class="bg-indigo-100 p-1.5 rounded-md mr-3 text-indigo-600">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                             </div>
-                            @error('email') <p class="text-red-600 text-xs mt-1 font-semibold">{{ $message }}</p> @enderror
+                            <h3 class="text-base font-bold text-indigo-900">Informasi Akun</h3>
                         </div>
+                        
+                        <div class="p-5 space-y-4">
+                            <div class="group">
+                                <label class="block text-sm font-bold text-gray-700 mb-1.5 group-focus-within:text-indigo-600">Nama Lengkap <span class="text-red-500">*</span></label>
+                                <input type="text" name="name" required value="{{ old('name') }}" 
+                                    class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-600 focus:bg-white focus:ring-0 transition-all duration-200 font-medium" 
+                                    placeholder="Masukkan nama lengkap">
+                                @error('name') <p class="text-red-600 text-xs mt-1 font-semibold flex items-center"><svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>{{ $message }}</p> @enderror
+                            </div>
 
-                        <div class="group">
-                            <label class="block text-sm font-bold text-gray-700 mb-1.5 group-focus-within:text-indigo-600">Password <span class="text-red-500">*</span></label>
-                            <input type="password" name="password" required 
-                                class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-600 focus:bg-white focus:ring-0 transition-all duration-200 font-medium" 
-                                placeholder="••••••••">
-                            @error('password') <p class="text-red-600 text-xs mt-1 font-semibold">{{ $message }}</p> @enderror
+                            <div class="group">
+                                <label class="block text-sm font-bold text-gray-700 mb-1.5 group-focus-within:text-indigo-600">Email Kantor <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 text-sm">@</span>
+                                    <input type="email" name="email" required value="{{ old('email') }}" 
+                                        class="w-full rounded-lg border border-gray-300 bg-gray-50 pl-8 pr-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-600 focus:bg-white focus:ring-0 transition-all duration-200 font-medium" 
+                                        placeholder="nama@perusahaan.com">
+                                </div>
+                                @error('email') <p class="text-red-600 text-xs mt-1 font-semibold">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div class="group">
+                                <label class="block text-sm font-bold text-gray-700 mb-1.5 group-focus-within:text-indigo-600">Password <span class="text-red-500">*</span></label>
+                                <input type="password" name="password" required 
+                                    class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-600 focus:bg-white focus:ring-0 transition-all duration-200 font-medium" 
+                                    placeholder="••••••••">
+                                @error('password') <p class="text-red-600 text-xs mt-1 font-semibold">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div class="group">
+                                <label class="block text-sm font-bold text-gray-700 mb-1.5">Role Pengguna <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <select name="role" @change="updateRole($event.target.value)" class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 font-medium focus:border-indigo-600 focus:bg-white focus:ring-0 appearance-none cursor-pointer transition-all">
+                                        <option value="user" {{ old('role') == 'user' ? 'selected' : '' }}>Karyawan (User)</option>
+                                        <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Administrator</option>
+                                        <option value="service_center" {{ old('role') == 'service_center' ? 'selected' : '' }}>Teknisi (Service Center)</option>
+                                        @if(auth()->user()->role?->slug === 'super_admin')
+                                            <option value="super_admin" {{ old('role') == 'super_admin' ? 'selected' : '' }}>Super Admin</option>
+                                        @endif
+                                    </select>
+                                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+                    </div>
 
-                        <div class="group">
-                            <label class="block text-sm font-bold text-gray-700 mb-1.5">Role Pengguna <span class="text-red-500">*</span></label>
-                            <div class="relative">
-                                <select name="role" @change="updateRole($event.target.value)" class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 font-medium focus:border-indigo-600 focus:bg-white focus:ring-0 appearance-none cursor-pointer transition-all">
-                                    <option value="user" {{ old('role') == 'user' ? 'selected' : '' }}>Karyawan (User)</option>
-                                    <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Administrator</option>
-                                    <option value="service_center" {{ old('role') == 'service_center' ? 'selected' : '' }}>Teknisi (Service Center)</option>
-                                    @if(auth()->user()->role?->slug === 'super_admin')
-                                        <option value="super_admin" {{ old('role') == 'super_admin' ? 'selected' : '' }}>Super Admin</option>
-                                    @endif
-                                </select>
-                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    {{-- Card 2: Detail Pekerjaan --}}
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div class="px-5 py-3 bg-gray-50 border-b border-gray-200 flex items-center">
+                            <div class="bg-white p-1 rounded-md border border-gray-200 shadow-sm mr-3 text-gray-600">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                            </div>
+                            <h3 class="text-base font-bold text-gray-800">Detail Pekerjaan</h3>
+                        </div>
+                        
+                        <div class="p-5 space-y-4">
+                             <div class="group">
+                                <label class="block text-xs uppercase tracking-wider font-bold text-gray-500 mb-1">Employee ID (Preview)</label>
+                                <div class="relative">
+                                    {{-- Fake input visual --}}
+                                    <div class="w-full rounded-lg border border-dashed border-gray-300 bg-gray-50 px-3 py-2.5 flex items-center justify-center">
+                                        <span class="text-gray-400 font-bold tracking-widest text-base" x-text="employeeIdPreview"></span>
+                                    </div>
+                                    <div class="mt-1.5 text-center">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800 uppercase">
+                                            Generasi Otomatis via Sistem
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                 <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1.5">Departemen</label>
+                                    <input type="text" name="department" required value="{{ old('department') }}" 
+                                        class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-indigo-600 focus:bg-white focus:ring-0 transition-all font-medium" 
+                                        placeholder="IT/HR">
+                                </div>
+                                 <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1.5">Jabatan</label>
+                                    <input type="text" name="position" required value="{{ old('position') }}" 
+                                        class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-indigo-600 focus:bg-white focus:ring-0 transition-all font-medium" 
+                                        placeholder="Manager">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-1.5">Nomor WhatsApp</label>
+                                <div class="flex">
+                                    <span class="inline-flex items-center rounded-l-lg border border-r-0 border-gray-300 bg-gray-100 px-3 text-gray-600 font-bold text-sm">+62</span>
+                                    <input type="text" name="phone" value="{{ old('phone') }}" 
+                                        class="w-full rounded-r-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-indigo-600 focus:bg-white focus:ring-0 transition-all font-medium" 
+                                        placeholder="812-3456-7890">
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {{-- Card 2: Detail Pekerjaan --}}
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div class="px-5 py-3 bg-gray-50 border-b border-gray-200 flex items-center">
-                        <div class="bg-white p-1 rounded-md border border-gray-200 shadow-sm mr-3 text-gray-600">
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                        </div>
-                        <h3 class="text-base font-bold text-gray-800">Detail Pekerjaan</h3>
-                    </div>
-                    
-                    <div class="p-5 space-y-4">
-                         <div class="group">
-                            <label class="block text-xs uppercase tracking-wider font-bold text-gray-500 mb-1">Employee ID (Preview)</label>
-                            <div class="relative">
-                                {{-- Fake input visual --}}
-                                <div class="w-full rounded-lg border border-dashed border-gray-300 bg-gray-50 px-3 py-2.5 flex items-center justify-center">
-                                    <span class="text-gray-400 font-bold tracking-widest text-base" x-text="employeeIdPreview"></span>
-                                </div>
-                                <div class="mt-1.5 text-center">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800 uppercase">
-                                        Generasi Otomatis via Sistem
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                             <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-1.5">Departemen</label>
-                                <input type="text" name="department" required value="{{ old('department') }}" 
-                                    class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-indigo-600 focus:bg-white focus:ring-0 transition-all font-medium" 
-                                    placeholder="IT/HR">
-                            </div>
-                             <div>
-                                <label class="block text-sm font-bold text-gray-700 mb-1.5">Jabatan</label>
-                                <input type="text" name="position" required value="{{ old('position') }}" 
-                                    class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-indigo-600 focus:bg-white focus:ring-0 transition-all font-medium" 
-                                    placeholder="Manager">
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1.5">Nomor WhatsApp</label>
-                            <div class="flex">
-                                <span class="inline-flex items-center rounded-l-lg border border-r-0 border-gray-300 bg-gray-100 px-3 text-gray-600 font-bold text-sm">+62</span>
-                                <input type="text" name="phone" value="{{ old('phone') }}" 
-                                    class="w-full rounded-r-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-indigo-600 focus:bg-white focus:ring-0 transition-all font-medium" 
-                                    placeholder="812-3456-7890">
-                            </div>
-                        </div>
-                    </div>
+                {{-- MODE PREVIEW SIDEBAR --}}
+                <div x-show="showSidebarPreview" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform scale-95" x-transition:enter-end="opacity-100 transform scale-100" style="display: none;">
+                    @include('users.partials.sidebar-preview')
                 </div>
+
             </div>
 
             {{-- BAGIAN KANAN: Permissions (8 Kolom) --}}
@@ -304,14 +325,14 @@
                 {{-- PANEL KANAN: Permission Selector (Visible for Admin & Super Admin) --}}
                 @if(in_array(auth()->user()->role?->slug, ['admin', 'super_admin']))
                 <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden h-full flex flex-col" x-data="{ viewMode: 'legacy' }">
-                    {{-- Header Panel Biru Gelap --}}
-                    <div class="p-5 md:p-6 bg-gradient-to-r from-gray-900 to-gray-800 text-white flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                    {{-- Header Panel Putih (Light Theme) --}}
+                    <div class="p-5 md:p-6 bg-white border-b border-gray-200 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                         <div>
-                            <h3 class="text-xl font-bold flex items-center gap-2">
-                                <div class="p-1.5 bg-white/10 rounded-md backdrop-blur-sm">
-                                    <svg class="h-5 w-5 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+                            <h3 class="text-xl font-bold flex items-center gap-2 text-gray-800">
+                                <div class="p-1.5 bg-indigo-50 rounded-md">
+                                    <svg class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
                                 </div>
-                                Kontrol Hak Akses
+                                Izin Kontrol Hak Akses
                             </h3>
                             
                             
@@ -320,10 +341,10 @@
                                 {{-- Toggle Custom Mode --}}
                                 <label class="inline-flex items-center cursor-pointer group">
                                     <input type="checkbox" x-model="isCustomMode" class="sr-only peer">
-                                    <div class="relative w-10 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
-                                    <span class="ms-2 text-xs font-bold text-gray-300 group-hover:text-white transition-colors flex items-center gap-1">
+                                    <div class="relative w-10 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                    <span class="ms-2 text-xs font-bold text-gray-500 group-hover:text-gray-700 transition-colors flex items-center gap-1">
                                         <template x-if="isCustomMode">
-                                            <span class="flex items-center gap-1 text-indigo-200">
+                                            <span class="flex items-center gap-1 text-indigo-600">
                                                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>
                                                 Mode Custom
                                             </span>
@@ -369,7 +390,7 @@
                                     'id' => 'perm-asset',
                                     'title' => 'Manajemen Aset',
                                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />',
-                                    'items' => ['asset.view'=>'Lihat Aset', 'asset.create'=>'Input Baru', 'asset.edit'=>'Edit Aset', 'asset.delete'=>'Hapus Aset', 'asset.export'=>'Export Excel', 'asset.map'=>'Lokasi Barang']
+                                    'items' => ['dashboard.stats'=>'Dashboard Gudang', 'asset.view'=>'Lihat Aset', 'asset.create'=>'Input Baru', 'asset.edit'=>'Edit Aset', 'asset.delete'=>'Hapus Aset', 'asset.export'=>'Export Excel', 'asset.map'=>'Lokasi Barang']
                                 ],
                                 [
                                     'id' => 'perm-borrow',
@@ -387,7 +408,7 @@
                                     'id' => 'perm-report',
                                     'title' => 'Laporan & Statistik',
                                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />',
-                                    'items' => ['report.view'=>'Akses Laporan', 'report.export'=>'Download PDF', 'dashboard.stats'=>'Lihat Statistik']
+                                    'items' => ['report.view'=>'Akses Laporan', 'report.export'=>'Download PDF']
                                 ],
                                 [
                                     'id' => 'perm-user',
@@ -411,6 +432,7 @@
                                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />',
                                     'items' => [
                                         'dashboard.view' => 'Dashboard',
+                                        'dashboard.stats' => 'Dashboard Gudang',
                                         'asset.view' => 'Katalog Aset',
                                         'asset.map' => 'Lokasi Barang'
                                     ]
@@ -473,7 +495,7 @@
                                     @foreach($group['items'] as $val => $label)
                                     <label class="relative flex items-center justify-between p-2.5 rounded-lg border border-gray-200 bg-white hover:border-indigo-400 hover:bg-gray-50 transition-all cursor-pointer group">
                                         <span class="text-xs font-medium text-gray-700 group-hover:text-gray-900">{{ $label }}</span>
-                                        <input type="checkbox" name="permissions[]" value="{{ $val }}" 
+                                        <input type="checkbox" name="permissions[]" value="{{ $val }}" x-model="selectedPermissions"
                                             @click="if(isLocked('{{ $val }}')) $event.preventDefault()"
                                             class="{{ $group['id'] }} w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer"
                                             :class="{ 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed': isLocked('{{ $val }}') }">
@@ -502,7 +524,7 @@
                                     @foreach($group['items'] as $val => $label)
                                     <label class="relative flex items-center justify-between p-2.5 rounded-lg border border-gray-200 bg-white hover:border-indigo-400 hover:bg-gray-50 transition-all cursor-pointer group">
                                         <span class="text-xs font-medium text-gray-700 group-hover:text-gray-900">{{ $label }}</span>
-                                        <input type="checkbox" name="permissions[]" value="{{ $val }}" 
+                                        <input type="checkbox" name="permissions[]" value="{{ $val }}" x-model="selectedPermissions"
                                             @click="if(isLocked('{{ $val }}')) $event.preventDefault()"
                                             class="{{ $group['id'] }} w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer"
                                             :class="{ 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed': isLocked('{{ $val }}') }">

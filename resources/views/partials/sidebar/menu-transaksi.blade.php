@@ -1,16 +1,90 @@
 {{-- SECTION 2: TRANSAKSI --}}
 @canany(['chat.access', 'asset.create', 'maintenance.create', 'borrow.action', 'return.verify', 'asset.view'])
 
-<div x-data="{ open: localStorage.getItem('sidebar_transaksi') === 'true' }" x-init="$watch('open', val => localStorage.setItem('sidebar_transaksi', val))">
+<div x-data="{ 
+    open: localStorage.getItem('sidebar_transaksi') === 'true', 
+    showModal: false
+}" 
+x-init="$watch('open', val => localStorage.setItem('sidebar_transaksi', val))">
     <div class="px-3 mb-1 flex items-center justify-between group cursor-pointer hover:bg-gray-50 rounded-lg py-1.5 transition-colors" @click="open = !open">
         <div class="flex items-center gap-2">
                 <svg class="w-3 h-3 text-gray-400 transition-transform duration-200 transform" :class="open ? 'rotate-90' : 'rotate-0'" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
             <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider group-hover:text-indigo-600 transition-colors">Transaksi</p>
         </div>
-            <div class="p-1 rounded-full hover:bg-indigo-100 text-gray-300 hover:text-indigo-600 transition-colors" 
-                onmouseenter="startTooltip(event, 'transaksi')" onmouseleave="stopTooltip(event)">
+        {{-- Info Icon & Modal Trigger --}}
+        <button type="button" @click.stop="showModal = true" 
+                class="p-1 rounded-full hover:bg-indigo-100 text-gray-300 hover:text-indigo-600 transition-colors focus:outline-none">
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-        </div>
+        </button>
+
+        {{-- MODAL WITH TELEPORT --}}
+        <template x-teleport="body">
+            <div x-show="showModal" class="fixed inset-0 z-[99] flex items-center justify-center px-4" style="display: none;">
+                {{-- Backdrop --}}
+                <div x-show="showModal" 
+                     x-transition:enter="ease-out duration-300"
+                     x-transition:enter-start="opacity-0"
+                     x-transition:enter-end="opacity-100"
+                     x-transition:leave="ease-in duration-200"
+                     x-transition:leave-start="opacity-100"
+                     x-transition:leave-end="opacity-0"
+                     @click="showModal = false"
+                     class="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm transition-opacity"></div>
+
+                {{-- Modal Content --}}
+                <div x-show="showModal"
+                     x-transition:enter="ease-out duration-300"
+                     x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+                     x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                     x-transition:leave="ease-in duration-200"
+                     x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                     x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+                     class="bg-white rounded-2xl shadow-xl w-full max-w-md relative overflow-hidden transform transition-all">
+                    
+                    {{-- Header --}}
+                    <div class="bg-indigo-600 px-6 py-4 flex justify-between items-center">
+                        <h3 class="text-white font-bold text-lg flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            Transaksi Aset
+                        </h3>
+                        <button @click="showModal = false" class="text-indigo-200 hover:text-white transition-colors">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    </div>
+
+                    {{-- Body --}}
+                    <div class="p-6">
+                        <p class="text-gray-600 text-sm leading-relaxed mb-4">
+                            Menu <strong>Transaksi</strong> adalah tempat segala aktivitas sirkulasi aset terjadi. Di sini Anda mencatat perpindahan tangan atau kondisi aset.
+                        </p>
+                        <div class="space-y-4">
+                            <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-100">
+                                <h5 class="text-xs font-bold text-indigo-700 uppercase mb-1">Peminjaman & Pengembalian</h5>
+                                <p class="text-xs text-gray-600">Proses karyawan meminjam aset kantor. Admin wajib memverifikasi persetujuan (approve) dan pengembalian (verify return).</p>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                    <h5 class="text-xs font-bold text-gray-700 mb-1">Mutasi</h5>
+                                    <p class="text-[10px] text-gray-500">Memindahkan aset antar lokasi (Misal: Gudang A ke Gudang B).</p>
+                                </div>
+                                <div class="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                    <h5 class="text-xs font-bold text-gray-700 mb-1">Maintenance</h5>
+                                    <p class="text-[10px] text-gray-500">Pencatatan perbaikan aset yang rusak atau servis rutin.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Footer --}}
+                    <div class="bg-gray-50 px-6 py-3 flex justify-end">
+                        <button @click="showModal = false" class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                            Mengerti
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
     </div>
     
     <div x-ref="content" class="overflow-hidden transition-all duration-300"

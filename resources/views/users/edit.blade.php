@@ -14,9 +14,14 @@
         </a>
     </div>
 
+    @php
+        $userPerms = $user->permissions->pluck('slug')->toArray() ?? [];
+    @endphp
+
     <form action="/users/{{ $user->id }}" method="POST" @submit="confirmSave($event)" x-data="{
         currentRole: '{{ old('role', $user->role?->slug) }}',
         isCustomMode: false, // Mode Kustom untuk edit manual
+        showSidebarPreview: false, // Toggle Sidebar Preview
         mandatory: {
             // Super Admin - SATU-SATUNYA yang wajib punya user management
             'super_admin': ['dashboard.view', 'dashboard.stats', 'asset.view', 'asset.create', 'asset.edit', 'asset.delete', 'asset.export', 'borrow.action', 'return.verify', 'report.view', 'maintenance.view', 'chat.access', 'user.view', 'user.create', 'user.edit', 'user.delete'],
@@ -29,10 +34,23 @@
             'user': ['dashboard.view', 'asset.view', 'borrow.view', 'borrow.request', 'maintenance.create', 'chat.access'],
             'staff': ['dashboard.view', 'asset.view', 'borrow.view', 'borrow.request', 'maintenance.create', 'chat.access']
         },
-        checkAll(group) { document.querySelectorAll('.' + group).forEach(cb => cb.checked = true); },
+        selectedPermissions: {{ json_encode($userPerms) }}, // Sinkronisasi array state checkbox
+        checkAll(group) { 
+            // Ambil semua value permission dari group ini
+            let els = document.querySelectorAll('.' + group);
+            els.forEach(el => {
+                if(!this.selectedPermissions.includes(el.value)) {
+                    this.selectedPermissions.push(el.value);
+                }
+            });
+        },
         uncheckAll(group) { 
-            document.querySelectorAll('.' + group).forEach(cb => {
-                if(!this.isLocked(cb.value)) cb.checked = false;
+            let els = document.querySelectorAll('.' + group);
+            els.forEach(el => {
+                // Hanya hapus jika tidak terkunci
+                if(!this.isLocked(el.value)) {
+                     this.selectedPermissions = this.selectedPermissions.filter(p => p !== el.value);
+                }
             }); 
         },
         // Cek apakah permission terkunci (wajib ada untuk role tersebut)
@@ -46,10 +64,11 @@
             if (this.isCustomMode) return; // Skip jika mode kustom
             let list = this.mandatory[this.currentRole] || [];
             list.forEach(perm => {
-                // Update selector to find ALL matching inputs (for both views)
-                let els = document.querySelectorAll(`input[value='${perm}']`);
-                els.forEach(el => el.checked = true);
+                 if(!this.selectedPermissions.includes(perm)) {
+                     this.selectedPermissions.push(perm);
+                 }
             });
+            // Update Duplicate Input Manually via x-model reactivity is automatic
         },
         updateRole(role, event) {
             // Reset ke mode normal jika ganti role
@@ -63,92 +82,64 @@
             }
         },
         applyPreset(role) {
-            // Reset semua checkbox dulu
-            document.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
+            // Reset semua checkbox (kosongkan array)
+            this.selectedPermissions = [];
             
             // =====================================================
             // SUPER ADMIN - AKSES PENUH KE SEMUA FITUR
             // =====================================================
             if (role === 'super_admin') { 
+                // Kita push manual array permisionnya
                 // Legacy groups (Default view) - ALL
+                // Note: checkAll helper skrg manipulasi array selectedPermissions
                 this.checkAll('perm-asset');
                 this.checkAll('perm-borrow');
                 this.checkAll('perm-maint');
                 this.checkAll('perm-report');
-                this.checkAll('perm-user');     // SUPER ADMIN saja yang boleh manage user
+                this.checkAll('perm-user'); 
                 this.checkAll('perm-others');
-                // Section groups (Sections view) - ALL
-                this.checkAll('sec-master');
-                this.checkAll('sec-trans');
-                this.checkAll('sec-report');
-                this.checkAll('sec-util');      // Termasuk user management
             }
             // =====================================================
             // ADMINISTRATOR - SEMUA KECUALI MANAJEMEN USER
             // =====================================================
             else if (role === 'admin') { 
-                // Legacy view - semua kecuali user management
                 this.checkAll('perm-asset');
                 this.checkAll('perm-borrow');
                 this.checkAll('perm-maint');
                 this.checkAll('perm-report');
-                this.checkAll('perm-others');   // Chat & Dashboard
-                // TIDAK checkAll('perm-user') - Admin tidak boleh manage user
-                
-                // Section view
-                this.checkAll('sec-master');
-                this.checkAll('sec-trans');
-                this.checkAll('sec-report');
-                // Untuk sec-util, hanya berikan 'borrow.request' (Aset Saya)
-                this.setChecked('borrow.request');
-                // TIDAK beri akses user.view, user.create, user.edit, user.delete
+                this.checkAll('perm-others');
+                // TIDAK checkAll('perm-user')
             }
             // =====================================================
             // TEKNISI - FOKUS MAINTENANCE & SERVIS
             // =====================================================
             else if (role === 'service_center' || role === 'tek') { 
-                // Akses dasar
-                this.setChecked('dashboard.view');
-                this.setChecked('asset.view');
-                this.setChecked('asset.map');       // Lokasi barang
-                this.setChecked('chat.access');
-                
-                // Fokus maintenance
-                this.setChecked('maintenance.view');
-                this.setChecked('maintenance.create');
-                this.setChecked('maintenance.action');
-                
-                // Peminjaman (hanya lihat & verifikasi kembali)
-                this.setChecked('borrow.view');
-                this.setChecked('return.verify');
-                
-                // TIDAK beri akses: asset.create, asset.edit, asset.delete, borrow.action, user.*, report.export
+                // Akses dasar & Maintenance
+                let permissions = [
+                    'dashboard.view', 'asset.view', 'asset.map', 'chat.access',
+                    'maintenance.view', 'maintenance.create', 'maintenance.action',
+                    'borrow.view', 'return.verify'
+                ];
+                this.selectedPermissions.push(...permissions);
             }
             // =====================================================
             // STAFF - END USER BASIC (PALING TERBATAS)
             // =====================================================
             else if (role === 'user' || role === 'staff') { 
-                // Akses dasar
-                this.setChecked('dashboard.view');
-                this.setChecked('asset.view');      // Lihat katalog saja
-                this.setChecked('chat.access');
-                
-                // Peminjaman (hanya ajukan & lihat history sendiri)
-                this.setChecked('borrow.request');
-                this.setChecked('borrow.view');
-                
-                // Maintenance (hanya lapor kerusakan)
-                this.setChecked('maintenance.create');
-                
-                // TIDAK beri akses: asset.edit, asset.delete, asset.create, borrow.action, 
-                // return.verify, maintenance.action, user.*, report.*, export, dll
+                let permissions = [
+                    'dashboard.view', 'asset.view', 'chat.access',
+                    'borrow.request', 'borrow.view', 'maintenance.create'
+                ];
+                this.selectedPermissions.push(...permissions);
             }
             
             this.checkMandatory();
         },
         // Helper untuk set checked semua instances
         setChecked(val) {
-            document.querySelectorAll(`input[value='${val}']`).forEach(el => el.checked = true);
+             if(!this.selectedPermissions.includes(val)) {
+                this.selectedPermissions.push(val);
+             }
         },
         // Konfirmasi ganda sebelum simpan (Request User)
         confirmSave(e) {
@@ -164,16 +155,56 @@
         },
         employeeIdPreview: '{{ $user->employee_id }}',
         init() {
-            this.checkMandatory();
+            // DETEKSI OTOMATIS: Jika ada mandatory permission yang TIDAK ter-centang (dari DB),
+            // maka otomatis aktifkan Custom Mode agar tidak dipaksa checklist kembali.
+            if (this.currentRole && this.mandatory[this.currentRole]) {
+                let requiredPerms = this.mandatory[this.currentRole];
+                // Cek array selectedPermissions apakah ada yg kurang
+                let isMissingMandatory = requiredPerms.some(perm => !this.selectedPermissions.includes(perm));
+
+                if (isMissingMandatory) {
+                    this.isCustomMode = true;
+                } else {
+                    // Jika semua lengkap/standar, barulah kita enforce (jaga-jaga)
+                    this.checkMandatory();
+                }
+            } else {
+                 this.checkMandatory();
+            }
         }
     }">
         @method('put')
         @csrf
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             
-            {{-- BAGIAN KIRI: Form Input (4 Kolom) --}}
+            {{-- BAGIAN KIRI: Form Input / Preview Sidebar (4 Kolom) --}}
             <div class="lg:col-span-4 space-y-5">
                 
+                {{-- HEADER & TOGGLE SWITCH --}}
+                <div class="flex items-center justify-between mb-1">
+                    <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider">Preview</h3>
+                    
+                    {{-- Toggle Button --}}
+                    <div class="flex items-center bg-gray-200 rounded-lg p-1 relative">
+                        <div class="w-24 h-7 bg-white rounded shadow-sm absolute transition-all duration-300 ease-out"
+                             :class="showSidebarPreview ? 'translate-x-24' : 'translate-x-0'"></div>
+                        
+                        <button type="button" @click="showSidebarPreview = false"
+                                class="relative z-10 w-24 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors duration-200"
+                                :class="!showSidebarPreview ? 'text-indigo-700' : 'text-gray-500 hover:text-gray-700'">
+                            Form Data
+                        </button>
+                        <button type="button" @click="showSidebarPreview = true"
+                                class="relative z-10 w-24 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors duration-200"
+                                :class="showSidebarPreview ? 'text-indigo-700' : 'text-gray-500 hover:text-gray-700'">
+                            Sidebar
+                        </button>
+                    </div>
+                </div>
+
+                {{-- MODE FORM INPUT --}}
+                <div x-show="!showSidebarPreview" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform scale-95" x-transition:enter-end="opacity-100 transform scale-100" class="space-y-5">
+                    
                 {{-- Card 1: Informasi Akun --}}
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     <div class="px-5 py-3 bg-indigo-50 border-b border-indigo-100 flex items-center">
@@ -291,28 +322,36 @@
                         </div>
                     </div>
                 </div>
+                </div>
+
+                {{-- MODE PREVIEW SIDEBAR --}}
+                <div x-show="showSidebarPreview" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform scale-95" x-transition:enter-end="opacity-100 transform scale-100" style="display: none;">
+                    @include('users.partials.sidebar-preview')
+                </div>
+
             </div>
 
             {{-- BAGIAN KANAN: Permissions (8 Kolom) --}}
             <div class="lg:col-span-8">
                 @if(auth()->user()->role?->slug === 'super_admin')
                 <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden h-full flex flex-col" x-data="{ viewMode: 'legacy' }">
-                    <div class="p-5 md:p-6 bg-gradient-to-r from-gray-900 to-gray-800 text-white flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                    {{-- Header Panel Putih (Light Theme) --}}
+                    <div class="p-5 md:p-6 bg-white border-b border-gray-200 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                         <div>
-                            <h3 class="text-xl font-bold flex items-center gap-2">
-                                <div class="p-1.5 bg-white/10 rounded-md backdrop-blur-sm">
-                                    <svg class="h-5 w-5 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+                            <h3 class="text-xl font-bold flex items-center gap-2 text-gray-800">
+                                <div class="p-1.5 bg-indigo-50 rounded-md">
+                                    <svg class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
                                 </div>
-                                Kontrol Hak Akses
+                                Izin Kontrol Hak Akses
                             </h3>
                             <div class="flex items-center gap-4 mt-1 ml-9">
                                 {{-- Toggle Custom Mode --}}
                                 <label class="inline-flex items-center cursor-pointer group">
                                     <input type="checkbox" x-model="isCustomMode" class="sr-only peer">
-                                    <div class="relative w-10 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
-                                    <span class="ms-2 text-xs font-bold text-gray-300 group-hover:text-white transition-colors flex items-center gap-1">
+                                    <div class="relative w-10 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                    <span class="ms-2 text-xs font-bold text-gray-500 group-hover:text-gray-700 transition-colors flex items-center gap-1">
                                         <template x-if="isCustomMode">
-                                            <span class="flex items-center gap-1 text-indigo-200">
+                                            <span class="flex items-center gap-1 text-indigo-600">
                                                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>
                                                 Mode Custom
                                             </span>
@@ -327,12 +366,12 @@
                                 </label>
 
                                 {{-- Toggle View Mode (Legacy vs Section) --}}
-                                <div class="flex items-center bg-gray-700 rounded-lg p-0.5"> 
-                                    <button type="button" @click="viewMode = 'legacy'" :class="viewMode === 'legacy' ? 'bg-gray-500 text-white shadow-sm' : 'text-gray-400 hover:text-white'" class="px-2 py-1 rounded-md text-[10px] font-bold transition-all flex items-center gap-1">
+                                <div class="flex items-center bg-gray-100 border border-gray-200 rounded-lg p-0.5"> 
+                                    <button type="button" @click="viewMode = 'legacy'" :class="viewMode === 'legacy' ? 'bg-white text-gray-800 shadow-sm border border-gray-200' : 'text-gray-400 hover:text-gray-600'" class="px-2 py-1 rounded-md text-[10px] font-bold transition-all flex items-center gap-1">
                                         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
                                         DEFAULT
                                     </button>
-                                    <button type="button" @click="viewMode = 'sections'" :class="viewMode === 'sections' ? 'bg-indigo-500 text-white shadow-sm' : 'text-gray-400 hover:text-white'" class="px-2 py-1 rounded-md text-[10px] font-bold transition-all flex items-center gap-1">
+                                    <button type="button" @click="viewMode = 'sections'" :class="viewMode === 'sections' ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100' : 'text-gray-400 hover:text-gray-600'" class="px-2 py-1 rounded-md text-[10px] font-bold transition-all flex items-center gap-1">
                                         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
                                         SECTIONS
                                     </button>
@@ -351,7 +390,7 @@
                     
                     <div class="p-5 md:p-6 flex-grow bg-gray-50">
                         @php
-                            $userPerms = $user->permissions->pluck('slug')->toArray() ?? [];
+                            // $userPerms moved to top
                             
                             // 1. DEFAULT VIEW - Per Jenis Fitur (6 Groups)
                             $legacyGroups = [
@@ -359,7 +398,7 @@
                                     'id' => 'perm-asset',
                                     'title' => 'Manajemen Aset',
                                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />',
-                                    'items' => ['asset.view'=>'Lihat Aset', 'asset.create'=>'Input Baru', 'asset.edit'=>'Edit Aset', 'asset.delete'=>'Hapus Aset', 'asset.export'=>'Export Excel', 'asset.map'=>'Lokasi Barang']
+                                    'items' => ['dashboard.stats'=>'Dashboard Gudang', 'asset.view'=>'Lihat Aset', 'asset.create'=>'Input Baru', 'asset.edit'=>'Edit Aset', 'asset.delete'=>'Hapus Aset', 'asset.export'=>'Export Excel', 'asset.map'=>'Lokasi Barang']
                                 ],
                                 [
                                     'id' => 'perm-borrow',
@@ -377,7 +416,7 @@
                                     'id' => 'perm-report',
                                     'title' => 'Laporan & Statistik',
                                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />',
-                                    'items' => ['report.view'=>'Akses Laporan', 'report.export'=>'Download PDF', 'dashboard.stats'=>'Lihat Statistik']
+                                    'items' => ['report.view'=>'Akses Laporan', 'report.export'=>'Download PDF']
                                 ],
                                 [
                                     'id' => 'perm-user',
@@ -401,6 +440,7 @@
                                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />',
                                     'items' => [
                                         'dashboard.view' => 'Dashboard',
+                                        'dashboard.stats' => 'Dashboard Gudang',
                                         'asset.view' => 'Katalog Aset',
                                         'asset.map' => 'Lokasi Barang'
                                     ]
@@ -464,7 +504,7 @@
                                         @php $isChecked = in_array($val, $userPerms) ? 'checked' : ''; @endphp
                                     <label class="relative flex items-center justify-between p-2.5 rounded-lg border border-gray-200 bg-white hover:border-indigo-400 hover:bg-gray-50 transition-all cursor-pointer group">
                                         <span class="text-xs font-medium text-gray-700 group-hover:text-gray-900">{{ $label }}</span>
-                                        <input type="checkbox" name="permissions[]" value="{{ $val }}" {{ $isChecked }}
+                                        <input type="checkbox" name="permissions[]" value="{{ $val }}" x-model="selectedPermissions"
                                             @click="if(isLocked('{{ $val }}')) $event.preventDefault()"
                                             class="{{ $group['id'] }} w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer"
                                             :class="{ 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed': isLocked('{{ $val }}') }">
@@ -494,7 +534,7 @@
                                         @php $isChecked = in_array($val, $userPerms) ? 'checked' : ''; @endphp
                                     <label class="relative flex items-center justify-between p-2.5 rounded-lg border border-gray-200 bg-white hover:border-indigo-400 hover:bg-gray-50 transition-all cursor-pointer group">
                                         <span class="text-xs font-medium text-gray-700 group-hover:text-gray-900">{{ $label }}</span>
-                                        <input type="checkbox" name="permissions[]" value="{{ $val }}" {{ $isChecked }}
+                                        <input type="checkbox" name="permissions[]" value="{{ $val }}" x-model="selectedPermissions"
                                             @click="if(isLocked('{{ $val }}')) $event.preventDefault()"
                                             class="{{ $group['id'] }} w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer"
                                             :class="{ 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed': isLocked('{{ $val }}') }">
