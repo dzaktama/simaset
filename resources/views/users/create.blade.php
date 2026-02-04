@@ -2,7 +2,7 @@
 
 @section('container')
 <div class="w-full px-4 sm:px-6 lg:px-8 py-6 bg-gray-50 min-h-screen">
-    {{-- Header Section: Judul Halaman dan Tombol Kembali --}}
+    {{-- Header Section --}}
     <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Tambah Pengguna</h2>
@@ -15,161 +15,76 @@
     </div>
 
     <form action="/users" method="POST" @submit="confirmSave($event)" x-data="{
-        // --- LOGIKA UTAMA ALPINE JS UNTUK HAK AKSES ---
-
-        // Role saat ini (default: user)
         currentRole: '{{ old('role', 'user') }}',
-        
-        // Mode Custom: Jika true, user bisa edit checkbox permission yang terkunci (mandatori)
-        isCustomMode: false, 
-        
-        // Mode Preview: Jika true, tampilkan preview sidebar
-        showSidebarPreview: false, 
-
-        // Daftar Permission Wajib per Role (Locked)
-        // Permission ini akan otomatis tercentang dan terkunci jika mode custom mati
+        isCustomMode: false,
+        showSidebarPreview: false,
+        viewMode: 'legacy', // Default view mode for permissions
         mandatory: {
-            // Super Admin - SATU-SATUNYA yang wajib punya user management
             'super_admin': ['dashboard.view', 'dashboard.stats', 'asset.view', 'asset.create', 'asset.edit', 'asset.delete', 'asset.export', 'borrow.action', 'return.verify', 'report.view', 'maintenance.view', 'chat.access', 'user.view', 'user.create', 'user.edit', 'user.delete'],
-            // Admin - TANPA user management (user.*)
             'admin': ['dashboard.view', 'dashboard.stats', 'asset.view', 'asset.create', 'asset.edit', 'asset.delete', 'asset.export', 'borrow.action', 'return.verify', 'report.view', 'maintenance.view', 'chat.access'],
-            // Teknisi - Fokus maintenance & verifikasi
             'service_center': ['dashboard.view', 'asset.view', 'maintenance.view', 'maintenance.create', 'maintenance.action', 'return.verify', 'chat.access'],
             'tek': ['dashboard.view', 'asset.view', 'maintenance.view', 'maintenance.create', 'maintenance.action', 'return.verify', 'chat.access'],
-            // Staff - Hanya akses dasar (view, request, lapor)
             'user': ['dashboard.view', 'asset.view', 'borrow.view', 'borrow.request', 'maintenance.create', 'chat.access'],
             'staff': ['dashboard.view', 'asset.view', 'borrow.view', 'borrow.request', 'maintenance.create', 'chat.access']
         },
-        // selectedPermissions: Array yang menyimpan permission yang dipilih
-        // Default kosong karena User baru
         selectedPermissions: [], 
-        
-        // Helper: Centang SEMUA box dalam satu grup
         checkAll(group) { 
-            // Ambil semua value permission dari group ini
             let els = document.querySelectorAll('.' + group);
             els.forEach(el => {
-                if(!this.selectedPermissions.includes(el.value)) {
-                    this.selectedPermissions.push(el.value);
-                }
+                if(!this.selectedPermissions.includes(el.value)) this.selectedPermissions.push(el.value);
             });
         },
-        
-        // Helper: Hapus centang SEMUA dalam satu grup (kecuali yang terkunci)
         uncheckAll(group) { 
             let els = document.querySelectorAll('.' + group);
             els.forEach(el => {
-                // Hanya hapus jika tidak terkunci
-                if(!this.isLocked(el.value)) {
-                     this.selectedPermissions = this.selectedPermissions.filter(p => p !== el.value);
-                }
+                if(!this.isLocked(el.value)) this.selectedPermissions = this.selectedPermissions.filter(p => p !== el.value);
             }); 
         },
-
-        // Cek apakah permission tertentu harus terkunci (tidak bisa di-uncheck)
         isLocked(perm) {
-            if (this.isCustomMode) return false; // Lepas lock jika mode custom
+            if (this.isCustomMode) return false;
             if (!this.currentRole) return false;
             let list = this.mandatory[this.currentRole] || [];
             return list.includes(perm);
         },
-
-        // Terapkan permission wajib berdasarkan role yang dipilih
         checkMandatory() {
             if (this.isCustomMode) return;
             let list = this.mandatory[this.currentRole] || [];
             list.forEach(perm => {
-                 if(!this.selectedPermissions.includes(perm)) {
-                     this.selectedPermissions.push(perm);
-                 }
+                 if(!this.selectedPermissions.includes(perm)) this.selectedPermissions.push(perm);
             });
         },
-
-        // Event Handler: Saat role berubah di dropdown
-        updateRole(role) {
-            // Reset custom mode saat ganti role (opsional, agar konsisten)
-            this.isCustomMode = false;
+        updateRole(role, event) {
+            this.isCustomMode = false; // Reset to standard mode on role change
             this.currentRole = role;
             this.applyPreset(role);
         },
-
-        // Logic Presets: Mengatur checkbox default selain mandatori
         applyPreset(role) {
-            // Reset semua checkbox (kosongkan array)
             this.selectedPermissions = [];
             
-            // =====================================================
-            // SUPER ADMIN - AKSES PENUH KE SEMUA FITUR
-            // =====================================================
             if (role === 'super_admin') { 
-                // Manual push array permission
-                this.checkAll('perm-asset');
-                this.checkAll('perm-borrow');
-                this.checkAll('perm-maint');
-                this.checkAll('perm-report');
-                this.checkAll('perm-user'); 
-                this.checkAll('perm-others');
-            }
-            // =====================================================
-            // ADMINISTRATOR - SEMUA KECUALI MANAJEMEN USER
-            // =====================================================
-            else if (role === 'admin') { 
-                this.checkAll('perm-asset');
-                this.checkAll('perm-borrow');
-                this.checkAll('perm-maint');
-                this.checkAll('perm-report');
-                this.checkAll('perm-others');
-                // TIDAK checkAll('perm-user')
-            }
-            // =====================================================
-            // TEKNISI - FOKUS MAINTENANCE & SERVIS
-            // =====================================================
-            else if (role === 'service_center' || role === 'tek') { 
-                // Akses dasar
-                 let permissions = [
-                    'dashboard.view', 'asset.view', 'asset.map', 'chat.access',
-                    'maintenance.view', 'maintenance.create', 'maintenance.action',
-                    'borrow.view', 'return.verify'
-                ];
+                this.checkAll('perm-asset'); this.checkAll('perm-borrow'); this.checkAll('perm-maint');
+                this.checkAll('perm-report'); this.checkAll('perm-user'); this.checkAll('perm-others');
+            } else if (role === 'admin') { 
+                this.checkAll('perm-asset'); this.checkAll('perm-borrow'); this.checkAll('perm-maint');
+                this.checkAll('perm-report'); this.checkAll('perm-others');
+            } else if (role === 'service_center' || role === 'tek') { 
+                 let permissions = ['dashboard.view', 'asset.view', 'asset.map', 'chat.access', 'maintenance.view', 'maintenance.create', 'maintenance.action', 'borrow.view', 'return.verify'];
+                this.selectedPermissions.push(...permissions);
+            } else if (role === 'user' || role === 'staff') { 
+                let permissions = ['dashboard.view', 'asset.view', 'chat.access', 'borrow.request', 'borrow.view', 'maintenance.create'];
                 this.selectedPermissions.push(...permissions);
             }
-            // =====================================================
-            // STAFF - END USER BASIC (PALING TERBATAS)
-            // =====================================================
-            else if (role === 'user' || role === 'staff') { 
-                let permissions = [
-                    'dashboard.view', 'asset.view', 'chat.access',
-                    'borrow.request', 'borrow.view', 'maintenance.create'
-                ];
-                this.selectedPermissions.push(...permissions);
-            }
-            
-            // Terakhir, pastikan mandatori tercentang
             this.checkMandatory();
         },
-        
-        // Helper baru untuk set checked all instances
-        setChecked(val) {
-             if(!this.selectedPermissions.includes(val)) {
-                this.selectedPermissions.push(val);
-             }
-        },
-
-        // Konfirmasi Ganda Sebelum Submit Form
         confirmSave(e) {
             e.preventDefault();
             if(!confirm('Apakah Anda yakin data user baru ini sudah benar?')) return;
-            if(!confirm('Konfirmasi Keamanan: Perubahan hak akses akan diterapkan untuk user baru ini. Lanjutkan?')) return;
+            // if(!confirm('Konfirmasi Keamanan: Perubahan hak akses akan diterapkan untuk user baru ini. Lanjutkan?')) return; // Single confirmation is enough for create
             e.target.submit();
         },
-        
-        // Utilitas Tanggal &  ID
-        currentDate: new Date().toISOString().slice(0, 7).replace('-', ''),
+        // Auto ID Preview
         employeeIdPreview: 'EMP-' + new Date().toISOString().slice(0, 7).replace('-', '') + '-XXX',
-        
-        // Init: Jalankan saat load halaman
         init() {
-            // Apply preset awal sesuai default role (user)
             this.applyPreset(this.currentRole);
         }
     }">
@@ -183,7 +98,7 @@
                 <div class="flex items-center justify-between mb-1">
                     <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider">Preview</h3>
                     
-                    {{-- Toggle Button --}}
+                    {{-- Toggle Button (Light Theme like Edit) --}}
                     <div class="flex items-center bg-gray-200 rounded-lg p-1 relative">
                         <div class="w-24 h-7 bg-white rounded shadow-sm absolute transition-all duration-300 ease-out"
                              :class="showSidebarPreview ? 'translate-x-24' : 'translate-x-0'"></div>
@@ -244,7 +159,7 @@
                             <div class="group">
                                 <label class="block text-sm font-bold text-gray-700 mb-1.5">Role Pengguna <span class="text-red-500">*</span></label>
                                 <div class="relative">
-                                    <select name="role" @change="updateRole($event.target.value)" class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 font-medium focus:border-indigo-600 focus:bg-white focus:ring-0 appearance-none cursor-pointer transition-all">
+                                    <select name="role" @change="updateRole($event.target.value, $event)" class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 font-medium focus:border-indigo-600 focus:bg-white focus:ring-0 appearance-none cursor-pointer transition-all">
                                         <option value="user" {{ old('role') == 'user' ? 'selected' : '' }}>Karyawan (User)</option>
                                         <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Administrator</option>
                                         <option value="service_center" {{ old('role') == 'service_center' ? 'selected' : '' }}>Teknisi (Service Center)</option>
@@ -270,18 +185,15 @@
                         </div>
                         
                         <div class="p-5 space-y-4">
-                             <div class="group">
-                                <label class="block text-xs uppercase tracking-wider font-bold text-gray-500 mb-1">Employee ID (Preview)</label>
-                                <div class="relative">
-                                    {{-- Fake input visual --}}
-                                    <div class="w-full rounded-lg border border-dashed border-gray-300 bg-gray-50 px-3 py-2.5 flex items-center justify-center">
-                                        <span class="text-gray-400 font-bold tracking-widest text-base" x-text="employeeIdPreview"></span>
-                                    </div>
-                                    <div class="mt-1.5 text-center">
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800 uppercase">
-                                            Generasi Otomatis via Sistem
-                                        </span>
-                                    </div>
+                            <div class="group">
+                                <label class="block text-xs uppercase tracking-wider font-bold text-gray-500 mb-1">Employee ID (Auto)</label>
+                                <div class="flex gap-2">
+                                    <input type="text" disabled 
+                                        class="w-full rounded-lg border border-gray-300 bg-gray-200 px-3 py-2.5 text-sm text-gray-500 font-bold cursor-not-allowed focus:ring-0 focus:border-gray-300"
+                                        :value="employeeIdPreview">
+                                </div>
+                                <div class="mt-1.5 text-xs text-gray-400">
+                                    Akan digenerate otomatis: <span class="font-mono text-indigo-500" x-text="employeeIdPreview"></span>
                                 </div>
                             </div>
 
@@ -322,10 +234,10 @@
 
             {{-- BAGIAN KANAN: Permissions (8 Kolom) --}}
             <div class="lg:col-span-8">
-                {{-- PANEL KANAN: Permission Selector (Visible for Admin & Super Admin) --}}
+                 {{-- Only show if Admin/Super Admin --}}
                 @if(in_array(auth()->user()->role?->slug, ['admin', 'super_admin']))
-                <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden h-full flex flex-col" x-data="{ viewMode: 'legacy' }">
-                    {{-- Header Panel Putih (Light Theme) --}}
+                <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden h-full flex flex-col">
+                    {{-- Header Panel --}}
                     <div class="p-5 md:p-6 bg-white border-b border-gray-200 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                         <div>
                             <h3 class="text-xl font-bold flex items-center gap-2 text-gray-800">
@@ -335,8 +247,6 @@
                                 Izin Kontrol Hak Akses
                             </h3>
                             
-                            
-                            {{-- Toggle View Mode (Legacy vs Section) --}}
                             <div class="flex items-center gap-4 mt-1 ml-9">
                                 {{-- Toggle Custom Mode --}}
                                 <label class="inline-flex items-center cursor-pointer group">
@@ -359,12 +269,12 @@
                                 </label>
 
                                 {{-- Toggle View Mode --}}
-                                <div class="flex items-center bg-gray-700 rounded-lg p-0.5"> 
-                                    <button type="button" @click="viewMode = 'legacy'" :class="viewMode === 'legacy' ? 'bg-gray-500 text-white shadow-sm' : 'text-gray-400 hover:text-white'" class="px-2 py-1 rounded-md text-[10px] font-bold transition-all flex items-center gap-1">
+                                <div class="flex items-center bg-gray-100 border border-gray-200 rounded-lg p-0.5"> 
+                                    <button type="button" @click="viewMode = 'legacy'" :class="viewMode === 'legacy' ? 'bg-white text-gray-800 shadow-sm border border-gray-200' : 'text-gray-400 hover:text-gray-600'" class="px-2 py-1 rounded-md text-[10px] font-bold transition-all flex items-center gap-1">
                                         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
                                         DEFAULT
                                     </button>
-                                    <button type="button" @click="viewMode = 'sections'" :class="viewMode === 'sections' ? 'bg-indigo-500 text-white shadow-sm' : 'text-gray-400 hover:text-white'" class="px-2 py-1 rounded-md text-[10px] font-bold transition-all flex items-center gap-1">
+                                    <button type="button" @click="viewMode = 'sections'" :class="viewMode === 'sections' ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100' : 'text-gray-400 hover:text-gray-600'" class="px-2 py-1 rounded-md text-[10px] font-bold transition-all flex items-center gap-1">
                                         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
                                         SECTIONS
                                     </button>
@@ -372,7 +282,6 @@
                             </div>
                         </div>
                         
-                        {{-- Tombol Preset Cepat --}}
                         <div class="flex flex-wrap gap-2">
                             <span class="text-[10px] font-bold uppercase tracking-wider text-gray-500 self-center mr-1">Preset:</span>
                             <button type="button" @click="applyPreset('super_admin')" class="px-2.5 py-1.5 rounded-md text-[10px] font-bold bg-amber-500 text-white hover:bg-amber-600 transition shadow-lg shadow-amber-500/30">SUPER ADMIN</button>
@@ -383,101 +292,24 @@
                     </div>
                     
                     <div class="p-5 md:p-6 flex-grow bg-gray-50">
-                        @php
-                            // 1. DEFAULT VIEW - Per Jenis Fitur (6 Groups)
+                     @php
+                            // Reuse permission arrays from edit.blade.php
                             $legacyGroups = [
-                                [
-                                    'id' => 'perm-asset',
-                                    'title' => 'Manajemen Aset',
-                                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />',
-                                    'items' => ['dashboard.stats'=>'Dashboard Gudang', 'asset.view'=>'Lihat Aset', 'asset.create'=>'Input Baru', 'asset.edit'=>'Edit Aset', 'asset.delete'=>'Hapus Aset', 'asset.export'=>'Export Excel', 'asset.map'=>'Lokasi Barang']
-                                ],
-                                [
-                                    'id' => 'perm-borrow',
-                                    'title' => 'Sirkulasi / Peminjaman',
-                                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />',
-                                    'items' => ['borrow.view'=>'History Pinjam', 'borrow.request'=>'Ajukan Pinjam', 'borrow.action'=>'Approval (ACC)', 'return.verify'=>'Verifikasi Kembali']
-                                ],
-                                [
-                                    'id' => 'perm-maint',
-                                    'title' => 'Maintenance & Servis',
-                                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />',
-                                    'items' => ['maintenance.view'=>'Jadwal Servis', 'maintenance.create'=>'Lapor Rusak', 'maintenance.action'=>'Update Status']
-                                ],
-                                [
-                                    'id' => 'perm-report',
-                                    'title' => 'Laporan & Statistik',
-                                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />',
-                                    'items' => ['report.view'=>'Akses Laporan', 'report.export'=>'Download PDF']
-                                ],
-                                [
-                                    'id' => 'perm-user',
-                                    'title' => 'Manajemen User',
-                                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />',
-                                    'items' => ['user.view'=>'Lihat Daftar', 'user.create'=>'Tambah User', 'user.edit'=>'Edit User', 'user.delete'=>'Hapus User']
-                                ],
-                                [
-                                    'id' => 'perm-others',
-                                    'title' => 'Lainnya',
-                                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />',
-                                    'items' => ['chat.access'=>'Akses Chat', 'dashboard.view'=>'Akses Dashboard']
-                                ]
+                                ['id' => 'perm-asset', 'title' => 'Manajemen Aset', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />', 'items' => ['dashboard.stats'=>'Dashboard Gudang', 'asset.view'=>'Katalog Aset', 'asset.create'=>'Input Aset Baru', 'asset.edit'=>'Mutasi Aset', 'asset.delete'=>'Hapus Aset', 'asset.export'=>'Export Excel', 'asset.map'=>'Lokasi Barang']],
+                                ['id' => 'perm-borrow', 'title' => 'Sirkulasi / Peminjaman', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />', 'items' => ['borrow.view'=>'Riwayat Peminjaman', 'borrow.request'=>'Aset Saya', 'borrow.action'=>'Approval Peminjaman', 'return.verify'=>'Verifikasi Pengembalian']],
+                                ['id' => 'perm-maint', 'title' => 'Maintenance & Servis', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />', 'items' => ['maintenance.view'=>'Jadwal Servis', 'maintenance.create'=>'Lapor Kerusakan', 'maintenance.action'=>'Perbaikan Barang']],
+                                ['id' => 'perm-report', 'title' => 'Laporan & Statistik', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />', 'items' => ['report.view'=>'Laporan & Audit', 'report.export'=>'Download PDF']],
+                                ['id' => 'perm-user', 'title' => 'Manajemen User', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />', 'items' => ['user.view'=>'Manajemen User', 'user.create'=>'Tambah User', 'user.edit'=>'Edit User', 'user.delete'=>'Hapus User']],
+                                ['id' => 'perm-others', 'title' => 'Lainnya', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />', 'items' => ['chat.access'=>'Pesan & Diskusi', 'dashboard.view'=>'Dashboard']]
                             ];
-
-                            // 2. SECTIONS VIEW - Per Section Sidebar (4 Groups)
                             $sectionGroups = [
-                                [
-                                    'id' => 'sec-master',
-                                    'title' => 'MASTER',
-                                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />',
-                                    'items' => [
-                                        'dashboard.view' => 'Dashboard',
-                                        'dashboard.stats' => 'Dashboard Gudang',
-                                        'asset.view' => 'Katalog Aset',
-                                        'asset.map' => 'Lokasi Barang'
-                                    ]
-                                ],
-                                [
-                                    'id' => 'sec-trans',
-                                    'title' => 'TRANSAKSI',
-                                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />',
-                                    'items' => [
-                                        'chat.access' => 'Pesan & Diskusi',
-                                        'asset.create' => 'Input Aset Baru',
-                                        'maintenance.create' => 'Lapor Kerusakan',
-                                        'borrow.action' => 'Approval Peminjaman',
-                                        'return.verify' => 'Verifikasi Pengembalian',
-                                        'asset.edit' => 'Mutasi Aset',
-                                        'maintenance.action' => 'Perbaikan Barang'
-                                    ]
-                                ],
-                                [
-                                    'id' => 'sec-report',
-                                    'title' => 'LAPORAN',
-                                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />',
-                                    'items' => [
-                                        'dashboard.stats' => 'Pusat Data',
-                                        'report.view' => 'Laporan & Audit',
-                                        'report.export' => 'Export Data',
-                                        'borrow.view' => 'Riwayat Peminjaman'
-                                    ]
-                                ],
-                                [
-                                    'id' => 'sec-util',
-                                    'title' => 'UTILITAS',
-                                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />',
-                                    'items' => [
-                                        'borrow.request' => 'Aset Saya',
-                                        'user.view' => 'Manajemen User',
-                                        'user.create' => 'Tambah User',
-                                        'user.edit' => 'Edit User',
-                                        'user.delete' => 'Hapus User'
-                                    ]
-                                ]
+                                ['id' => 'sec-master', 'title' => 'MASTER', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />', 'items' => ['dashboard.view'=>'Dashboard', 'dashboard.stats'=>'Dashboard Gudang', 'asset.view'=>'Katalog Aset', 'asset.map'=>'Lokasi Barang', 'asset.delete'=>'Hapus Aset', 'asset.export'=>'Export Excel']],
+                                ['id' => 'sec-trans', 'title' => 'TRANSAKSI', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />', 'items' => ['chat.access'=>'Pesan & Diskusi', 'asset.create'=>'Input Aset Baru', 'maintenance.create'=>'Lapor Kerusakan', 'borrow.action'=>'Approval Peminjaman', 'return.verify'=>'Verifikasi Pengembalian', 'asset.edit'=>'Mutasi Aset', 'maintenance.action'=>'Perbaikan Barang', 'maintenance.view'=>'Jadwal Servis']],
+                                ['id' => 'sec-report', 'title' => 'LAPORAN', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />', 'items' => ['report.view'=>'Laporan & Audit', 'report.export'=>'Download PDF', 'borrow.view'=>'Riwayat Peminjaman']],
+                                ['id' => 'sec-util', 'title' => 'UTILITAS', 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />', 'items' => ['borrow.request'=>'Aset Saya', 'user.view'=>'Manajemen User', 'user.create'=>'Tambah User', 'user.edit'=>'Edit User', 'user.delete'=>'Hapus User']]
                             ];
                         @endphp
-
-                        {{-- VIEW MODE: DEFAULT - Per Jenis Fitur --}}
+                        
                         <div x-show="viewMode === 'legacy'" class="grid grid-cols-1 md:grid-cols-2 gap-4 transition-all duration-300">
                             @foreach($legacyGroups as $group)
                             <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
@@ -506,7 +338,6 @@
                             @endforeach
                         </div>
 
-                        {{-- VIEW MODE: SECTIONS - Per Section Sidebar --}}
                         <div x-show="viewMode === 'sections'" class="grid grid-cols-1 md:grid-cols-2 gap-4 transition-all duration-300" style="display: none;">
                             @foreach($sectionGroups as $group)
                             <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
@@ -534,11 +365,12 @@
                             </div>
                             @endforeach
                         </div>
+                    </div>
 
                     <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
                         <button type="submit" class="w-full flex items-center justify-center rounded-lg bg-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-lg hover:shadow-indigo-500/30 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all duration-200">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            SIMPAN USER & PERMISSIONS
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                            BUAT USER BARU
                         </button>
                     </div>
                 </div>

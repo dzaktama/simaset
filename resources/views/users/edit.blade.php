@@ -398,19 +398,19 @@
                                     'id' => 'perm-asset',
                                     'title' => 'Manajemen Aset',
                                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />',
-                                    'items' => ['dashboard.stats'=>'Dashboard Gudang', 'asset.view'=>'Lihat Aset', 'asset.create'=>'Input Baru', 'asset.edit'=>'Edit Aset', 'asset.delete'=>'Hapus Aset', 'asset.export'=>'Export Excel', 'asset.map'=>'Lokasi Barang']
+                                    'items' => ['dashboard.stats'=>'Dashboard Gudang', 'asset.view'=>'Katalog Aset', 'asset.create'=>'Input Aset Baru', 'asset.edit'=>'Mutasi Aset', 'asset.delete'=>'Hapus Aset', 'asset.export'=>'Export Excel', 'asset.map'=>'Lokasi Barang']
                                 ],
                                 [
                                     'id' => 'perm-borrow',
                                     'title' => 'Sirkulasi / Peminjaman',
                                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />',
-                                    'items' => ['borrow.view'=>'History Pinjam', 'borrow.request'=>'Ajukan Pinjam', 'borrow.action'=>'Approval (ACC)', 'return.verify'=>'Verifikasi Kembali']
+                                    'items' => ['borrow.view'=>'Riwayat Peminjaman', 'borrow.request'=>'Aset Saya', 'borrow.action'=>'Approval Peminjaman', 'return.verify'=>'Verifikasi Pengembalian']
                                 ],
                                 [
                                     'id' => 'perm-maint',
                                     'title' => 'Maintenance & Servis',
                                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />',
-                                    'items' => ['maintenance.view'=>'Jadwal Servis', 'maintenance.create'=>'Lapor Rusak', 'maintenance.action'=>'Update Status']
+                                    'items' => ['maintenance.view'=>'Jadwal Servis', 'maintenance.create'=>'Lapor Kerusakan', 'maintenance.action'=>'Perbaikan Barang']
                                 ],
                                 [
                                     'id' => 'perm-report',
@@ -428,7 +428,7 @@
                                     'id' => 'perm-others',
                                     'title' => 'Lainnya',
                                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />',
-                                    'items' => ['chat.access'=>'Akses Chat', 'dashboard.view'=>'Akses Dashboard']
+                                    'items' => ['chat.access'=>'Pesan & Diskusi', 'dashboard.view'=>'Dashboard']
                                 ]
                             ];
 
@@ -438,49 +438,25 @@
                                     'id' => 'sec-master',
                                     'title' => 'MASTER',
                                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />',
-                                    'items' => [
-                                        'dashboard.view' => 'Dashboard',
-                                        'dashboard.stats' => 'Dashboard Gudang',
-                                        'asset.view' => 'Katalog Aset',
-                                        'asset.map' => 'Lokasi Barang'
-                                    ]
+                                    'items' => ['dashboard.view'=>'Dashboard', 'dashboard.stats'=>'Dashboard Gudang', 'asset.view'=>'Katalog Aset', 'asset.map'=>'Lokasi Barang', 'asset.delete'=>'Hapus Aset', 'asset.export'=>'Export Excel']
                                 ],
                                 [
                                     'id' => 'sec-trans',
                                     'title' => 'TRANSAKSI',
                                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />',
-                                    'items' => [
-                                        'chat.access' => 'Pesan & Diskusi',
-                                        'asset.create' => 'Input Aset Baru',
-                                        'maintenance.create' => 'Lapor Kerusakan',
-                                        'borrow.action' => 'Approval Peminjaman',
-                                        'return.verify' => 'Verifikasi Pengembalian',
-                                        'asset.edit' => 'Mutasi Aset',
-                                        'maintenance.action' => 'Perbaikan Barang'
-                                    ]
+                                    'items' => ['chat.access'=>'Pesan & Diskusi', 'asset.create'=>'Input Aset Baru', 'maintenance.create'=>'Lapor Kerusakan', 'borrow.action'=>'Approval Peminjaman', 'return.verify'=>'Verifikasi Pengembalian', 'asset.edit'=>'Mutasi Aset', 'maintenance.action'=>'Perbaikan Barang', 'maintenance.view'=>'Jadwal Servis']
                                 ],
                                 [
                                     'id' => 'sec-report',
                                     'title' => 'LAPORAN',
                                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />',
-                                    'items' => [
-                                        'dashboard.stats' => 'Pusat Data',
-                                        'report.view' => 'Laporan & Audit',
-                                        'report.export' => 'Export Data',
-                                        'borrow.view' => 'Riwayat Peminjaman'
-                                    ]
+                                    'items' => ['report.view'=>'Laporan & Audit', 'report.export'=>'Download PDF', 'borrow.view'=>'Riwayat Peminjaman']
                                 ],
                                 [
                                     'id' => 'sec-util',
                                     'title' => 'UTILITAS',
                                     'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />',
-                                    'items' => [
-                                        'borrow.request' => 'Aset Saya',
-                                        'user.view' => 'Manajemen User',
-                                        'user.create' => 'Tambah User',
-                                        'user.edit' => 'Edit User',
-                                        'user.delete' => 'Hapus User'
-                                    ]
+                                    'items' => ['borrow.request'=>'Aset Saya', 'user.view'=>'Manajemen User', 'user.create'=>'Tambah User', 'user.edit'=>'Edit User', 'user.delete'=>'Hapus User']
                                 ]
                             ];
                         @endphp

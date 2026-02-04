@@ -52,7 +52,8 @@ Route::middleware(['auth'])->group(function () {
 
     // ==========================================
     // GUIDES
-    Route::get('/guides', [App\Http\Controllers\GuideController::class, 'index'])->name('guides.index');
+    // GUIDES
+    Route::resource('guides', App\Http\Controllers\GuideController::class);
     
     // ASSETSUR CHAT (Percakapan Internal)
     // ==========================================
