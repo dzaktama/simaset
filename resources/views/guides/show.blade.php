@@ -24,7 +24,7 @@
         {{-- Decorative Blob --}}
         <div class="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-white opacity-40 blur-3xl"></div>
 
-        <div class="max-w-5xl mx-auto px-6 sm:px-8 relative z-10 text-center">
+        <div class="w-full px-6 sm:px-8 relative z-10 text-center">
             
             {{-- Breadcrumb --}}
             <a href="{{ route('guides.index') }}" class="inline-flex items-center text-sm font-semibold {{ $theme['text'] }} hover:underline mb-6 transition-all bg-white/50 px-3 py-1 rounded-full backdrop-blur-sm">
@@ -75,7 +75,7 @@
     </div>
 
     {{-- 2. STEPS SECTION --}}
-    <div class="max-w-4xl mx-auto px-6 py-12 space-y-8">
+    <div class="w-full px-6 py-12 space-y-8">
         @if($guide->steps->count() > 0)
             @foreach($guide->steps as $index => $step)
                 
@@ -102,7 +102,7 @@
                     </div>
 
                     {{-- Right Image (Visualisasi) --}}
-                     <div class="bg-gray-50 border-t md:border-t-0 md:border-l border-gray-100 md:w-1/3 min-h-[200px] flex items-center justify-center relative group overflow-hidden">
+                     <div class="bg-gray-50 border-t md:border-t-0 md:border-l border-gray-100 md:w-1/3 aspect-video flex items-center justify-center relative group overflow-hidden">
                         @if($step->image)
                              <img src="{{ Storage::url($step->image) }}" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="{{ $step->title }}">
                         @else

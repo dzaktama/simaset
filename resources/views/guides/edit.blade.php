@@ -34,20 +34,20 @@
                     <div class="space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">ID (Kode Unik)</label>
-                            <input type="text" name="id" x-model="form.id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" {{ $guide ? 'readonly' : '' }} placeholder="contoh: user-guide">
+                            <input type="text" name="id" x-model="form.id" class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-indigo-600 focus:bg-white focus:ring-0 transition-all duration-200 font-medium" {{ $guide ? 'readonly' : '' }} placeholder="contoh: user-guide">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Judul Panduan</label>
-                            <input type="text" name="title" x-model="form.title" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-lg font-bold">
+                            <input type="text" name="title" x-model="form.title" class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-lg text-gray-900 font-bold focus:border-indigo-600 focus:bg-white focus:ring-0 transition-all duration-200 placeholder-gray-400">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Deskripsi Singkat</label>
-                            <textarea name="description" x-model="form.description" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>
+                            <textarea name="description" x-model="form.description" rows="2" class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-indigo-600 focus:bg-white focus:ring-0 transition-all duration-200 font-medium"></textarea>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                              <div>
                                 <label class="block text-sm font-medium text-gray-700">Warna Tema</label>
-                                <select name="color" x-model="form.color" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <select name="color" x-model="form.color" class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-indigo-600 focus:bg-white focus:ring-0 transition-all duration-200 font-medium cursor-pointer">
                                     <option value="blue">Blue</option>
                                     <option value="indigo">Indigo</option>
                                     <option value="green">Green</option>
@@ -60,7 +60,7 @@
                             </div>
                              <div>
                                 <label class="block text-sm font-medium text-gray-700">Icon (Heroicon Name)</label>
-                                <select name="icon" x-model="form.icon" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <select name="icon" x-model="form.icon" class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-indigo-600 focus:bg-white focus:ring-0 transition-all duration-200 font-medium cursor-pointer">
                                     <option value="book-open">Book Open</option>
                                     <option value="question-mark-circle">Question Mark</option>
                                     <option value="hand-raised">Hand Raised</option>
@@ -98,19 +98,31 @@
                                     <input type="hidden" :name="'steps['+index+'][id]'" :value="step.id">
                                     
                                     <div class="space-y-3">
-                                        <input type="text" :name="'steps['+index+'][title]'" x-model="step.title" placeholder="Judul Langkah" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm font-bold">
+                                        <input type="text" :name="'steps['+index+'][title]'" x-model="step.title" placeholder="Judul Langkah" class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 font-bold focus:border-indigo-600 focus:bg-white focus:ring-0 transition-all duration-200 placeholder-gray-400">
                                         
-                                        <textarea :name="'steps['+index+'][description]'" x-model="step.description" rows="3" placeholder="Penjelasan detail..." class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>
+                                        <textarea :name="'steps['+index+'][description]'" x-model="step.description" rows="3" placeholder="Penjelasan detail..." class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-indigo-600 focus:bg-white focus:ring-0 transition-all duration-200 font-medium placeholder-gray-400"></textarea>
                                         
                                         {{-- Image Upload --}}
-                                        <div class="flex items-center gap-4">
-                                            <div class="flex-shrink-0 w-16 h-16 bg-gray-200 rounded overflow-hidden">
-                                                <img :src="step.image_preview || (step.image ? '/storage/'+step.image : null)" class="w-full h-full object-cover" x-show="step.image_preview || step.image">
-                                            </div>
-                                            <div class="flex-1">
-                                                <label class="block text-xs font-medium text-gray-500 mb-1">Upload Gambar (Optional)</label>
-                                                <input type="file" :name="'steps['+index+'][image_file]'" accept="image/*" @change="handleImageUpload($event, index)" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
-                                                <input type="hidden" :name="'steps['+index+'][image_path]'" :value="step.image"> 
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-700 mb-2">Visualisasi Langkah (16:9)</label>
+                                            <div class="flex flex-col sm:flex-row gap-4 items-start">
+                                                <div class="flex-shrink-0 w-full sm:w-48 aspect-video bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden hover:bg-gray-50 transition relative">
+                                                    <template x-if="step.image_preview || step.image">
+                                                        <img :src="step.image_preview || (step.image ? '/storage/'+step.image : null)" class="w-full h-full object-cover">
+                                                    </template>
+                                                    <template x-if="!step.image_preview && !step.image">
+                                                        <svg class="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                                    </template>
+                                                    
+                                                    {{-- File Input Overlay --}}
+                                                    <input type="file" :name="'steps['+index+'][image_file]'" accept="image/*" @change="handleImageUpload($event, index)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                                                </div>
+                                                
+                                                <div class="flex-1 text-xs text-gray-500">
+                                                     <p class="mb-2">Klik area gambar untuk mengunggah atau mengganti foto. Pastikan resolusi landscape (16:9) untuk hasil terbaik.</p>
+                                                     <input type="hidden" :name="'steps['+index+'][image_path]'" :value="step.image"> 
+                                                     <button type="button" x-show="step.image_preview || step.image" @click="step.image_preview = null; step.image = null" class="text-red-500 font-bold hover:underline">Hapus Gambar</button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

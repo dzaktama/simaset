@@ -6,6 +6,7 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Guide;
 use App\Models\GuideStep;
+use Illuminate\Support\Facades\Schema;
 
 class GuideSeeder extends Seeder
 {
@@ -15,61 +16,115 @@ class GuideSeeder extends Seeder
     public function run()
     {
         $guides = [
-            // 1. MASTER DATA & DASHBOARD
+            // 1. APPROVAL & VERIFIKASI
             [
-                'id' => 'master-data',
-                'title' => 'Master Data & Dashboard',
-                'description' => 'Panduan lengkap mengenai modul Master Data, pemahaman Dashboard, dan manajemen lokasi.',
-                'icon' => 'cube', 
-                'color' => 'blue', 
-                'roles' => ['all'],
+                'id' => 'approval-verification',
+                'title' => 'Approval & Verifikasi',
+                'description' => 'Proses persetujuan peminjaman dan verifikasi pengembalian barang.',
+                'icon' => 'clipboard-check', 
+                'color' => 'indigo', 
+                'roles' => ['admin', 'super_admin'],
                 'steps' => [
                     [
-                        'title' => 'Memahami Dashboard Utama',
-                        'description' => "Definisi: Dashboard adalah halaman ringkasan yang muncul pertama kali saat login.\n\nNavigasi: Sidebar > Master > Dashboard\n\nFungsi:\n1. Total Aset: Jumlah seluruh barang yang terdaftar.\n2. Aset Dipinjam: Jumlah barang yang sedang berada di tangan karyawan.\n3. Maintenance: Barang yang sedang dalam perbaikan.\n\nDianjurkan untuk mengecek grafik tren aset setiap bulan untuk evaluasi pengadaan.",
+                        'title' => 'Cek Request Masuk',
+                        'description' => "Navigasi: Sidebar > Transaksi > Approval Peminjaman\n\nAdmin wajib memeriksa notifikasi request peminjaman setiap hari. Pastikan stok fisik tersedia sebelum melakukan approval.\nStatus awal permohonan adalah 'PENDING'.",
                         'image' => null
                     ],
                     [
-                        'title' => 'Mengakses Katalog Aset',
-                        'description' => "Definisi: Katalog Aset adalah perpustakaan digital seluruh inventaris perusahaan.\n\nNavigasi: Sidebar > Master > Katalog Aset\n\nLangkah-langkah:\n1. Buka menu 'Katalog Aset'.\n2. Gunakan kolom 'Search' di atas untuk mencari nama barang.\n3. Gunakan filter 'Kategori' untuk menyortir jenis barang (Laptop, Furniture, Kendaraan).\n4. Klik tombol 'Detail' pada barang untuk melihat spesifikasi lengkapnya.",
+                        'title' => 'Proses Persetujuan (Approve/Reject)',
+                        'description' => "Langkah:\n1. Klik tombol 'Detail' pada item request.\n2. Review tanggal pinjam dan keperluan.\n3. Klik 'Approve' untuk menyetujui (Stok berkurang otomatis).\n4. Klik 'Reject' jika barang tidak tersedia atau alasan tidak valid.",
                         'image' => null
                     ],
                     [
-                        'title' => 'Manajemen Lokasi & Stok Opname',
-                        'description' => "Definisi: Fitur untuk melihat posisi fisik barang (Gudang/Lantai/Ruang).\n\nNavigasi: Sidebar > Master > Lokasi Barang\n\nLangkah-langkah:\n1. Pilih Menu 'Lokasi Barang'.\n2. Klik pada nama Ruangan (misal: 'Ruang Server').\n3. Sistem akan memfilter daftar aset yang HANYA ada di ruangan tersebut.\n4. Cocokkan jumlah fisik dengan data di layar (Stok Opname).",
+                        'title' => 'Verifikasi Pengembalian',
+                        'description' => "Navigasi: Sidebar > Transaksi > Verifikasi Pengembalian\n\nSaat user mengembalikan barang:\n1. Cek kondisi fisik aset (Lecet/Rusak/Baik).\n2. Cari transaksi di menu Verifikasi.\n3. Klik 'Selesaikan' untuk mengembalikan status aset menjad 'Tersedia' (Ready).",
                         'image' => null
                     ]
                 ]
             ],
 
-            // 2. MANAJEMEN TRANSAKSI ASET
+            // 2. MANAJEMEN ASET
             [
-                'id' => 'transaction-asset',
-                'title' => 'Transaksi & Sirkulasi Aset',
-                'description' => 'Prosedur operasional untuk Input, Mutasi, dan Perbaikan Aset.',
-                'icon' => 'clipboard-check', 
-                'color' => 'indigo', 
-                'roles' => ['staff', 'admin', 'super_admin'],
+                'id' => 'asset-management',
+                'title' => 'Manajemen Aset',
+                'description' => 'Input aset baru, cetak QR Code, mutasi lokasi, dan stok opname.',
+                'icon' => 'cube', 
+                'color' => 'blue', 
+                'roles' => ['admin', 'super_admin', 'staff'],
                 'steps' => [
                     [
                         'title' => 'Input Aset Baru',
-                        'description' => "Definisi: Mendaftarkan barang yang baru dibeli ke dalam sistem.\n\nNavigasi: Sidebar > Transaksi > Input Aset Baru\n\nLangkah-langkah:\n1. Isi 'Nama Aset' (Wajib).\n2. Masukkan 'Serial Number' (Unik, ada di bodi barang).\n3. Pilih 'Kategori' dan 'Lokasi Awal'.\n4. Upload Foto Kondisi Barang (Wajib).\n5. Klik 'Simpan'. QR Code akan otomatis ter-generate.",
+                        'description' => "Navigasi: Sidebar > Transaksi > Input Aset Baru\n\nIsi form lengkap:\n- Nama Aset & Serial Number (Wajib Unik)\n- Kategori & Lokasi\n- Upload Foto Kondisi Terbaru\n\nSetelah simpan, QR Code akan otomatis terbuat.",
                         'image' => null
                     ],
                     [
-                        'title' => 'Mutasi Aset (Pindah Lokasi)',
-                        'description' => "Definisi: Memindahkan hak milik/lokasi aset, misal dari Gudang Pusat ke Cabang.\n\nNavigasi: Sidebar > Transaksi > Mutasi Aset\n\nLangkah-langkah:\n1. Pilih menu 'Mutasi Aset'.\n2. Scan QR Code barang yang akan dipindah.\n3. Pilih 'Lokasi Tujuan'.\n4. Klik 'Proses Mutasi'. Status lokasi aset akan berubah real-time.",
+                        'title' => 'Cetak Label QR Code',
+                        'description' => "Navigasi: Sidebar > Master > Katalog Aset\n\n1. Buka detail aset.\n2. Klik tombol 'Cetak QR'.\n3. Print label dan tempelkan pada fisik barang untuk memudahkan scanning dan tracking.",
                         'image' => null
                     ],
                     [
-                        'title' => 'Pelaporan Kerusakan (Maintenance)',
-                        'description' => "Definisi: Melaporkan aset yang rusak agar segera diperbaiki teknisi.\n\nNavigasi: Sidebar > Transaksi > Lapor Kerusakan\n\nLangkah-langkah:\n1. Pilih menu 'Lapor Kerusakan'.\n2. Cari Aset atau Scan QR.\n3. Deskripsikan kerusakan (contoh: 'Layar bergaris', 'AC bocor').\n4. Set Prioritas (Low/Medium/High/Critical).\n5. Submit laporannya.",
+                        'title' => 'Mutasi Lokasi (Pindah Tangan)',
+                        'description' => "Navigasi: Sidebar > Transaksi > Mutasi Aset\n\nDigunakan saat memindahkan barang antar ruangan/cabang:\n1. Scan QR Barang.\n2. Pilih Lokasi Tujuan Baru.\n3. Konfirmasi Mutasi. History perpindahan akan tercatat otomatis.",
                         'image' => null
                     ]
                 ]
             ],
 
-            // 3. SIRKULASI PEMINJAMAN
+             // 3. PENGATURAN SISTEM
+             [
+                'id' => 'system-settings',
+                'title' => 'Pengaturan Sistem',
+                'description' => 'Konfigurasi aplikasi, backup database, dan log aktivitas.',
+                'icon' => 'cog', 
+                'color' => 'gray', 
+                'roles' => ['super_admin'],
+                'steps' => [
+                    [
+                        'title' => 'Konfigurasi Aplikasi',
+                        'description' => "Mengatur identitas instansi seperti Nama Perusahaan, Logo, dan Alamat yang akan tampil di Kop Surat Laporan Peminjaman.",
+                        'image' => null
+                    ],
+                    [
+                        'title' => 'Monitoring Log Aktivitas',
+                        'description' => "Navigasi: Dashboard > Log Aktivitas\n\nSuper Admin dapat memantau seluruh aktivitas user:\n- Siapa yang login?\n- Siapa yang menghapus aset?\n- Deteksi percobaan akses ilegal.\nData ini tidak bisa dihapus demi integritas audit.",
+                        'image' => null
+                    ],
+                    [
+                        'title' => 'Backup Database',
+                        'description' => "Lakukan backup rutin database MySQL melalui panel server atau menu utility (jika tersedia) untuk mencegah kehilangan data akibat kegagalan server.",
+                        'image' => null
+                    ]
+                ]
+            ],
+
+            // 4. KELOLA PENGGUNA
+            [
+                'id' => 'user-management',
+                'title' => 'Kelola Pengguna',
+                'description' => 'Tambah user baru, reset password, dan pengaturan hak akses role.',
+                'icon' => 'users', 
+                'color' => 'purple', 
+                'roles' => ['super_admin'],
+                'steps' => [
+                    [
+                        'title' => 'Menambah User Baru',
+                        'description' => "Navigasi: Sidebar > Utilitas > Tambah User\n\n1. Isi Nama, Email Kantor, dan Posisi.\n2. Pilih Role (Admin/Staff/User).\n3. Password default bisa diset oleh admin.",
+                        'image' => null
+                    ],
+                    [
+                        'title' => 'Pengaturan Hak Akses (Role)',
+                        'description' => "Navigasi: Sidebar > Utilitas > Manajemen User > Edit\n\nAnda bisa mengatur permission spesifik user:\n- Centang 'View Only' untuk auditor.\n- Berikan akses 'Full Control' untuk Kepala Bagian.\nPastikan tidak memberikan akses Administrator ke sembarang user.",
+                        'image' => null
+                    ],
+                    [
+                        'title' => 'Reset Password & Nonaktifkan Akun',
+                        'description' => "Jika karyawan resign:\n1. Buka menu Manajemen User.\n2. Edit user tersebut.\n3. Ubah status menjadi 'Non-Aktif' agar tidak bisa login lagi.\n\nJika lupa password: Klik tombol 'Reset Password' untuk generate password baru.",
+                        'image' => null
+                    ]
+                ]
+            ],
+
+            // 5. SISTEM PEMINJAMAN (END-TO-END)
             [
                 'id' => 'borrowing-flow',
                 'title' => 'Sistem Peminjaman (End-to-End)',
@@ -79,101 +134,54 @@ class GuideSeeder extends Seeder
                 'roles' => ['all'],
                 'steps' => [
                     [
-                        'title' => 'Langkah 1: Request Peminjaman (User)',
-                        'description' => "Navigasi: Sidebar > Master > Katalog Aset > Klik 'Pinjam'\n\nLangkah-langkah:\n1. User mencari barang di katalog.\n2. Klik tombol 'Pinjam' pada kartu barang.\n3. Tentukan Tanggal Pinjam & Tanggal Kembali.\n4. Tulis Keperluan (Wajib).\n5. Kirim Request. Status: 'PENDING'.",
+                        'title' => 'Request Peminjaman',
+                        'description' => "Navigasi: Katalog Aset > Pilih Barang > Klik Pinjam\n\nUser memilih barang dan menentukan durasi. Request akan masuk ke Admin untuk persetujuan.",
                         'image' => null
                     ],
                     [
-                        'title' => 'Langkah 2: Verifikasi & Approval (Admin)',
-                        'description' => "Navigasi: Sidebar > Transaksi > Approval Peminjaman\n\nLangkah-langkah:\n1. Admin menerima notifikasi.\n2. Buka menu Approval.\n3. Cek ketersediaan barang & durasi.\n4. Klik 'Approve' (Setujui) atau 'Reject' (Tolak).\n5. Jika Approve, status berubah menjadi 'DIPINJAM'.",
+                        'title' => 'Pengambilan Barang',
+                        'description' => "Setelah status 'APPROVED':\nUser menemui Admin Gudang/IT untuk mengambil fisik barang. Admin melakukan serah terima.",
                         'image' => null
                     ],
                     [
-                        'title' => 'Langkah 3: Pengembalian Barang',
-                        'description' => "Navigasi: Sidebar > Utilitas > Aset Saya\n\nLangkah-langkah:\n1. User mengembalikan barang fisik ke Admin.\n2. Admin memeriksa kondisi barang.\n3. Admin mengakses menu 'Verifikasi Pengembalian'.\n4. Klik 'Selesaikan' jika barang aman. Stok kembali ke gudang.",
+                        'title' => 'Pengembalian Tepat Waktu',
+                        'description' => "Wajib mengembalikan barang sebelum 'Due Date'. Keterlambatan akan tercatat di sistem dan mempengaruhi reputasi peminjaman user.",
                         'image' => null
                     ]
                 ]
             ],
 
-            // 4. LAPORAN & AUDIT
-            [
-                'id' => 'reporting',
-                'title' => 'Laporan & Audit',
-                'description' => 'Cara menarik data untuk kebutuhan audit dan manajemen.',
+            // 6. PANDUAN DASAR
+             [
+                'id' => 'basic-guide',
+                'title' => 'Panduan Dasar',
+                'description' => 'Pelajari navigasi dasar, pengaturan profil, dan keamanan akun Anda.',
                 'icon' => 'book-open', 
                 'color' => 'teal', 
-                'roles' => ['admin', 'super_admin'],
-                'steps' => [
-                    [
-                        'title' => 'Mengakses Pusat Data (Analytics)',
-                        'description' => "Navigasi: Sidebar > Laporan > Pusat Data\n\nFungsi:\nMenampilkan grafik depresiasi nilai aset, total pengeluaran belanja aset per tahun, dan kinerja maintenance.",
-                        'image' => null
-                    ],
-                    [
-                        'title' => 'Export Laporan (Excel/PDF)',
-                        'description' => "Navigasi: Sidebar > Laporan > Laporan & Audit\n\nLangkah-langkah:\n1. Pilih tipe laporan (Aset / Peminjaman / Maintenance).\n2. Filter Rentang Tanggal (Start Date - End Date).\n3. Pilih Format (PDF untuk cetak, Excel untuk olah data).\n4. Klik 'Download'.",
-                        'image' => null
-                    ],
-                    [
-                        'title' => 'Melacak Riwayat Barang',
-                        'description' => "Navigasi: Sidebar > Laporan > Riwayat Pindah / Riwayat Peminjaman\n\nFungsi:\nAudit trail untuk melihat 'Siapa memegang apa' pada tanggal tertentu. Berguna saat terjadi kehilangan barang.",
-                        'image' => null
-                    ]
-                ]
-            ],
-
-             // 5. UTILITY & USER
-             [
-                'id' => 'user-management',
-                'title' => 'Utilitas & Manajemen Akun',
-                'description' => 'Fitur pendukung personal dan administrasi pengguna.',
-                'icon' => 'users', 
-                'color' => 'purple', 
-                'roles' => ['all'],
-                'steps' => [
-                    [
-                        'title' => 'Chat & Diskusi Internal',
-                        'description' => "Navigasi: Sidebar > Transaksi > Pesan & Diskusi\n\nFungsi:\nMenghubungi admin atau sesama user terkait ketersediaan barang tanpa aplikasi chatting eksternal.",
-                        'image' => null
-                    ],
-                    [
-                        'title' => 'Cek Aset Tanggungan (Aset Saya)',
-                        'description' => "Navigasi: Sidebar > Utilitas > Aset Saya\n\nFungsi:\nDaftar barang yang SAAT INI sedang Anda pinjam. Harap dikembalikan sebelum tanggal jatuh tempo.",
-                        'image' => null
-                    ],
-                    [
-                        'title' => 'Kelola Pengguna (Khusus Super Admin)',
-                        'description' => "Navigasi: Sidebar > Utilitas > Manajemen User\n\nFungsi:\n1. Tambah User Baru.\n2. Reset Password User lain.\n3. Ubah Role (Jadikan Admin/Staff).\n4. Nonaktifkan akun karyawan resign.",
-                        'image' => null
-                    ]
-                ]
-            ],
-            
-            // 6. FAQ
-             [
-                'id' => 'faq-troubleshoot',
-                'title' => 'Bantuan & FAQ',
-                'description' => 'Pertanyaan umum dan kendala teknis.',
-                'icon' => 'question-mark-circle', 
-                'color' => 'gray', 
                 'roles' => ['all'],
                 'steps' => [
                      [
-                        'title' => 'Tidak Bisa Login / Lupa Password',
-                        'description' => "Solusi:\nSistem ini tidak memiliki fitur 'Forgot Password' mandiri demi keamanan korporat. Hubungi Tim IT Support untuk reset manual.",
+                        'title' => 'Login & Keamanan Akun',
+                        'description' => "Gunakan email kantor dan password yang aman. Jangan membagikan kredensial akun kepada siapapun. Logout setelah selesai menggunakan sistem di perangkat umum.",
                         'image' => null
                     ],
                     [
-                        'title' => 'Kamera Scanner Blank',
-                        'description' => "Penyebab:\nBrowser memblokir akses ke kamera.\n\nSolusi:\n1. Cek ikon gembok di URL bar.\n2. Klik 'Site Settings'.\n3. Ubah Camera menjadi 'Allow'.\n4. Refresh halaman.",
+                        'title' => 'Update Profil Saya',
+                        'description' => "Navigasi: Klik Foto Profil > Edit Profile\n\nUser wajib melengkapi data No. HP/WhatsApp yang aktif untuk keperluan notifikasi peminjaman.",
                         'image' => null
                     ]
                 ]
-            ],
+            ]
         ];
 
+        // Explicitly clear tables first
+        Schema::disableForeignKeyConstraints();
+        GuideStep::truncate();
+        Guide::truncate();
+        Schema::enableForeignKeyConstraints();
+
         foreach ($guides as $data) {
+            echo "Seeding Guide: " . $data['id'] . "\n";
             $steps = $data['steps'];
             unset($data['steps']);
 
