@@ -34,20 +34,10 @@
                 {{-- 1. Pilih Aset & Filter --}}
                 <div class="space-y-4">
                     <div class="flex flex-col md:flex-row gap-4">
-                        {{-- Filter Dropdown --}}
-                        <div class="w-full md:w-1/3">
-                            <label class="font-bold text-gray-700 mb-2 block text-sm uppercase tracking-wide">Filter Status</label>
-                            <select x-model="filterStatus" @change="updateAssetList()" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition shadow-sm bg-white">
-                                <option value="">Semua Status</option>
-                                <option value="available">Available (Tersedia)</option>
-                                <option value="deployed">Deployed (Dipakai)</option>
-                                <option value="broken">Broken (Rusak)</option>
-                                <option value="maintenance">Maintenance (Sedang Perbaikan)</option>
-                            </select>
-                        </div>
+
                         
                         {{-- Asset Select --}}
-                        <div class="w-full md:w-2/3">
+                        <div class="w-full">
                             <label class="font-bold text-gray-700 mb-2 block text-sm uppercase tracking-wide">Pilih Aset yang Bermasalah <span class="text-red-500">*</span></label>
                             <select id="assetSelect" name="asset_id" class="w-full" required>
                                 <option value="">-- Cari Serial Number / Nama Aset --</option>
@@ -240,7 +230,6 @@
     function maintenanceForm() {
         return {
             selectedAsset: null,
-            filterStatus: '',
             
             init() {
                 // 1. INIT Select2 FIRST (before populating options)
@@ -258,46 +247,23 @@
                     this.selectedAsset = id ? allAssets.find(a => a.id == id) : null;
                 });
 
-                // 2. POPULATE options after Select2 is ready
-                this.updateAssetList();
-
-                // 3. SET initial value if coming from redirect (e.g. from gear button)
-                if (initialAssetId) {
-                    this.selectedAsset = allAssets.find(a => a.id == initialAssetId);
-                    // Use setTimeout to ensure Select2 has fully rendered
-                    setTimeout(() => {
-                        $('#assetSelect').val(initialAssetId).trigger('change.select2');
-                    }, 100);
-                }
-            },
-
-            updateAssetList() {
+                // 2. POPULATE options directly from allAssets
                 const $select = $('#assetSelect');
-                const currentVal = $select.val(); // Keep selected if possible
-                
-                // Filter Logic
-                const filtered = this.filterStatus 
-                    ? allAssets.filter(a => a.status === this.filterStatus)
-                    : allAssets;
-
-                // Rebuild Options (Keep the first empty option)
                 $select.empty().append('<option value="">-- Cari Serial Number / Nama Aset --</option>');
                 
-                filtered.forEach(asset => {
-                    // Create option manually to ensure Select2 picks it up
+                allAssets.forEach(asset => {
                     const optionText = `${asset.serial_number} - ${asset.name}`;
-                    // Check if this is the initial asset we need to select
                     const isSelected = (asset.id == initialAssetId);
                     const option = new Option(optionText, asset.id, isSelected, isSelected);
                     $select.append(option);
                 });
 
-                // Refresh Select2 UI to show new options
-                $select.trigger('change.select2');
-                
-                // Restore previous selection if still valid
-                if (currentVal && filtered.find(a => a.id == currentVal)) {
-                    $select.val(currentVal).trigger('change.select2');
+                // 3. SET initial value if coming from redirect
+                if (initialAssetId) {
+                    this.selectedAsset = allAssets.find(a => a.id == initialAssetId);
+                    setTimeout(() => {
+                        $select.val(initialAssetId).trigger('change.select2');
+                    }, 100);
                 }
             }
         }

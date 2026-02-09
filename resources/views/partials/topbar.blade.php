@@ -16,21 +16,32 @@
 
         {{-- Middle: Chrome-like Tabs (Scrollable & Full Height) --}}
         <div class="flex-1 overflow-hidden h-full flex items-end" x-data="tabSystem()" x-init="initTabs()" @tab-update.window="handleTabUpdate($event.detail)">
-            <div class="flex items-end w-full overflow-x-auto custom-scrollbar md:pb-0 scroll-smooth h-full pt-2 px-1 gap-1">
+            <div class="flex items-end w-full overflow-x-auto scrollbar-hide scroll-smooth h-full pt-2 px-1 gap-1">
                 
                 <template x-for="(tab, index) in tabs" :key="tab.url">
                     <div 
-                        class="group relative flex items-center gap-1.5 px-3 min-w-[120px] max-w-[180px] rounded-t-lg transition-all duration-100 cursor-pointer select-none border-t border-r border-l h-full mt-auto pt-2.5"
-                        :class="currentUrl === tab.url ? 'bg-white text-indigo-700 border-gray-300 shadow-[0_-2px_5px_rgba(0,0,0,0.02)] z-10 font-bold' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100 hover:text-gray-700'"
+                        draggable="true"
+                        @dragstart="dragStart($event, index)"
+                        @dragenter="dragEnter($event, index)"
+                        @dragend="dragEnd()"
+                        class="group relative flex items-center gap-1.5 px-3 min-w-[150px] max-w-[200px] shrink-0 rounded-t-lg transition-all duration-100 cursor-pointer select-none border-t border-r border-l h-full mt-auto pt-2.5"
+                        :class="{
+                            'bg-white text-indigo-700 border-gray-300 shadow-[0_-2px_5px_rgba(0,0,0,0.02)] z-10 font-bold': currentUrl === tab.url,
+                            'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100 hover:text-gray-700': currentUrl !== tab.url,
+                            'opacity-50 scale-95': draggingIndex === index
+                        }"
                         @click="navigateTab(tab.url)"
                     >
+                        {{-- Drag Handle / Number --}}
+                        <span class="absolute top-0.5 right-1.5 text-[8px] font-mono text-gray-400 opacity-60 pointer-events-none" x-text="index + 1"></span>
+
                         {{-- Icon (Dynamic HTML) --}}
                         <div class="shrink-0 w-3.5 h-3.5 flex items-center justify-center" :class="currentUrl === tab.url ? 'text-indigo-600' : 'text-gray-400'" x-html="tab.icon"></div>
                         
-                        <span class="truncate text-xs leading-tight" x-text="tab.title"></span>
+                        <span class="truncate text-xs leading-tight block w-full pr-3" x-text="tab.title"></span>
 
                         {{-- Close Btn --}}
-                        <button @click.stop="closeTab(index)" class="ml-auto p-0.5 rounded text-gray-400 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 transition-all">
+                        <button @click.stop="closeTab(index)" class="ml-auto p-0.5 rounded text-gray-400 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 transition-all shrink-0">
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                         </button>
                         
@@ -61,6 +72,18 @@
         </div>
     </div>
 </header>
+
+<style>
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+    /* Hide scrollbar for IE, Edge and Firefox */
+    .scrollbar-hide {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+    }
+</style>
 
 <script>
     // Update Clock Script
@@ -97,6 +120,7 @@
         return {
             tabs: JSON.parse(localStorage.getItem(storageKey)) || [],
             currentUrl: window.location.href,
+            draggingIndex: null, // Track dragged item
             
             initTabs() {
                 this.$nextTick(() => {
@@ -129,8 +153,8 @@
             addTab(title, url) {
                 if (this.tabs.some(t => t.url === url)) return;
                 
-                // Limit tabs
-                if (this.tabs.length >= 8) this.tabs.shift();
+                // NO LIMIT: Removed tab limit check
+                // if (this.tabs.length >= 8) this.tabs.shift();
 
                 this.tabs.push({ 
                     title: title, 
@@ -164,9 +188,33 @@
                 }
             },
 
+            dragStart(event, index) {
+                this.draggingIndex = index;
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.dropEffect = 'move';
+                event.dataTransfer.setData('text/plain', index);
+            },
+
+            dragEnter(event, targetIndex) {
+                if (this.draggingIndex !== null && this.draggingIndex !== targetIndex) {
+                    // Remove from old position
+                    const item = this.tabs.splice(this.draggingIndex, 1)[0];
+                    // Insert at new position
+                    this.tabs.splice(targetIndex, 0, item);
+                    // Update index to follow the item
+                    this.draggingIndex = targetIndex;
+                    this.saveTabs();
+                }
+            },
+
+            dragEnd() {
+                this.draggingIndex = null;
+                this.saveTabs();
+            },
+
             saveTabs() {
-                // Limit to 8 tabs
-                if(this.tabs.length > 8) this.tabs.shift();
+                // NO LIMIT: Removed tab limit shift
+                // if(this.tabs.length > 8) this.tabs.shift();
                 try {
                     localStorage.setItem(storageKey, JSON.stringify(this.tabs));
                 } catch(e) { console.error('Tab save failed', e); }

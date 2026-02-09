@@ -28,8 +28,8 @@
             // Admin - TANPA user management (user.*)
             'admin': ['dashboard.view', 'dashboard.stats', 'asset.view', 'asset.create', 'asset.edit', 'asset.delete', 'asset.export', 'borrow.action', 'return.verify', 'report.view', 'maintenance.view', 'chat.access'],
             // Teknisi - Fokus maintenance & verifikasi
-            'service_center': ['dashboard.view', 'asset.view', 'maintenance.view', 'maintenance.create', 'maintenance.action', 'return.verify', 'chat.access'],
-            'tek': ['dashboard.view', 'asset.view', 'maintenance.view', 'maintenance.create', 'maintenance.action', 'return.verify', 'chat.access'],
+            'service_center': ['dashboard.view', 'dashboard.stats', 'asset.view', 'asset.edit', 'maintenance.view', 'maintenance.create', 'maintenance.action', 'return.verify', 'chat.access', 'borrow.request'],
+            'tek': ['dashboard.view', 'dashboard.stats', 'asset.view', 'asset.edit', 'maintenance.view', 'maintenance.create', 'maintenance.action', 'return.verify', 'chat.access', 'borrow.request'],
             // Staff - Hanya akses dasar (view, request, lapor)
             'user': ['dashboard.view', 'asset.view', 'borrow.view', 'borrow.request', 'maintenance.create', 'chat.access'],
             'staff': ['dashboard.view', 'asset.view', 'borrow.view', 'borrow.request', 'maintenance.create', 'chat.access']
@@ -116,9 +116,10 @@
             else if (role === 'service_center' || role === 'tek') { 
                 // Akses dasar & Maintenance
                 let permissions = [
-                    'dashboard.view', 'asset.view', 'asset.map', 'chat.access',
+                    'dashboard.view', 'dashboard.stats', 'asset.view', 'asset.map', 'chat.access',
                     'maintenance.view', 'maintenance.create', 'maintenance.action',
-                    'borrow.view', 'return.verify'
+                    'borrow.view', 'borrow.request', 'return.verify',
+                    'asset.edit' // Mutasi Aset
                 ];
                 this.selectedPermissions.push(...permissions);
             }

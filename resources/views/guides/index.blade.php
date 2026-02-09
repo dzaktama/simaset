@@ -1,5 +1,7 @@
 @extends('layouts.main')
 
+@section('title', 'Pusat Bantuan')
+
 @section('container')
 <div class="min-h-screen bg-gray-50/50 p-6 sm:p-8">
     {{-- Header Section --}}

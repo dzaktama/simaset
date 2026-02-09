@@ -40,7 +40,11 @@ class GuideController extends Controller
     // CREATE (Super Admin Only)
     public function create()
     {
-        return view('guides.edit', ['guide' => null]);
+        $roles = \App\Models\Role::all();
+        return view('guides.edit', [
+            'guide' => null,
+            'roles' => $roles
+        ]);
     }
 
     public function store(Request $request)
@@ -51,6 +55,7 @@ class GuideController extends Controller
             'icon' => 'required',
             'color' => 'required',
             'steps.*.title' => 'required',
+            'roles' => 'array' // Validasi array
         ]);
 
         $guide = Guide::create([
@@ -59,7 +64,7 @@ class GuideController extends Controller
             'description' => $request->description,
             'icon' => $request->icon,
             'color' => $request->color,
-            'roles' => ['all'], // Default to all for simplicity now, or add input later
+            'roles' => $request->roles ?? ['all'], // Default to all if empty
         ]);
 
         if ($request->has('steps')) {
@@ -86,7 +91,11 @@ class GuideController extends Controller
     public function edit($id)
     {
         $guide = Guide::with('steps')->findOrFail($id);
-        return view('guides.edit', ['guide' => $guide]);
+        $roles = \App\Models\Role::all();
+        return view('guides.edit', [
+            'guide' => $guide,
+            'roles' => $roles
+        ]);
     }
 
     public function update(Request $request, $id)
@@ -98,18 +107,16 @@ class GuideController extends Controller
             'description' => $request->description,
             'icon' => $request->icon,
             'color' => $request->color,
+            'roles' => $request->roles ?? ['all'],
         ]);
 
         // Sync Steps
-        // Strategy: Delete all old steps and re-create (simplest for reordering)
-        // BUT need to preserve images.
-        // Better: Update existing ones, delete removed ones.
-        
         $existingStepIds = $guide->steps->pluck('id')->toArray();
         $submittedStepIds = [];
 
         if ($request->has('steps')) {
             foreach ($request->steps as $index => $stepData) {
+                // ... (Existing Step Logic preserved) ...
                 $stepId = $stepData['id'] ?? null;
                 $imagePath = $stepData['image_path'] ?? null; // Old path
 
@@ -136,7 +143,7 @@ class GuideController extends Controller
                         'image' => $imagePath,
                         'order_index' => $index
                     ]);
-                    $submittedStepIds[] = $newStep->id; // Not really needed for cleanup but consistent
+                    $submittedStepIds[] = $newStep->id; 
                 }
             }
         }
@@ -153,5 +160,13 @@ class GuideController extends Controller
     {
         Guide::findOrFail($id)->delete();
         return redirect()->route('guides.index')->with('success', 'Panduan berhasil dihapus');
+    }
+
+    // CHECK SLUG (AJAX Validation)
+    public function checkSlug(Request $request)
+    {
+        $id = $request->query('id');
+        $exists = Guide::where('id', $id)->exists();
+        return response()->json(['exists' => $exists]);
     }
 }

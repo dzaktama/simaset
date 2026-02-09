@@ -135,7 +135,6 @@
                                 <div class="relative">
                                     <select name="status" x-model="status" class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 font-medium focus:border-indigo-600 focus:bg-white focus:ring-0 appearance-none cursor-pointer transition-all">
                                         <option value="available" class="text-green-600 font-bold">Available (Siap Pakai)</option>
-                                        <option value="deployed" class="text-blue-600 font-bold">Deployed (Dipakai)</option>
                                         <option value="maintenance" class="text-yellow-600 font-bold">Maintenance (Perbaikan)</option>
                                         <option value="broken" class="text-red-600 font-bold">Broken (Rusak)</option>
                                         <option value="lost" class="text-gray-600 font-bold">Lost (Hilang)</option>
@@ -147,29 +146,7 @@
                             </div>
                         </div>
 
-                         {{-- Data Peminjam (Conditional) --}}
-                         <div x-show="status === 'deployed'" x-transition class="bg-blue-50 rounded-xl p-5 border border-blue-100">
-                            <h4 class="text-xs font-extrabold text-blue-900 mb-3 uppercase tracking-wider flex items-center">
-                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                                Data Peminjam
-                            </h4>
-                            <div class="space-y-3">
-                                <div>
-                                    <label class="block text-sm font-bold text-blue-900 mb-1">Nama Peminjam</label>
-                                    <div class="relative">
-                                        <select name="user_id" class="w-full rounded-lg border border-blue-200 bg-white px-3 py-2.5 text-sm text-blue-900 font-medium focus:border-blue-600 focus:ring-0 cursor-pointer">
-                                            <option value="">-- Pilih User --</option>
-                                            @foreach($users as $user)
-                                                <option value="{{ $user->id }}" {{ $asset->user_id == $user->id ? 'selected' : '' }}>{{ $user->name }} - {{ $user->employee_id ?? 'No ID' }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <p class="text-[10px] text-blue-600 mt-1.5 leading-tight">
-                                        *Untuk mengubah durasi, gunakan fitur <b>Perpanjang</b> di Detail Peminjaman.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+
 
                         {{-- Deskripsi --}}
                         <div class="group">
@@ -264,31 +241,25 @@
                         </div>
 
                         {{-- Lokasi (Hanya muncul jika NOT deployed) --}}
-                        <div x-show="status !== 'deployed'" x-transition class="group">
+                        {{-- Lokasi (Dihapus: Pindah via Mutasi) --}}
+                        {{-- <div class="group">
                             <label class="block text-sm font-bold text-gray-700 mb-1.5">Lokasi Penyimpanan</label>
+                            <p class="text-xs text-gray-500 italic mb-2">Untuk memindahkan aset, gunakan menu <b>Mutasi Aset</b>.</p>
                             <div class="grid grid-cols-2 gap-3">
-                                <select name="lorong" class="block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium focus:border-indigo-600 focus:ring-0 transition-all">
-                                    <option value="">- Area -</option>
-                                    @foreach(range('A', 'Z') as $char)
-                                        <option value="Area {{ $char }}" {{ old('lorong', $asset->lorong) == "Area $char" ? 'selected' : '' }}>Area {{ $char }}</option>
-                                    @endforeach
-                                </select>
-                                <select name="rak" class="block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium focus:border-indigo-600 focus:ring-0 transition-all">
-                                    <option value="">- Rak -</option>
-                                    @for($i = 1; $i <= 50; $i++)
-                                        @php $rakCode = 'R-' . str_pad($i, 2, '0', STR_PAD_LEFT); @endphp
-                                        <option value="{{ $rakCode }}" {{ old('rak', $asset->rak) == $rakCode ? 'selected' : '' }}>{{ $rakCode }}</option>
-                                    @endfor
-                                </select>
+                                <input type="text" value="{{ $asset->lorong }}" class="block w-full rounded-lg border border-gray-200 bg-gray-100 px-3 py-2.5 text-sm font-medium cursor-not-allowed" readonly>
+                                <input type="text" value="{{ $asset->rak }}" class="block w-full rounded-lg border border-gray-200 bg-gray-100 px-3 py-2.5 text-sm font-medium cursor-not-allowed" readonly>
                             </div>
-                        </div>
-
-                         {{-- Info Lokasi Deployed --}}
-                         <div x-show="status === 'deployed'" class="bg-gray-100 p-3 rounded-lg border border-dashed border-gray-300 text-center">
-                            <p class="text-xs text-gray-500 font-semibold">
-                                📍 Aset sedang digunakan (Deployed).<br>Lokasi fisik mengikuti peminjam.
+                        </div> --}}
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                            <p class="text-xs text-yellow-800 font-medium">
+                                <span class="font-bold">Info Lokasi:</span> {{ $asset->location }} ({{ $asset->lorong }} - {{ $asset->rak }})
+                            </p>
+                            <p class="text-[10px] text-yellow-600 mt-1">
+                                Ubah lokasi melalui menu <a href="{{ route('warehouse.createMove', $asset->id) }}" class="underline font-bold hover:text-yellow-900">Mutasi Aset</a>.
                             </p>
                         </div>
+
+
                     </div>
                 </div>
 
@@ -364,17 +335,5 @@
     </form>
 </div>
 
-<script>
-    function toggleUserField() {
-        const status = document.getElementById('status').value;
-        const userField = document.getElementById('user_field');
-        if (status === 'deployed') {
-            userField.classList.remove('hidden');
-        } else {
-            userField.classList.add('hidden');
-        }
-    }
-    // Run on create (in case editing a deployed asset)
-    document.addEventListener('DOMContentLoaded', toggleUserField);
-</script>
+
 @endsection

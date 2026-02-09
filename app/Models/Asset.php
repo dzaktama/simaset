@@ -14,6 +14,7 @@ class Asset extends Model
     protected $fillable = [
         'name',
         'serial_number',
+        'category', // Added category to fillable
         'status',
         'description',
         'image',

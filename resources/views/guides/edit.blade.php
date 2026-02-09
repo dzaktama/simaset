@@ -1,7 +1,9 @@
 @extends('layouts.main')
 
+@section('title', $guide ? 'Edit Panduan' : 'Buat Panduan Baru')
+
 @section('container')
-<div class="min-h-screen bg-gray-100 p-6" x-data="guideEditor({{ json_encode($guide ?? ['steps' => []]) }})">
+<div class="min-h-screen bg-gray-100 p-6" x-data="guideEditor({{ json_encode($guide ?? ['steps' => []]) }}, {{ $roles->pluck('slug') }})">
     
     {{-- Top Bar --}}
     <div class="flex justify-between items-center mb-6">
@@ -34,7 +36,11 @@
                     <div class="space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">ID (Kode Unik)</label>
-                            <input type="text" name="id" x-model="form.id" class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-indigo-600 focus:bg-white focus:ring-0 transition-all duration-200 font-medium" {{ $guide ? 'readonly' : '' }} placeholder="contoh: user-guide">
+                            <input type="text" name="id" x-model="form.id" @input="handleIdInput()" class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 focus:border-indigo-600 focus:bg-white focus:ring-0 transition-all duration-200 font-medium" 
+                                :class="{'border-red-500 focus:border-red-500 bg-red-50 text-red-900': idError}"
+                                {{ $guide ? 'readonly' : '' }} placeholder="contoh: user-guide">
+                            <p x-show="idError" x-text="idError" class="mt-1 text-sm text-red-600 font-bold animate-pulse"></p>
+                            <p x-show="!idError && form.id && !isEditMode" class="mt-1 text-xs text-green-600 font-bold" x-text="'ID tersedia: ' + form.id"></p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Judul Panduan</label>
@@ -71,6 +77,33 @@
                                     <option value="cog">Cog (Settings)</option>
                                 </select>
                             </div>
+                        </div>
+
+                         {{-- Role Selection (New) --}}
+                         <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Target Audience (Role)</label>
+                            <div class="grid grid-cols-2 gap-2 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                {{-- Option: All Roles --}}
+                                <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg border transition-all duration-200 shadow-sm"
+                                    :class="form.roles.includes('all') ? 'bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500' : 'bg-white border-gray-200 hover:border-indigo-300'">
+                                    <input type="checkbox" value="all" x-model="form.roles" @change="toggleAllRoles()" class="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                                    <span class="text-sm font-bold" :class="form.roles.includes('all') ? 'text-indigo-700' : 'text-gray-700'">Semua Role</span>
+                                </label>
+                                
+                                @foreach($roles as $role)
+                                <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg border transition-all duration-200 shadow-sm"
+                                    :class="form.roles.includes('{{ $role->slug }}') ? 'bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500' : 'bg-white border-gray-200 hover:border-indigo-300'">
+                                    <input type="checkbox" value="{{ $role->slug }}" x-model="form.roles" @change="checkRoleLogic()" class="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                                    <span class="text-sm" :class="form.roles.includes('{{ $role->slug }}') ? 'text-indigo-700 font-bold' : 'text-gray-700'">{{ $role->name }}</span>
+                                </label>
+                                @endforeach
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Pilih "Semua Role" agar panduan terlihat oleh semua user, atau pilih spesifik.</p>
+                            
+                            {{-- Hidden inputs for array submission because x-model handles UI but we need correct name structure for PHP array --}}
+                            <template x-for="role in form.roles" :key="role">
+                                <input type="hidden" name="roles[]" :value="role">
+                            </template>
                         </div>
                     </div>
 
@@ -223,7 +256,9 @@
 </div>
 
 <script>
-    function guideEditor(initialData) {
+    function guideEditor(initialData, availableRoles = []) {
+        const isEditMode = !!initialData.id;
+
         return {
             form: {
                 id: initialData.id || '',
@@ -231,9 +266,89 @@
                 description: initialData.description || '',
                 color: initialData.color || 'blue',
                 icon: initialData.icon || 'book-open',
+                roles: (() => {
+                    let r = initialData.roles || ['all'];
+                    if (r.includes('all')) {
+                        return [...new Set(['all', ...availableRoles])];
+                    }
+                    return r;
+                })(),
                 steps: initialData.steps ? initialData.steps.map(s => ({...s, image_preview: null})) : []
             },
             
+            allRoleSlugs: availableRoles,
+            isEditMode: isEditMode,
+            
+            // ID Validation State
+            idError: null,
+            isCheckingId: false,
+            isAutoGeneratingId: true,
+
+            init() {
+                // Auto-generate ID from Title (Create Mode Only)
+                this.$watch('form.title', (value) => {
+                    if (!this.isEditMode && this.isAutoGeneratingId) {
+                        this.form.id = this.slugify(value);
+                        this.checkIdAvailability();
+                    }
+                });
+            },
+
+            slugify(text) {
+                return text.toString().toLowerCase()
+                    .replace(/\s+/g, '-')           // Replace spaces with -
+                    .replace(/[^\w\-]+/g, '')       // Remove all non-word chars
+                    .replace(/\-\-+/g, '-')         // Replace multiple - with single -
+                    .replace(/^-+/, '')             // Trim - from start
+                    .replace(/-+$/, '');            // Trim - from end
+            },
+
+            handleIdInput() {
+                this.isAutoGeneratingId = false; // User manually edited, stop auto-gen
+                this.form.id = this.slugify(this.form.id); // Valid chars only
+                this.checkIdAvailability();
+            },
+
+            async checkIdAvailability() {
+               if (this.isEditMode || !this.form.id) return;
+
+               this.isCheckingId = true;
+               this.idError = null;
+
+               try {
+                   const res = await fetch(`{{ route('guides.checkSlug') }}?id=${this.form.id}`);
+                   const data = await res.json();
+                   if (data.exists) {
+                       this.idError = 'ID ini sudah digunakan! Harap ganti judul atau edit ID secara manual.';
+                   }
+               } catch (e) {
+                   console.error('Validation error', e);
+               } finally {
+                   this.isCheckingId = false;
+               }
+            },
+
+            // Handle "Semua Role" Click
+            toggleAllRoles() {
+                if (this.form.roles.includes('all')) {
+                    this.form.roles = ['all', ...this.allRoleSlugs];
+                } else {
+                    this.form.roles = [];
+                }
+            },
+
+            // Handle Individual Role Click
+            checkRoleLogic() {
+                let currentRoles = this.form.roles.filter(r => r !== 'all');
+                if (currentRoles.length === this.allRoleSlugs.length) {
+                    if (!this.form.roles.includes('all')) {
+                        this.form.roles.push('all');
+                    }
+                } else {
+                    this.form.roles = currentRoles;
+                }
+            },
+
             addStep() {
                 this.form.steps.push({
                     id: null,

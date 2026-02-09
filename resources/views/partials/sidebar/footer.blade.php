@@ -53,7 +53,7 @@
     </div>
     
     <div class="px-3 pb-2 flex justify-between items-center text-[9px] text-gray-400">
-         <span>SIMASET v1.0.0 by M. Dzaky Wiratama</span>
+         <span>SIMASET v1.0.0 by <a href="https://dzaktama.vercel.app">M. Dzaky Wiratama</a></span>
          <span>&copy; {{ date('Y') }}</span>
     </div>
 </div>

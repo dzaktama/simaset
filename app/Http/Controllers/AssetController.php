@@ -125,7 +125,6 @@ class AssetController extends Controller
          $listMaintenance = \App\Models\Maintenance::with(['asset', 'user'])->latest()->take(5)->get();
 
          return view('home', [
-            // 'dashboard_type' removed
             'title' => 'Dashboard Service Center',
             'stats' => [ 
                 'total' => $totalRepairs,
@@ -461,20 +460,14 @@ class AssetController extends Controller
             'category' => 'required',
             'status' => 'required',
             'quantity' => 'required|integer|min:0',
-            'user_id' => 'nullable|exists:users,id',
-            'manual_quantity' => 'nullable|integer|min:1',
-            'assigned_date' => 'nullable|date', 
-            'return_date' => 'nullable|date',   
-            'assigned_date' => 'nullable|date', 
-            'return_date' => 'nullable|date',   
             'purchase_date' => 'nullable|date',
             'purchase_price' => 'nullable|numeric|min:0', // Baru
             'useful_life_years' => 'nullable|integer|min:1', // Baru
             'residual_value' => 'nullable|numeric|min:0', // Baru
             'description' => 'nullable',
             'condition_notes' => 'nullable',
-            'rak' => 'nullable|string', 
-            'lorong' => 'nullable|string', 
+            'condition_notes' => 'nullable',
+            // 'rak' & 'lorong' dihapus agar tidak bisa diubah via edit (harus mutasi) 
             'image' => 'nullable|image|file|max:2048',
             'image2' => 'nullable|image|file|max:2048',
             'image3' => 'nullable|image|file|max:2048',
@@ -499,63 +492,18 @@ class AssetController extends Controller
             $requestFiles
         );
 
-        $lorong = $request->lorong ?? '-';
-        $rak = $request->rak ?? '-';
         
-        // LOGIC BARU: Jika status 'deployed', lokasi wajib kosong (karena barang di user)
-        if ($validatedData['status'] === 'deployed') {
-            $validatedData['lorong'] = null;
-            $validatedData['rak'] = null;
-            $validatedData['location'] = 'Deployed / Di User'; // Marker lokasi
-        } else {
-            $validatedData['location'] = "$lorong - Rak $rak";
-        }
-
-        // HAPUS LOGIC INPUT TANGGAL (Pindahkan ke sistem Peminjaman/Borrowing)
-        // Kita tidak lagi mengupdate assigned_date/return_date dari menu Edit Aset
-        // agar tidak menimpa data transaksi peminjaman (AssetRequest) yang berjalan.
-        unset($validatedData['assigned_date']);
-        unset($validatedData['return_date']);
+        // HAPUS LOGIC MANUAL ASSIGNMENT (Sesuai Request: Deployed via Peminjaman Only)
+        // Logic splitStock dan status assignment dihapus.
 
         if ($validatedData['status'] === 'available') {
             $validatedData['user_id'] = null;
-            // Reset tanggal di tabel assets jika tersedia kembali
             $validatedData['assigned_date'] = null;
             $validatedData['return_date'] = null;
         }
 
-        if ($request->user_id && $request->manual_quantity && $request->manual_quantity < $asset->quantity) {
-            try {
-                $this->assetService->splitStock(
-                    $asset,
-                    $request->manual_quantity,
-                    $request->user_id,
-                    $validatedData['assigned_date'] ?? null,
-                    $validatedData['return_date'] ?? null,
-                    auth()->id()
-                );
+        // Logic status mismatch
 
-                return redirect('/assets')->with('success', 
-                    "Berhasil! Stok dipecah: " . ($asset->quantity - $request->manual_quantity) . 
-                    " di Gudang, " . $request->manual_quantity . " dipinjam User."
-                );
-            } catch (\Exception $e) {
-                return back()->with('error', 'Gagal split stock: ' . $e->getMessage());
-            }
-        }
-
-        if ($validatedData['status'] !== 'available') {
-            if ($validatedData['user_id'] && $validatedData['status'] === 'available') {
-                $validatedData['status'] = 'deployed';
-            }
-            if (!$validatedData['user_id'] && $validatedData['status'] === 'deployed') {
-                $validatedData['status'] = 'available';
-            }
-        }
-
-        if ($validatedData['status'] === 'deployed' && empty($validatedData['assigned_date'])) {
-            $validatedData['assigned_date'] = now();
-        }
 
         if ($asset->status !== $validatedData['status']) {
             AssetHistory::create([

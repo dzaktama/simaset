@@ -1,5 +1,7 @@
 @extends('layouts.main')
 
+@section('title', 'Lokasi Barang')
+
 @section('container')
 <div class="w-full mx-auto px-4 py-8">
     {{-- Header --}}
@@ -106,8 +108,7 @@
                 <button onclick="closeDetailModal()" class="text-gray-400 hover:text-gray-600 transition">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
-            </div>
-
+            </div
             <div class="bg-white px-6 py-6 overflow-y-auto max-h-[70vh]">
                 <div class="flex flex-col md:flex-row gap-8">
                     {{-- KIRI: Foto & QR --}}
@@ -264,7 +265,7 @@
                                 </button>
                                 
                                 {{-- Tombol Edit/Pindah (Shortcut) --}}
-                                <a href="/assets/${item.id}/edit" class="p-1.5 bg-yellow-50 text-yellow-600 rounded hover:bg-yellow-100 transition text-xs font-bold border border-yellow-200" title="Pindah Rak / Edit">
+                                <a href="/warehouse/move/${item.id}" class="p-1.5 bg-yellow-50 text-yellow-600 rounded hover:bg-yellow-100 transition text-xs font-bold border border-yellow-200" title="Proses Mutasi (Pindah Rak)">
                                     Pindah
                                 </a>
                             </div>

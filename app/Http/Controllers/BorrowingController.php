@@ -409,7 +409,10 @@ class BorrowingController extends Controller
             // [DATABASE] Kembalikan Stok Aset
             $borrowing->asset->increment('quantity', $borrowing->quantity ?? 1);
             
-            if($borrowing->asset->status == 'deployed' && $borrowing->asset->quantity > 0) {
+            // [LOGIC] Update Status Aset berdasarkan Kondisi
+            if (in_array($request->condition, ['minor_damage', 'major_damage'])) {
+                $borrowing->asset->update(['status' => 'broken']);
+            } elseif ($borrowing->asset->status == 'deployed' && $borrowing->asset->quantity > 0) {
                 $borrowing->asset->update(['status' => 'available']);
             }
 

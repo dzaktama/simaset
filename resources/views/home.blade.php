@@ -1,5 +1,7 @@
 @extends('layouts.main')
 
+@section('title', $title ?? 'Dashboard')
+
 @section('container')
 <div class="mx-auto w-full px-4 py-8">
     

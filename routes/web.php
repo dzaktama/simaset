@@ -53,6 +53,7 @@ Route::middleware(['auth'])->group(function () {
     // ==========================================
     // GUIDES
     // GUIDES
+    Route::get('guides/check-slug', [App\Http\Controllers\GuideController::class, 'checkSlug'])->name('guides.checkSlug');
     Route::resource('guides', App\Http\Controllers\GuideController::class);
     
     // ASSETSUR CHAT (Percakapan Internal)

@@ -97,9 +97,37 @@ class MaintenanceController extends Controller
      */
     public function show(Maintenance $maintenance)
     {
+        // DATA PREPARATION FOR RACK PICKER MODAL
+        $assetsData = \App\Models\Asset::orderBy('name')
+            ->get()
+            ->map(function($asset) {
+                return [
+                    'id' => $asset->id,
+                    'name' => $asset->name,
+                    'serial_number' => $asset->serial_number,
+                    'location' => $asset->location ?? 'Belum ada lokasi',
+                    'image' => $asset->image ? asset('storage/' . $asset->image) : null,
+                    'category' => $asset->category,
+                    'brand' => $asset->brand,
+                    'initial' => substr($asset->name, 0, 2),
+                    'status' => $asset->status,
+                    'lorong' => $asset->lorong,
+                    'rak' => $asset->rak
+                ];
+            });
+
+        $racksArray = [];
+        for ($i = 1; $i <= 50; $i++) {
+            $racksArray[] = 'R-' . str_pad($i, 2, '0', STR_PAD_LEFT);
+        }
+        $areasArray = range('A', 'Z');
+
         return view('maintenances.show', [
             'title' => 'Detail Perbaikan',
-            'maintenance' => $maintenance->load(['asset.holder', 'user'])
+            'maintenance' => $maintenance->load(['asset.holder', 'user']),
+            'assetsData' => $assetsData,
+            'racksArray' => $racksArray,
+            'areasArray' => $areasArray
         ]);
     }
 
@@ -186,6 +214,7 @@ class MaintenanceController extends Controller
             if ($request->status == 'completed') {
                 $completionDate = now();
                 $request->merge(['completion_date' => $completionDate]);
+                $request->merge(['resolver_id' => auth()->id()]); // Set Resolver ID
 
                 // Cek konflik: Jika selesai SEBELUM mulai, maka majukan tanggal mulai ke saat ini juga
                 // Ini mencegah error logic "Selesai sebelum mulai"
@@ -203,8 +232,37 @@ class MaintenanceController extends Controller
             $maintenance->update($request->all());
 
             // Jika Selesai, kembalikan status aset
+            // Jika Selesai, kembalikan status aset
             if ($request->status === 'completed') {
-                $maintenance->asset->update(['status' => 'available']);
+                $maintenance->asset->status = 'available';
+
+                // CEK JIKA ADA REQUEST MUTASI (Deferred Mutation)
+                if ($request->filled('target_location')) {
+                    $targetLocation = $request->target_location;
+
+                    // Parse Location (Format: "Area X - Rak R-01")
+                    $pattern = '/Area ([A-Z]) - Rak (R-\d+)/';
+                    if (preg_match($pattern, $targetLocation, $matches)) {
+                        $newLorong = 'Area ' . $matches[1];
+                        $newRak = $matches[2];
+
+                        // Update Asset Location
+                        $maintenance->asset->location = $targetLocation;
+                        $maintenance->asset->lorong = $newLorong;
+                        $maintenance->asset->rak = $newRak;
+
+                        // Catat History Perpindahan
+                        \App\Models\AssetHistory::create([
+                            'asset_id' => $maintenance->asset_id,
+                            'user_id' => auth()->id(),
+                            'action' => 'moved',
+                            'notes' => 'Mutasi dari Maintenance: ' . ($request->mutation_notes ?? 'Perpindahan lokasi pasca perbaikan.'),
+                            'location' => $targetLocation
+                        ]);
+                    }
+                }
+                
+                $maintenance->asset->save();
             } 
             // Jika Dibatalkan, kembalikan ke available (atau status sebelumnya jika ada logic advanced)
             // Jika Dibatalkan, tandai aset sebagai BROKEN (Rusak) karena belum diperbaiki

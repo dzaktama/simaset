@@ -1,7 +1,88 @@
-@extends('layouts.main')
+ @extends('layouts.main')
 
 @section('container')
-<div class="w-full mx-auto px-4 py-8" x-data="{ showEditModal: false }">
+    {{-- DATA UNTUK MODAL MUTASI --}}
+    <script>
+        window.movePageData = {
+            assets: {!! $assetsData->toJson() !!},
+            racks: {!! json_encode($racksArray) !!},
+            areas: {!! json_encode($areasArray) !!}
+        };
+    </script>
+
+<div class="w-full mx-auto px-4 py-8" x-data="{ 
+    showEditModal: false,
+    mutationModalOpen: false,
+
+    // MUTATION LOGIC
+    selectedAssetId: '{{ $maintenance->asset_id }}',
+    targetLocation: '',
+    assets: window.movePageData.assets,
+    
+    // Rack Picker State
+    rackPickerOpen: false,
+    selectedArea: 'A',
+    racks: window.movePageData.racks,
+    areas: window.movePageData.areas,
+    
+    // Specific Search Filters
+    searchArea: '',
+    searchRack: '',
+
+    // Asset Search State (Not used here but kept for partial compatibility)
+    assetSearch: '',
+    assetDropdownOpen: false,
+    
+    get currentAsset() {
+        return this.assets.find(a => a.id == this.selectedAssetId) || null;
+    },
+    
+    // Filtered Lists (Rack Picker)
+    get filteredAreas() {
+        if (!this.searchArea) return this.areas;
+        const q = this.searchArea.toUpperCase();
+        return this.areas.filter(a => a.includes(q));
+    },
+
+    get filteredRacks() {
+        if (!this.searchRack) return this.racks;
+        const q = this.searchRack.toString().replace(/^0+/, ''); 
+        const qFull = this.searchRack.toString().padStart(2, '0'); 
+        
+        return this.racks.filter(r => {
+            const num = r.replace('R-', '');
+            return num.includes(q) || num.includes(qFull);
+        });
+    },
+    
+    getRackInfo(rackName) {
+        // Simple logic for occupancy based on loaded assets
+        const items = this.assets.filter(a => a.lorong === 'Area ' + this.selectedArea && a.rak === rackName);
+        return { count: items.length, hasBroken: items.some(a => a.status === 'broken' || a.status === 'maintenance') };
+    },
+    
+    selectRack(rackName) {
+        this.targetLocation = 'Area ' + this.selectedArea + ' - Rak ' + rackName;
+        this.rackPickerOpen = false;
+    },
+
+    init() {
+        this.$watch('rackPickerOpen', value => {
+            if (value) {
+                setTimeout(() => {
+                    if(this.$refs.searchAreaInput) this.$refs.searchAreaInput.focus();
+                }, 100);
+            }
+        });
+        
+        this.$watch('searchArea', value => {
+            const upper = value.toUpperCase();
+            if (this.areas.includes(upper)) {
+                this.selectedArea = upper;
+            }
+        });
+    }
+}">
     
     {{-- Bagian Kepala Halaman (Header) --}}
     <div class="flex items-center justify-between mb-6">
@@ -106,6 +187,17 @@
                             {{ \Carbon\Carbon::parse($maintenance->completion_date)->translatedFormat('l, d F Y') }} <span class="text-green-400">|</span> {{ \Carbon\Carbon::parse($maintenance->completion_date)->format('H:i') }}
                         </div>
                     </div>
+                    @if($maintenance->resolver)
+                    <div>
+                        <p class="text-xs text-gray-500 mb-1">Diselesaikan Oleh</p>
+                        <div class="flex items-center gap-2">
+                            <div class="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-xs">
+                                {{ substr($maintenance->resolver->name, 0, 1) }}
+                            </div>
+                            <span class="font-bold text-gray-900 text-sm">{{ $maintenance->resolver->name }}</span>
+                        </div>
+                    </div>
+                    @endif
                     @endif
                 </div>
             </div>
@@ -164,7 +256,7 @@
                         <h3 class="text-lg font-bold text-indigo-900">Update Status Perbaikan</h3>
                         <span class="bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">Sedang Diproses</span>
                     </div>
-                    <form action="{{ route('maintenances.update', $maintenance->id) }}" method="POST" class="p-8">
+                    <form x-data="{ status: '{{ $maintenance->status }}' }" action="{{ route('maintenances.update', $maintenance->id) }}" method="POST" class="p-8">
                         @csrf
                         @method('PUT')
                         
@@ -189,18 +281,65 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Status Tiket</label>
-                                <select name="status" class="w-full px-4 py-3 rounded-lg border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition bg-white cursor-pointer">
-                                    <option value="on_process" {{ $maintenance->status == 'on_process' ? 'selected' : '' }}>Masih Dalam Proses</option>
-                                    <option value="completed" {{ $maintenance->status == 'completed' ? 'selected' : '' }}>Selesai (Aset Kembali Tersedia)</option>
-                                    <option value="cancelled" {{ $maintenance->status == 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
+                                <select name="status" x-model="status" class="w-full px-4 py-3 rounded-lg border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition bg-white cursor-pointer">
+                                    <option value="on_process">Masih Dalam Proses</option>
+                                    <option value="completed">Selesai (Aset Kembali Tersedia)</option>
+                                    <option value="cancelled">Dibatalkan</option>
                                 </select>
                             </div>
                         </div>
 
                         {{-- Tanggal Selesai akan di-set otomatis oleh server saat submit --}}
 
-                        <div class="flex justify-end gap-3 pt-6 border-t border-indigo-50">
-                            <button type="submit" class="px-6 py-2.5 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 transition transform active:scale-95">
+                        {{-- SECTION: MUTATION ACTION (Full Width, Above Submit) --}}
+                        <div class="mb-6 border-t border-indigo-50 pt-6">
+                            {{-- Hidden Inputs for Mutation --}}
+                            <input type="hidden" name="target_location" x-model="targetLocation">
+                            <input type="hidden" name="mutation_notes" x-model="mutationNotes">
+
+                            {{-- Trigger Button (Styled Big & Blue - Full Width) --}}
+                            <button type="button" x-show="status == 'completed' && !targetLocation" 
+                               @click="mutationModalOpen = true"
+                               class="w-full px-6 py-4 rounded-xl bg-blue-50 border-2 border-blue-200 text-blue-700 font-bold hover:bg-blue-100 hover:border-blue-300 transition-all flex items-center justify-between group shadow-sm"
+                               x-transition:enter="transition ease-out duration-300"
+                               x-transition:enter-start="opacity-0 transform scale-95"
+                               x-transition:enter-end="opacity-100 transform scale-100">
+                                <div class="flex items-center gap-4">
+                                    <div class="p-3 bg-blue-200 rounded-lg group-hover:bg-blue-300 transition-colors">
+                                        <svg class="w-8 h-8 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                                    </div>
+                                    <div class="text-left">
+                                        <span class="block text-xs uppercase tracking-wider text-blue-500 mb-1">Tindak Lanjut Langsung</span>
+                                        <span class="text-lg md:text-xl font-bold text-gray-800">Proses Mutasi Aset (Pindah Rak)</span>
+                                    </div>
+                                </div>
+                                <div class="bg-white p-2 rounded-full shadow-sm text-blue-500 group-hover:text-blue-700">
+                                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                                </div>
+                            </button>
+
+                            {{-- Selected Mutation Preview --}}
+                            <div x-show="targetLocation" 
+                                class="w-full px-6 py-4 rounded-xl bg-green-50 border border-green-200 flex items-center justify-between gap-4 shadow-sm"
+                                x-transition>
+                                <div class="flex items-center gap-4">
+                                    <div class="p-3 bg-green-100 rounded-lg text-green-600">
+                                        <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-bold text-green-600 uppercase mb-1">Akan Dimutasi Ke:</p>
+                                        <p class="font-bold text-gray-900 text-lg" x-text="targetLocation"></p>
+                                    </div>
+                                </div>
+                                <button type="button" @click="mutationModalOpen = true" class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 shadow-sm">
+                                    Ubah Lokasi
+                                </button>
+                            </div>
+                        </div>
+
+                        {{-- Footer Action Buttons --}}
+                        <div class="flex justify-end items-center">
+                            <button type="submit" class="w-full sm:w-auto px-8 py-3 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 transition transform active:scale-95 text-lg">
                                 Simpan Update
                             </button>
                         </div>
@@ -301,5 +440,80 @@
             </div>
         </div>
     </div>
+
+    {{-- MODAL MUTATION FORM (DEFERRED LOGIC) --}}
+    <div x-show="mutationModalOpen" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity" aria-hidden="true" @click="mutationModalOpen = false">
+                <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-indigo-600 px-4 py-3 sm:px-6 flex justify-between items-center">
+                    <h3 class="text-lg leading-6 font-bold text-white">Mutasi Aset (Pindah Lokasi)</h3>
+                    <button @click="mutationModalOpen = false" class="text-white hover:text-indigo-200">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                
+                {{-- NOTE: Form tag removed. Inputs are bound to Alpine variables which will be submitted via main form --}}
+                <div class="px-4 py-5 sm:p-6 space-y-4">
+                    {{-- Asset Info --}}
+                    <div class="bg-indigo-50 p-4 rounded-lg flex items-center gap-4">
+                        <div class="h-12 w-12 bg-indigo-200 rounded-lg flex items-center justify-center text-indigo-700 font-bold text-xl">
+                            {{ substr($maintenance->asset->name, 0, 1) }}
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-indigo-500 uppercase">Aset yang dipindahkan</p>
+                            <p class="font-bold text-gray-900">{{ $maintenance->asset->name }}</p>
+                            <p class="text-xs text-gray-500">{{ $maintenance->asset->serial_number }}</p>
+                        </div>
+                    </div>
+
+                    {{-- Target Location Picker --}}
+                    <div class="group">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Lokasi Tujuan <span class="text-red-500">*</span></label>
+                        {{-- Hidden input handled in main form --}}
+                        <button type="button" @click="rackPickerOpen = true"
+                            class="w-full rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-4 text-sm text-left font-medium transition-all hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 focus:border-indigo-600 focus:ring-0 flex items-center justify-between group-hover:border-indigo-400"
+                            :class="targetLocation ? 'bg-indigo-50 border-indigo-200 border-solid' : ''">
+                            <div class="flex items-center gap-3 overflow-hidden">
+                                <div class="p-2 rounded-lg" :class="targetLocation ? 'bg-indigo-200 text-indigo-700' : 'bg-gray-200 text-gray-500'">
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                </div>
+                                <div class="flex flex-col min-w-0">
+                                    <span class="truncate font-bold" :class="targetLocation ? 'text-indigo-900' : 'text-gray-500'" x-text="targetLocation || 'Pilih Rak dari Gudang'"></span>
+                                    <span class="text-[10px] text-gray-400" x-text="targetLocation ? 'Klik untuk ubah lokasi' : 'Klik tombol ini untuk membuka peta'"></span>
+                                </div>
+                            </div>
+                            <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                        </button>
+                    </div>
+
+                    {{-- Notes --}}
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Catatan Mutasi</label>
+                        {{-- Bound to Alpine variable 'mutationNotes' --}}
+                        <textarea x-model="mutationNotes" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder="Opsional..."></textarea>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" @click="mutationModalOpen = false" 
+                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-bold text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm"
+                        :disabled="!targetLocation" :class="{'opacity-50 cursor-not-allowed': !targetLocation}">
+                        Simpan Pilihan Lokasi
+                    </button>
+                    <button type="button" @click="mutationModalOpen = false; targetLocation = ''; mutationNotes = ''" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Batal
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    @include('warehouse.partials.location_modal')
 </div>
 @endsection

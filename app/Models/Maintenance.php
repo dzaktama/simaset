@@ -18,7 +18,8 @@ class Maintenance extends Model
         'cost',
         'problem_description',
         'resolution_notes',
-        'status'
+        'status',
+        'resolver_id'
     ];
 
     /**
@@ -35,5 +36,13 @@ class Maintenance extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Relasi ke user (teknisi) yang menyelesaikan tiket
+     */
+    public function resolver()
+    {
+        return $this->belongsTo(User::class, 'resolver_id');
     }
 }

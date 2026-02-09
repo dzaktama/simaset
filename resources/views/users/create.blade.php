@@ -22,8 +22,8 @@
         mandatory: {
             'super_admin': ['dashboard.view', 'dashboard.stats', 'asset.view', 'asset.create', 'asset.edit', 'asset.delete', 'asset.export', 'borrow.action', 'return.verify', 'report.view', 'maintenance.view', 'chat.access', 'user.view', 'user.create', 'user.edit', 'user.delete'],
             'admin': ['dashboard.view', 'dashboard.stats', 'asset.view', 'asset.create', 'asset.edit', 'asset.delete', 'asset.export', 'borrow.action', 'return.verify', 'report.view', 'maintenance.view', 'chat.access'],
-            'service_center': ['dashboard.view', 'asset.view', 'maintenance.view', 'maintenance.create', 'maintenance.action', 'return.verify', 'chat.access'],
-            'tek': ['dashboard.view', 'asset.view', 'maintenance.view', 'maintenance.create', 'maintenance.action', 'return.verify', 'chat.access'],
+            'service_center': ['dashboard.view', 'dashboard.stats', 'asset.view', 'asset.edit', 'maintenance.view', 'maintenance.create', 'maintenance.action', 'return.verify', 'chat.access', 'borrow.request'],
+            'tek': ['dashboard.view', 'dashboard.stats', 'asset.view', 'asset.edit', 'maintenance.view', 'maintenance.create', 'maintenance.action', 'return.verify', 'chat.access', 'borrow.request'],
             'user': ['dashboard.view', 'asset.view', 'borrow.view', 'borrow.request', 'maintenance.create', 'chat.access'],
             'staff': ['dashboard.view', 'asset.view', 'borrow.view', 'borrow.request', 'maintenance.create', 'chat.access']
         },
@@ -68,7 +68,7 @@
                 this.checkAll('perm-asset'); this.checkAll('perm-borrow'); this.checkAll('perm-maint');
                 this.checkAll('perm-report'); this.checkAll('perm-others');
             } else if (role === 'service_center' || role === 'tek') { 
-                 let permissions = ['dashboard.view', 'asset.view', 'asset.map', 'chat.access', 'maintenance.view', 'maintenance.create', 'maintenance.action', 'borrow.view', 'return.verify'];
+                 let permissions = ['dashboard.view', 'dashboard.stats', 'asset.view', 'asset.map', 'chat.access', 'maintenance.view', 'maintenance.create', 'maintenance.action', 'borrow.view', 'borrow.request', 'return.verify', 'asset.edit'];
                 this.selectedPermissions.push(...permissions);
             } else if (role === 'user' || role === 'staff') { 
                 let permissions = ['dashboard.view', 'asset.view', 'chat.access', 'borrow.request', 'borrow.view', 'maintenance.create'];
