@@ -53,4 +53,9 @@ class AssetRequest extends Model
     {
         return $this->belongsTo(Asset::class);
     }
+
+    public function assetReturn()
+    {
+        return $this->hasOne(AssetReturn::class);
+    }
 }

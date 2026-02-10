@@ -205,7 +205,7 @@ class BorrowingController extends Controller
      */
     public function show($id)
     {
-        $borrowing = AssetRequest::with(['user', 'asset'])->findOrFail($id);
+        $borrowing = AssetRequest::with(['user', 'asset', 'assetReturn'])->findOrFail($id);
 
         // [SECURITY] Konfirmasi Hak Akses
         // Admin boleh lihat semua, User hanya boleh lihat punya sendiri

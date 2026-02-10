@@ -149,6 +149,67 @@
                 </div>
             </div>
 
+            {{-- [FITUR BARU] HASIL PEMERIKSAAN PENGEMBALIAN (Ada Denda/Kerusakan) --}}
+            @if($borrowing->assetReturn && $borrowing->assetReturn->status == 'approved')
+                <div class="bg-white rounded-lg shadow overflow-hidden border-l-4 border-red-500">
+                    <div class="px-6 py-4 bg-gradient-to-r from-red-50 to-transparent border-b border-gray-200">
+                        <h2 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Hasil Pemeriksaan Pengembalian
+                        </h2>
+                    </div>
+                    <div class="px-6 py-4 space-y-4">
+                        {{-- Denda Information --}}
+                        @if($borrowing->assetReturn->fine > 0)
+                            <div class="flex items-center justify-between bg-red-50 p-4 rounded-lg border border-red-200">
+                                <div>
+                                    <p class="text-sm font-bold text-red-700 uppercase tracking-wider">Denda / Biaya Perbaikan</p>
+                                    <p class="text-xs text-red-600 mt-1">Harap segera selesaikan pembayaran denda ini.</p>
+                                </div>
+                                <div class="text-xl font-bold text-red-800 font-mono">
+                                    Rp {{ number_format($borrowing->assetReturn->fine, 0, ',', '.') }}
+                                </div>
+                            </div>
+                        @endif
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-600">Kondisi Akhir Aset</p>
+                                @php $cond = $borrowing->assetReturn->condition; @endphp
+                                <span class="inline-block px-3 py-1 rounded-full text-sm font-bold mt-1
+                                    @if($cond === 'good') bg-green-100 text-green-800
+                                    @elseif($cond === 'maintenance') bg-yellow-100 text-yellow-800
+                                    @else bg-red-100 text-red-800 @endif">
+                                    {{ ucfirst($cond) }}
+                                </span>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Diverifikasi Oleh</p>
+                                <p class="font-medium text-gray-900 mt-1">{{ $borrowing->assetReturn->admin->name ?? 'Admin' }}</p>
+                            </div>
+                        </div>
+
+                        {{-- Display Photos --}}
+                        @if($borrowing->assetReturn->photo_proof_1 || $borrowing->assetReturn->photo_proof_2 || $borrowing->assetReturn->photo_proof_3)
+                            <div>
+                                <p class="text-sm text-gray-600 mb-2">Bukti Foto Kondisi:</p>
+                                <div class="grid grid-cols-3 gap-2">
+                                    @foreach(['photo_proof_1', 'photo_proof_2', 'photo_proof_3'] as $photoField)
+                                        @if($borrowing->assetReturn->$photoField)
+                                            <a href="{{ asset('storage/' . $borrowing->assetReturn->$photoField) }}" target="_blank" class="block w-full h-24 rounded-lg overflow-hidden border border-gray-200 hover:opacity-75 transition">
+                                                <img src="{{ asset('storage/' . $borrowing->assetReturn->$photoField) }}" class="w-full h-full object-cover">
+                                            </a>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            @endif
+
             {{-- TIMELINE BARU --}}
             <div class="bg-white rounded-lg shadow overflow-hidden border-l-4 border-blue-600">
                 <div class="px-6 py-4 bg-gradient-to-r from-blue-50 to-transparent border-b border-gray-200">
@@ -449,18 +510,40 @@
         <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
         <div class="relative inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-            <form id="returnForm" method="POST" action="{{ in_array(auth()->user()->role?->slug, ['admin', 'super_admin']) ? route('borrowing.return', $borrowing->id) : route('borrowing.return_user', $borrowing->id) }}">
+            <form id="returnForm" method="POST" action="{{ in_array(auth()->user()->role?->slug, ['admin', 'super_admin']) ? route('borrowing.return', $borrowing->id) : route('returns.store') }}" enctype="multipart/form-data"
+                  x-data="{
+                      previews: { img1: null, img2: null, img3: null },
+                      handleFile(e, key) {
+                          const file = e.target.files[0];
+                          if(file) {
+                              const reader = new FileReader();
+                              reader.onload = (e) => this.previews[key] = e.target.result;
+                              reader.readAsDataURL(file);
+                          }
+                      },
+                      removeFile(key, inputId) {
+                          this.previews[key] = null;
+                          const input = document.getElementById(inputId);
+                          if (input) input.value = '';
+                      }
+                  }">
                 @csrf
+                {{-- [NEW] Hidden ID for AssetReturnController --}}
+                @if(!in_array(auth()->user()->role?->slug, ['admin', 'super_admin']))
+                    <input type="hidden" name="asset_request_id" value="{{ $borrowing->id }}">
+                @endif
                 
                 {{-- Header --}}
                 <div class="bg-white px-6 pt-6 pb-2">
                     <h3 class="text-xl font-extrabold text-gray-900" id="modal-title">Form Pengembalian Aset</h3>
-                    <p class="text-sm text-gray-500 mt-1">Pastikan kondisi barang sesuai sebelum dikembalikan.</p>
+                    <p class="text-sm text-gray-500 mt-1">
+                        {{ in_array(auth()->user()->role?->slug, ['admin', 'super_admin']) ? 'Proses pengembalian langsung.' : 'Ajukan pengembalian untuk diverifikasi Admin.' }}
+                    </p>
                 </div>
 
-                <div class="px-6 py-4">
+                <div class="px-6 py-4 space-y-6">
                     {{-- Asset Preview Card --}}
-                    <div class="flex items-center gap-4 bg-indigo-50 p-4 rounded-xl border border-indigo-100 mb-6">
+                    <div class="flex items-center gap-4 bg-indigo-50 p-4 rounded-xl border border-indigo-100">
                         <div class="h-16 w-16 rounded-lg bg-white border border-indigo-200 flex-shrink-0 overflow-hidden flex items-center justify-center relative">
                             @if($borrowing->asset->image)
                                 <img src="{{ asset('storage/' . $borrowing->asset->image) }}" class="w-full h-full object-cover" alt="{{ $borrowing->asset->name }}">
@@ -477,46 +560,133 @@
                         </div>
                     </div>
 
-                    <div class="space-y-5">
+                    {{-- [NEW] Upload Bukti Foto (Grid 3 Slot) --}}
+                    @if(!in_array(auth()->user()->role?->slug, ['admin', 'super_admin']))
+                        <div x-data="{
+                            dragover: false,
+                            handleDrop(e) {
+                                this.dragover = false;
+                                const files = e.dataTransfer.files;
+                                this.processFiles(files);
+                            },
+                            handleMultiSelect(e) {
+                                const files = e.target.files;
+                                this.processFiles(files);
+                            },
+                            processFiles(files) {
+                                if (files.length > 3) {
+                                    alert('Maksimal 3 foto sekaligus!');
+                                    return;
+                                }
+                                
+                                const inputs = ['photo_proof_1Input', 'photo_proof_2Input', 'photo_proof_3Input'];
+                                const keys = ['img1', 'img2', 'img3'];
 
+                                for (let i = 0; i < files.length; i++) {
+                                    if (i >= 3) break;
+                                    
+                                    const file = files[i];
+                                    const inputId = inputs[i];
+                                    const key = keys[i];
 
-                        {{-- Kondisi --}}
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1.5">Kondisi Barang Saat Ini</label>
-                            <div class="relative">
-                                <select name="condition" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm appearance-none pl-3 pr-10" required>
-                                    <option value="" disabled selected>-- Pilih Kondisi --</option>
-                                    <option value="good">Baik (Layak Pakai)</option>
-                                    <option value="minor_damage">Rusak Ringan</option>
-                                    <option value="major_damage">Rusak Berat</option>
-                                </select>
-                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </div>
+                                    // Update Input File
+                                    const dataTransfer = new DataTransfer();
+                                    dataTransfer.items.add(file);
+                                    document.getElementById(inputId).files = dataTransfer.files;
+
+                                    // Update Preview
+                                    const reader = new FileReader();
+                                    reader.onload = (e) => this.previews[key] = e.target.result;
+                                    reader.readAsDataURL(file);
+                                }
+                            }
+                        }">
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="block text-sm font-bold text-gray-900">Bukti Foto Aset <span class="text-red-500">*</span></label>
+                                <button type="button" @click="document.getElementById('multiFileInput').click()" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 transition-colors">
+                                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    Pilih 3 Foto Sekaligus
+                                </button>
+                                <input type="file" id="multiFileInput" multiple accept="image/*" class="hidden" @change="handleMultiSelect($event)">
+                            </div>
+                            
+                            <div class="grid grid-cols-3 gap-3">
+                                @foreach(['photo_proof_1' => 'Foto Utama*', 'photo_proof_2' => 'Samping', 'photo_proof_3' => 'Belakang'] as $key => $label)
+                                    <div class="relative group">
+                                        <div class="w-full h-24 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center overflow-hidden relative cursor-pointer hover:bg-white hover:border-indigo-500 transition-all"
+                                             :class="{'border-indigo-500 bg-white ring-2 ring-indigo-100': previews.img{{ $loop->iteration }}}"
+                                             @click="document.getElementById('{{ $key }}Input').click()">
+                                            
+                                            <template x-if="!previews.img{{ $loop->iteration }}">
+                                                <div class="text-center p-2">
+                                                    <svg class="h-6 w-6 text-gray-400 mx-auto mb-1 group-hover:text-indigo-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    </svg>
+                                                    <span class="text-[10px] text-gray-500 font-bold group-hover:text-indigo-600 block leading-tight">{{ $label }}</span>
+                                                </div>
+                                            </template>
+                                            
+                                            <template x-if="previews.img{{ $loop->iteration }}">
+                                                <div class="relative w-full h-full group">
+                                                    <img :src="previews.img{{ $loop->iteration }}" class="w-full h-full object-cover">
+                                                    {{-- Remove Button --}}
+                                                    <button type="button" 
+                                                        @click.stop="removeFile('img{{ $loop->iteration }}', '{{ $key }}Input')"
+                                                        class="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 shadow-sm hover:bg-red-600 transition-colors focus:outline-none">
+                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                                    </button>
+                                                </div>
+                                            </template>
+
+                                            <input id="{{ $key }}Input" type="file" name="{{ $key }}" class="hidden" 
+                                                accept="image/*"
+                                                {{ $loop->first ? 'required' : '' }}
+                                                @change="handleFile($event, 'img{{ $loop->iteration }}')">
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                            <p class="text-[10px] text-gray-400 mt-2">Unggah foto kondisi terakhir aset. Gunakan tombol diatas untuk upload massal.</p>
+                        </div>
+                    @endif
+
+                    {{-- Kondisi --}}
+                    <div>
+                        <label class="block text-sm font-bold text-gray-900 mb-1.5">Kondisi Barang Saat Ini</label>
+                        <div class="relative">
+                            <select name="condition" class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-indigo-600 focus:ring-0 transition-all appearance-none pl-3 pr-10 font-medium" required>
+                                <option value="" disabled {{ old('condition') ? '' : 'selected' }}>-- Pilih Kondisi --</option>
+                                <option value="good" {{ old('condition') == 'good' ? 'selected' : '' }}>Baik (Layak Pakai)</option>
+                                <option value="maintenance" {{ old('condition') == 'maintenance' ? 'selected' : '' }}>Rusak Ringan (Maintenance)</option>
+                                <option value="broken" {{ old('condition') == 'broken' ? 'selected' : '' }}>Rusak Berat (Broken)</option>
+                            </select>
+                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
                             </div>
                         </div>
+                    </div>
 
-                        {{-- Catatan --}}
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1.5">Catatan Tambahan</label>
-                            <div class="relative">
-                                <textarea name="notes" rows="3" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="Contoh: Ada lecet sedikit di bagian bawah..."></textarea>
-                                <div class="absolute bottom-2 right-2 text-gray-400 pointer-events-none">
-                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                    </svg>
-                                </div>
+                    {{-- Catatan --}}
+                    <div>
+                        <label class="block text-sm font-bold text-gray-900 mb-1.5">Catatan Tambahan</label>
+                        <div class="relative">
+                            <textarea name="notes" rows="3" class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-600 focus:ring-0 transition-all font-medium" placeholder="Contoh: Ada lecet sedikit di bagian bawah...">{{ old('notes') }}</textarea>
+                            <div class="absolute bottom-2 right-2 text-gray-400 pointer-events-none">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {{-- Footer Actions --}}
-                <div class="bg-gray-50 px-6 py-4 flex flex-row-reverse gap-3">
+                <div class="bg-gray-50 px-6 py-4 flex flex-row-reverse gap-3 rounded-b-2xl">
                     <button type="submit" class="w-full sm:w-auto inline-flex justify-center rounded-lg border border-transparent px-5 py-2.5 bg-indigo-600 text-sm font-bold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all">
-                        Ajukan Pengembalian
+                        {{ in_array(auth()->user()->role?->slug, ['admin', 'super_admin']) ? 'Kembalikan Sekarang' : 'Ajukan Pengembalian' }}
                     </button>
                     <button type="button" class="w-full sm:w-auto inline-flex justify-center rounded-lg border border-gray-300 px-5 py-2.5 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none transition-all" onclick="closeReturnModal()">
                         Batal
@@ -632,6 +802,22 @@
     function closeReturnModal() {
         document.getElementById('returnModal').classList.add('hidden');
     }
+
+    // [New] Auto-open return modal if validation errors exist
+    @if($errors->any() && !request()->is('borrowing/*')) 
+        document.addEventListener('DOMContentLoaded', function() {
+            openReturnModal();
+        });
+    @endif
+
+    // [New] Auto-open return modal if validation errors exist
+    @if($errors->any() && !request()->is('borrowing/*')) 
+        // Note: Ensure this doesn't conflict with other forms if any. 
+        // Given this page is specific to one borrowing, it's likely safe.
+        document.addEventListener('DOMContentLoaded', function() {
+            openReturnModal();
+        });
+    @endif
 
     // === REJECT MODAL ===
     function openRejectModal() {

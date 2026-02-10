@@ -110,7 +110,7 @@
                         </td>
                         <td class="px-4 py-3 text-right">
                             @if($return->status == 'pending')
-                                <button onclick="openVerifyModal('{{ $return->id }}', '{{ $return->asset->name }}', '{{ $return->user->name }}', '{{ $return->condition }}')" 
+                                <button onclick="openVerifyModal('{{ $return->id }}', '{{ $return->asset->name }}', '{{ $return->user->name }}', '{{ $return->condition }}', '{{ $return->photo_proof_1 }}', '{{ $return->photo_proof_2 }}', '{{ $return->photo_proof_3 }}')" 
                                     class="inline-flex items-center justify-center px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm shadow-indigo-500/20">
                                     Verifikasi
                                 </button>
@@ -169,7 +169,16 @@
                                 <p>Anda akan memverifikasi pengembalian aset <strong id="modalAssetName" class="text-slate-800"></strong> dari <strong id="modalUserName" class="text-slate-800"></strong>.</p>
                             </div>
 
-                            <div class="mt-6 space-y-4">
+                            {{-- [NEW] Tampilan Foto Bukti (Up to 3 Photos) --}}
+                            <div class="mt-4">
+                                <label class="block text-sm font-bold text-slate-700 mb-2">Bukti Foto User</label>
+                                <div id="photoGrid" class="grid grid-cols-3 gap-2">
+                                    {{-- Photos will be injected here via JS --}}
+                                </div>
+                                <p id="noPhotoText" class="text-xs text-slate-400 mt-2 hidden">Tidak ada foto disertakan</p>
+                            </div>
+
+                            <div class="mt-4 space-y-4">
                                 <label class="block text-sm font-bold text-slate-700">Konfirmasi Kondisi Fisik</label>
                                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                     <label class="relative flex cursor-pointer">
@@ -191,8 +200,20 @@
                                         </div>
                                     </label>
                                 </div>
-                                <p class="text-xs text-slate-400">*Pilih kondisi akhir aset setelah pemeriksaan fisik.</p>
                             </div>
+
+                            {{-- [NEW] Input Denda --}}
+                            <div class="mt-4">
+                                <label class="block text-sm font-bold text-slate-700 mb-1">Denda Kerusakan (Opsional)</label>
+                                <div class="relative rounded-md shadow-sm">
+                                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                      <span class="text-gray-500 sm:text-sm">Rp</span>
+                                    </div>
+                                    <input type="number" name="fine" id="price" class="block w-full rounded-md border-0 py-1.5 pl-10 pr-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" placeholder="0">
+                                </div>
+                                <p class="text-xs text-slate-400 mt-1">Isi jika kondisi rusak dan user dikenakan denda.</p>
+                            </div>
+
                         </div>
                     </div>
                 </div>
@@ -210,13 +231,36 @@
 </div>
 
 <script>
-    function openVerifyModal(id, assetName, userName, userCondition) {
+    function openVerifyModal(id, assetName, userName, userCondition, photo1, photo2, photo3) {
         const modal = document.getElementById('verifyModal');
         const form = document.getElementById('verifyForm');
         
         document.getElementById('modalAssetName').innerText = assetName;
         document.getElementById('modalUserName').innerText = userName;
         
+        // [NEW] Show Photos
+        const photoGrid = document.getElementById('photoGrid');
+        const noPhotoText = document.getElementById('noPhotoText');
+        
+        // Reset
+        photoGrid.innerHTML = '';
+        
+        const photos = [photo1, photo2, photo3].filter(p => p && p !== 'null' && p !== '');
+        
+        if (photos.length > 0) {
+            noPhotoText.classList.add('hidden');
+            photos.forEach(path => {
+                const div = document.createElement('div');
+                div.className = 'relative w-full h-24 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 cursor-pointer group';
+                div.innerHTML = `
+                    <img src="/storage/${path}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" onclick="window.open(this.src, '_blank')">
+                `;
+                photoGrid.appendChild(div);
+            });
+        } else {
+            noPhotoText.classList.remove('hidden');
+        }
+
         // Auto-select radio button based on user report for convenience
         const conditionMap = {
             'good': 'available',

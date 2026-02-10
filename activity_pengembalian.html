@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Diagram - Proses Pengembalian Aset</title>
+</head>
+
+<body style="margin: 0; padding: 20px; background: white; display: flex; justify-content: center;">
+    <svg width="1100" height="1600" xmlns="http://www.w3.org/2000/svg">
+        <!-- Border Luar -->
+        <rect x="10" y="10" width="1080" height="1580" fill="white" stroke="black" stroke-width="3" />
+
+        <!-- Header Swimlane -->
+        <rect x="10" y="10" width="270" height="60" fill="white" stroke="black" stroke-width="2" />
+        <text x="145" y="45" font-family="Arial" font-size="18" font-weight="bold" text-anchor="middle">USER</text>
+
+        <rect x="280" y="10" width="270" height="60" fill="white" stroke="black" stroke-width="2" />
+        <text x="415" y="45" font-family="Arial" font-size="18" font-weight="bold" text-anchor="middle">SYSTEM</text>
+
+        <rect x="550" y="10" width="270" height="60" fill="white" stroke="black" stroke-width="2" />
+        <text x="685" y="45" font-family="Arial" font-size="18" font-weight="bold" text-anchor="middle">ADMIN</text>
+
+        <rect x="820" y="10" width="270" height="60" fill="white" stroke="black" stroke-width="2" />
+        <text x="955" y="45" font-family="Arial" font-size="18" font-weight="bold" text-anchor="middle">DATABASE</text>
+
+        <!-- Garis Vertikal Pemisah Swimlane -->
+        <line x1="280" y1="70" x2="280" y2="1590" stroke="black" stroke-width="2" />
+        <line x1="550" y1="70" x2="550" y2="1590" stroke="black" stroke-width="2" />
+        <line x1="820" y1="70" x2="820" y2="1590" stroke="black" stroke-width="2" />
+
+        <!-- Label Initial -->
+        <text x="40" y="105" font-family="Arial" font-size="14" fill="red" font-weight="bold">Initial</text>
+        <path d="M 120,95 L 145,110" stroke="red" stroke-width="2" fill="none" marker-end="url(#arrow-red)" />
+
+        <!-- START (Initial State) -->
+        <circle cx="145" cy="130" r="18" fill="black" />
+        <line x1="145" y1="148" x2="145" y2="180" stroke="black" stroke-width="2" marker-end="url(#arrow)" />
+
+        <!-- Activity 1: Klik Menu Pengembalian -->
+        <rect x="65" y="180" width="160" height="60" rx="30" fill="white" stroke="black" stroke-width="2" />
+        <text x="145" y="205" font-family="Arial" font-size="14" font-weight="bold" text-anchor="middle">Buka
+            Menu</text>
+        <text x="145" y="223" font-family="Arial" font-size="14" font-weight="bold" text-anchor="middle">Peminjaman
+            Saya</text>
+
+        <line x1="145" y1="240" x2="145" y2="280" stroke="black" stroke-width="2" marker-end="url(#arrow)" />
+
+        <!-- Activity 2: Klik Tombol Return -->
+        <rect x="65" y="280" width="160" height="60" rx="30" fill="white" stroke="black" stroke-width="2" />
+        <text x="145" y="305" font-family="Arial" font-size="14" font-weight="bold" text-anchor="middle">Klik
+            Tombol</text>
+        <text x="145" y="323" font-family="Arial" font-size="14" font-weight="bold" text-anchor="middle">"Kembalikan
+            Aset"</text>
+
+        <!-- Arrow ke System -->
+        <line x1="225" y1="310" x2="300" y2="310" stroke="black" stroke-width="2" marker-end="url(#arrow)" />
+
+        <!-- Activity 3: Tampilkan Form -->
+        <rect x="300" y="280" width="230" height="60" rx="30" fill="white" stroke="black" stroke-width="2" />
+        <text x="415" y="305" font-family="Arial" font-size="13" font-weight="bold" text-anchor="middle">Tampilkan
+            Form</text>
+        <text x="415" y="323" font-family="Arial" font-size="11" text-anchor="middle">(Upload Foto & Kondisi)</text>
+
+        <!-- Arrow balik ke User -->
+        <line x1="415" y1="340" x2="415" y2="380" stroke="black" stroke-width="2" />
+        <line x1="415" y1="380" x2="145" y2="380" stroke="black" stroke-width="2" />
+        <line x1="145" y1="380" x2="145" y2="410" stroke="black" stroke-width="2" marker-end="url(#arrow)" />
+
+        <!-- Activity 4: Isi Form -->
+        <rect x="65" y="410" width="160" height="80" rx="30" fill="white" stroke="black" stroke-width="2" />
+        <text x="145" y="435" font-family="Arial" font-size="14" font-weight="bold" text-anchor="middle">Isi Form</text>
+        <text x="145" y="453" font-family="Arial" font-size="14" font-weight="bold"
+            text-anchor="middle">Pengembalian</text>
+        <text x="145" y="473" font-family="Arial" font-size="11" text-anchor="middle">(Kondisi & Bukti Foto)</text>
+
+        <line x1="145" y1="490" x2="145" y2="520" stroke="black" stroke-width="2" marker-end="url(#arrow)" />
+
+        <!-- Activity 5: Submit -->
+        <rect x="65" y="520" width="160" height="50" rx="25" fill="white" stroke="black" stroke-width="2" />
+        <text x="145" y="543" font-family="Arial" font-size="14" font-weight="bold" text-anchor="middle">Submit
+            Request</text>
+        <text x="145" y="560" font-family="Arial" font-size="14" font-weight="bold"
+            text-anchor="middle">Pengembalian</text>
+
+        <!-- Arrow ke System -->
+        <line x1="225" y1="545" x2="300" y2="545" stroke="black" stroke-width="2" marker-end="url(#arrow)" />
+
+        <!-- Activity 6: Update Status Returning -->
+        <rect x="300" y="515" width="230" height="60" rx="30" fill="white" stroke="black" stroke-width="2" />
+        <text x="415" y="540" font-family="Arial" font-size="13" font-weight="bold" text-anchor="middle">Update Status
+            Request</text>
+        <text x="415" y="558" font-family="Arial" font-size="11" text-anchor="middle">Set status='returning'</text>
+
+        <line x1="415" y1="575" x2="415" y2="610" stroke="black" stroke-width="2" marker-end="url(#arrow)" />
+
+        <!-- Activity 7: Notifikasi Admin -->
+        <rect x="300" y="610" width="230" height="60" rx="30" fill="white" stroke="black" stroke-width="2" />
+        <text x="415" y="635" font-family="Arial" font-size="13" font-weight="bold" text-anchor="middle">Kirim
+            Notifikasi</text>
+        <text x="415" y="653" font-family="Arial" font-size="11" text-anchor="middle">ke Admin</text>
+
+        <!-- Arrow ke Admin -->
+        <line x1="530" y1="640" x2="570" y2="640" stroke="black" stroke-width="2" marker-end="url(#arrow)" />
+
+        <!-- Activity 8: Terima Notifikasi -->
+        <rect x="570" y="610" width="230" height="60" rx="30" fill="white" stroke="black" stroke-width="2" />
+        <text x="685" y="635" font-family="Arial" font-size="13" font-weight="bold" text-anchor="middle">Terima
+            Notifikasi</text>
+        <text x="685" y="653" font-family="Arial" font-size="13" font-weight="bold"
+            text-anchor="middle">Pengembalian</text>
+
+        <line x1="685" y1="670" x2="685" y2="705" stroke="black" stroke-width="2" marker-end="url(#arrow)" />
+
+        <!-- Activity 9: Cek Fisik -->
+        <rect x="570" y="705" width="230" height="60" rx="30" fill="white" stroke="black" stroke-width="2" />
+        <text x="685" y="730" font-family="Arial" font-size="13" font-weight="bold" text-anchor="middle">Verifikasi
+            Fisik Aset</text>
+        <text x="685" y="748" font-family="Arial" font-size="11" text-anchor="middle">(Cek kesesuaian kondisi)</text>
+
+        <line x1="685" y1="765" x2="685" y2="800" stroke="black" stroke-width="2" marker-end="url(#arrow)" />
+
+        <!-- Decision: Kondisi Sesuai? -->
+        <polygon points="685,800 750,850 685,900 620,850" fill="white" stroke="black" stroke-width="2" />
+        <text x="685" y="848" font-family="Arial" font-size="12" font-weight="bold" text-anchor="middle">Kondisi
+            Sesuai?</text>
+
+        <!-- NO - Reject/Denda -->
+        <text x="600" y="845" font-family="Arial" font-size="11" text-anchor="middle">[tidak sesuai]</text>
+        <line x1="620" y1="850" x2="540" y2="850" stroke="black" stroke-width="2" />
+        <line x1="540" y1="850" x2="540" y2="920" stroke="black" stroke-width="2" marker-end="url(#arrow)" />
+
+        <rect x="460" y="920" width="160" height="60" rx="30" fill="white" stroke="black" stroke-width="2" />
+        <text x="540" y="945" font-family="Arial" font-size="12" font-weight="bold" text-anchor="middle">Catat
+            Kerusakan</text>
+        <text x="540" y="963" font-family="Arial" font-size="11" text-anchor="middle">& Proses Denda</text>
+
+        <line x1="540" y1="980" x2="540" y2="1010" stroke="black" stroke-width="2" marker-end="url(#arrow)" />
+
+        <!-- YES - Approve -->
+        <text x="770" y="845" font-family="Arial" font-size="11" text-anchor="middle">[sesuai]</text>
+        <line x1="750" y1="850" x2="840" y2="850" stroke="black" stroke-width="2" marker-end="url(#arrow)" />
+
+        <!-- Activity 10: Approve Pengembalian -->
+        <rect x="840" y="820" width="230" height="60" rx="30" fill="white" stroke="black" stroke-width="2" />
+        <text x="955" y="845" font-family="Arial" font-size="13" font-weight="bold" text-anchor="middle">Konfirmasi
+            Pengembalian</text>
+        <text x="955" y="863" font-family="Arial" font-size="11" text-anchor="middle">(Approve Return)</text>
+
+        <!-- Merge Lines -->
+        <line x1="540" y1="1010" x2="685" y2="1010" stroke="black" stroke-width="2" />
+        <line x1="955" y1="880" x2="955" y2="1010" stroke="black" stroke-width="2" />
+        <line x1="685" y1="1010" x2="955" y2="1010" stroke="black" stroke-width="2" />
+
+        <!-- Arrow ke Database -->
+        <line x1="955" y1="1010" x2="955" y2="1050" stroke="black" stroke-width="2" marker-end="url(#arrow)" />
+
+        <!-- Activity 11: Update Request Status -->
+        <rect x="840" y="1050" width="230" height="60" rx="30" fill="white" stroke="black" stroke-width="2" />
+        <text x="955" y="1075" font-family="Arial" font-size="12" font-weight="bold" text-anchor="middle">UPDATE
+            asset_requests</text>
+        <text x="955" y="1093" font-family="Arial" font-size="11" text-anchor="middle">Set status='returned'</text>
+
+        <line x1="955" y1="1110" x2="955" y2="1140" stroke="black" stroke-width="2" marker-end="url(#arrow)" />
+
+        <!-- Activity 12: Update Asset Stock -->
+        <rect x="840" y="1140" width="230" height="60" rx="30" fill="white" stroke="black" stroke-width="2" />
+        <text x="955" y="1165" font-family="Arial" font-size="12" font-weight="bold" text-anchor="middle">UPDATE
+            assets</text>
+        <text x="955" y="1183" font-family="Arial" font-size="11" text-anchor="middle">quantity = quantity + 1</text>
+
+        <line x1="955" y1="1200" x2="955" y2="1240" stroke="black" stroke-width="2" marker-end="url(#arrow)" />
+
+        <!-- Arrow ke User (View Detail) -->
+        <line x1="955" y1="1240" x2="145" y2="1240" stroke="black" stroke-width="2" />
+        <line x1="145" y1="1240" x2="145" y2="1270" stroke="black" stroke-width="2" marker-end="url(#arrow)" />
+
+        <!-- Activity 14: Lihat Detail -->
+        <rect x="65" y="1270" width="160" height="60" rx="30" fill="white" stroke="black" stroke-width="2" />
+        <text x="145" y="1295" font-family="Arial" font-size="12" font-weight="bold" text-anchor="middle">Lihat
+            Detail</text>
+        <text x="145" y="1313" font-family="Arial" font-size="12" font-weight="bold"
+            text-anchor="middle">Pengembalian</text>
+
+        <!-- END -->
+        <line x1="145" y1="1330" x2="145" y2="1370" stroke="black" stroke-width="2" />
+        <line x1="145" y1="1370" x2="145" y2="1385" stroke="black" stroke-width="2" marker-end="url(#arrow)" />
+
+        <!-- Label Final -->
+        <text x="40" y="1410" font-family="Arial" font-size="14" fill="red" font-weight="bold">Final</text>
+        <path d="M 120,1400 L 145,1385" stroke="red" stroke-width="2" fill="none" marker-end="url(#arrow-red)" />
+
+        <!-- Final State -->
+        <circle cx="145" cy="1405" r="18" fill="white" stroke="black" stroke-width="3" />
+        <circle cx="145" cy="1405" r="13" fill="black" />
+
+        <!-- Arrow Definitions -->
+        <defs>
+            <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                <polygon points="0 0, 10 3, 0 6" fill="black" />
+            </marker>
+            <marker id="arrow-red" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                <polygon points="0 0, 10 3, 0 6" fill="red" />
+            </marker>
+        </defs>
+    </svg>
+</body>
+
+</html>
