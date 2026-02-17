@@ -279,7 +279,10 @@ class AssetService
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('serial_number', 'like', "%{$search}%")
                   ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhere('category', 'like', "%{$search}%"); // Added Category Search
+                  ->orWhere('category', 'like', "%{$search}%")
+                  ->orWhereHas('activeRequest.user', function($u) use ($search) {
+                      $u->where('name', 'like', "%{$search}%");
+                  });
             });
         }
 

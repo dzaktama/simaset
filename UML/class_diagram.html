@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Diagram - SIMASET (Revised)</title>
+</head>
+
+<body style="margin: 0; padding: 20px; background: white; display: flex; justify-content: center;">
+    <svg width="1500" height="1100" xmlns="http://www.w3.org/2000/svg">
+        <!-- Title -->
+        <text x="750" y="35" font-family="Arial, sans-serif" font-size="20" font-weight="bold" text-anchor="middle">
+            Class Diagram - Sistem Informasi Manajemen Aset (SIMASET)
+        </text>
+
+        <!-- ========== CLASS: User ========== -->
+        <g id="User">
+            <!-- Class Box -->
+            <rect x="50" y="80" width="280" height="360" fill="white" stroke="black" stroke-width="2" />
+
+            <!-- Class Name -->
+            <rect x="50" y="80" width="280" height="50" fill="white" stroke="black" stroke-width="2" />
+            <text x="190" y="110" font-family="Arial" font-size="18" font-weight="bold" text-anchor="middle">User</text>
+
+            <!-- Attributes Section (PRIVATE) -->
+            <line x1="50" y1="130" x2="330" y2="130" stroke="black" stroke-width="2" />
+            <text x="60" y="155" font-family="Arial" font-size="13">-id: int</text>
+            <text x="60" y="175" font-family="Arial" font-size="13">-name: string</text>
+            <text x="60" y="195" font-family="Arial" font-size="13">-email: string</text>
+            <text x="60" y="215" font-family="Arial" font-size="13">-role_id: int</text>
+            <text x="60" y="235" font-family="Arial" font-size="13">-nik: string</text>
+            <text x="60" y="255" font-family="Arial" font-size="13">-phone: string</text>
+            <text x="60" y="275" font-family="Arial" font-size="13">-department: string</text>
+            <text x="60" y="295" font-family="Arial" font-size="13">-position: string</text>
+            <text x="60" y="315" font-family="Arial" font-size="13">-created_at: timestamp</text>
+            <text x="60" y="335" font-family="Arial" font-size="13">-updated_at: timestamp</text>
+
+            <!-- Methods Section (PUBLIC) -->
+            <line x1="50" y1="345" x2="330" y2="345" stroke="black" stroke-width="2" />
+            <text x="60" y="370" font-family="Arial" font-size="13">+assetRequests()</text>
+            <text x="60" y="390" font-family="Arial" font-size="13">+maintenances()</text>
+            <text x="60" y="410" font-family="Arial" font-size="13">+messages()</text>
+            <text x="60" y="430" font-family="Arial" font-size="13">+role()</text>
+        </g>
+
+        <!-- ========== CLASS: Role ========== -->
+        <g id="Role">
+            <rect x="50" y="490" width="280" height="200" fill="white" stroke="black" stroke-width="2" />
+
+            <rect x="50" y="490" width="280" height="50" fill="white" stroke="black" stroke-width="2" />
+            <text x="190" y="520" font-family="Arial" font-size="18" font-weight="bold" text-anchor="middle">Role</text>
+
+            <line x1="50" y1="540" x2="330" y2="540" stroke="black" stroke-width="2" />
+            <text x="60" y="565" font-family="Arial" font-size="13">-id: int</text>
+            <text x="60" y="585" font-family="Arial" font-size="13">-name: string</text>
+            <text x="60" y="605" font-family="Arial" font-size="13">-description: string</text>
+            <text x="60" y="625" font-family="Arial" font-size="13">-created_at: timestamp</text>
+
+            <line x1="50" y1="635" x2="330" y2="635" stroke="black" stroke-width="2" />
+            <text x="60" y="660" font-family="Arial" font-size="13">+users()</text>
+            <text x="60" y="680" font-family="Arial" font-size="13">+permissions()</text>
+        </g>
+
+        <!-- ========== CLASS: Asset ========== -->
+        <g id="Asset">
+            <rect x="450" y="80" width="280" height="420" fill="white" stroke="black" stroke-width="2" />
+
+            <rect x="450" y="80" width="280" height="50" fill="white" stroke="black" stroke-width="2" />
+            <text x="590" y="110" font-family="Arial" font-size="18" font-weight="bold"
+                text-anchor="middle">Asset</text>
+
+            <line x1="450" y1="130" x2="730" y2="130" stroke="black" stroke-width="2" />
+            <text x="460" y="155" font-family="Arial" font-size="13">-id: int</text>
+            <text x="460" y="175" font-family="Arial" font-size="13">-name: string</text>
+            <text x="460" y="195" font-family="Arial" font-size="13">-serial_number: string</text>
+            <text x="460" y="215" font-family="Arial" font-size="13">-quantity: int</text>
+            <text x="460" y="235" font-family="Arial" font-size="13">-status: string</text>
+            <text x="460" y="255" font-family="Arial" font-size="13">-location: string</text>
+            <text x="460" y="275" font-family="Arial" font-size="13">-category: string</text>
+            <text x="460" y="295" font-family="Arial" font-size="13">-rak: string</text>
+            <text x="460" y="315" font-family="Arial" font-size="13">-lorong: string</text>
+            <text x="460" y="335" font-family="Arial" font-size="13">-purchase_price: decimal</text>
+            <text x="460" y="355" font-family="Arial" font-size="13">-image_path: string</text>
+            <text x="460" y="375" font-family="Arial" font-size="13">-created_at: timestamp</text>
+            <text x="460" y="395" font-family="Arial" font-size="13">-updated_at: timestamp</text>
+
+            <line x1="450" y1="405" x2="730" y2="405" stroke="black" stroke-width="2" />
+            <text x="460" y="430" font-family="Arial" font-size="13">+requests()</text>
+            <text x="460" y="450" font-family="Arial" font-size="13">+maintenances()</text>
+            <text x="460" y="470" font-family="Arial" font-size="13">+isAvailable()</text>
+            <text x="460" y="490" font-family="Arial" font-size="13">+decrementStock()</text>
+        </g>
+
+        <!-- ========== CLASS: AssetRequest ========== -->
+        <g id="AssetRequest">
+            <rect x="450" y="570" width="280" height="420" fill="white" stroke="black" stroke-width="2" />
+
+            <rect x="450" y="570" width="280" height="50" fill="white" stroke="black" stroke-width="2" />
+            <text x="590" y="600" font-family="Arial" font-size="18" font-weight="bold"
+                text-anchor="middle">AssetRequest</text>
+
+            <line x1="450" y1="620" x2="730" y2="620" stroke="black" stroke-width="2" />
+            <text x="460" y="645" font-family="Arial" font-size="13">-id: int</text>
+            <text x="460" y="665" font-family="Arial" font-size="13">-user_id: int</text>
+            <text x="460" y="685" font-family="Arial" font-size="13">-asset_id: int</text>
+            <text x="460" y="705" font-family="Arial" font-size="13">-quantity: int</text>
+            <text x="460" y="725" font-family="Arial" font-size="13">-request_date: date</text>
+            <text x="460" y="745" font-family="Arial" font-size="13">-return_date: datetime</text>
+            <text x="460" y="765" font-family="Arial" font-size="13">-status: string</text>
+            <text x="460" y="785" font-family="Arial" font-size="13">-borrowing_status: string</text>
+            <text x="460" y="805" font-family="Arial" font-size="13">-admin_note: text</text>
+            <text x="460" y="825" font-family="Arial" font-size="13">-reason: text</text>
+            <text x="460" y="845" font-family="Arial" font-size="13">-created_at: timestamp</text>
+
+            <line x1="450" y1="855" x2="730" y2="855" stroke="black" stroke-width="2" />
+            <text x="460" y="880" font-family="Arial" font-size="13">+user()</text>
+            <text x="460" y="900" font-family="Arial" font-size="13">+asset()</text>
+            <text x="460" y="920" font-family="Arial" font-size="13">+assetReturn()</text>
+            <text x="460" y="940" font-family="Arial" font-size="13">+approve()</text>
+            <text x="460" y="960" font-family="Arial" font-size="13">+reject()</text>
+            <text x="460" y="980" font-family="Arial" font-size="13">+markAsReturned()</text>
+        </g>
+
+        <!-- ========== CLASS: AssetReturn ========== -->
+        <g id="AssetReturn">
+            <rect x="850" y="670" width="280" height="260" fill="white" stroke="black" stroke-width="2" />
+
+            <rect x="850" y="670" width="280" height="50" fill="white" stroke="black" stroke-width="2" />
+            <text x="990" y="700" font-family="Arial" font-size="18" font-weight="bold"
+                text-anchor="middle">AssetReturn</text>
+
+            <line x1="850" y1="720" x2="1130" y2="720" stroke="black" stroke-width="2" />
+            <text x="860" y="745" font-family="Arial" font-size="13">-id: int</text>
+            <text x="860" y="765" font-family="Arial" font-size="13">-asset_request_id: int</text>
+            <text x="860" y="785" font-family="Arial" font-size="13">-return_date: datetime</text>
+            <text x="860" y="805" font-family="Arial" font-size="13">-condition: string</text>
+            <text x="860" y="825" font-family="Arial" font-size="13">-return_notes: text</text>
+            <text x="860" y="845" font-family="Arial" font-size="13">-created_at: timestamp</text>
+
+            <line x1="850" y1="855" x2="1130" y2="855" stroke="black" stroke-width="2" />
+            <text x="860" y="880" font-family="Arial" font-size="13">+assetRequest()</text>
+            <text x="860" y="900" font-family="Arial" font-size="13">+verify()</text>
+            <text x="860" y="920" font-family="Arial" font-size="13">+restockAsset()</text>
+        </g>
+
+        <!-- ========== CLASS: Maintenance ========== -->
+        <g id="Maintenance">
+            <rect x="850" y="80" width="280" height="400" fill="white" stroke="black" stroke-width="2" />
+
+            <rect x="850" y="80" width="280" height="50" fill="white" stroke="black" stroke-width="2" />
+            <text x="990" y="110" font-family="Arial" font-size="18" font-weight="bold"
+                text-anchor="middle">Maintenance</text>
+
+            <line x1="850" y1="130" x2="1130" y2="130" stroke="black" stroke-width="2" />
+            <text x="860" y="155" font-family="Arial" font-size="13">-id: int</text>
+            <text x="860" y="175" font-family="Arial" font-size="13">-asset_id: int</text>
+            <text x="860" y="195" font-family="Arial" font-size="13">-user_id: int</text>
+            <text x="860" y="215" font-family="Arial" font-size="13">-resolver_id: int</text>
+            <text x="860" y="235" font-family="Arial" font-size="13">-vendor_name: string</text>
+            <text x="860" y="255" font-family="Arial" font-size="13">-problem_description: text</text>
+            <text x="860" y="275" font-family="Arial" font-size="13">-resolution_notes: text</text>
+            <text x="860" y="295" font-family="Arial" font-size="13">-status: string</text>
+            <text x="860" y="315" font-family="Arial" font-size="13">-cost: decimal</text>
+            <text x="860" y="335" font-family="Arial" font-size="13">-completion_date: datetime</text>
+            <text x="860" y="355" font-family="Arial" font-size="13">-created_at: timestamp</text>
+
+            <line x1="850" y1="365" x2="1130" y2="365" stroke="black" stroke-width="2" />
+            <text x="860" y="390" font-family="Arial" font-size="13">+asset()</text>
+            <text x="860" y="410" font-family="Arial" font-size="13">+user()</text>
+            <text x="860" y="430" font-family="Arial" font-size="13">+resolver()</text>
+            <text x="860" y="450" font-family="Arial" font-size="13">+updateStatus()</text>
+            <text x="860" y="470" font-family="Arial" font-size="13">+complete()</text>
+        </g>
+
+        <!-- ========== CLASS: Permission ========== -->
+        <g id="Permission">
+            <rect x="1220" y="490" width="230" height="200" fill="white" stroke="black" stroke-width="2" />
+
+            <rect x="1220" y="490" width="230" height="50" fill="white" stroke="black" stroke-width="2" />
+            <text x="1335" y="520" font-family="Arial" font-size="18" font-weight="bold"
+                text-anchor="middle">Permission</text>
+
+            <line x1="1220" y1="540" x2="1450" y2="540" stroke="black" stroke-width="2" />
+            <text x="1230" y="565" font-family="Arial" font-size="13">-id: int</text>
+            <text x="1230" y="585" font-family="Arial" font-size="13">-name: string</text>
+            <text x="1230" y="605" font-family="Arial" font-size="13">-slug: string</text>
+            <text x="1230" y="625" font-family="Arial" font-size="13">-created_at: timestamp</text>
+
+            <line x1="1220" y1="635" x2="1450" y2="635" stroke="black" stroke-width="2" />
+            <text x="1230" y="660" font-family="Arial" font-size="13">+roles()</text>
+            <text x="1230" y="680" font-family="Arial" font-size="13">+users()</text>
+        </g>
+
+        <!-- ========== RELATIONSHIPS (CORRECTED) ========== -->
+
+        <!-- User to Role (Many to One) - CORRECTED -->
+        <line x1="190" y1="440" x2="190" y2="490" stroke="black" stroke-width="2" />
+        <text x="200" y="460" font-family="Arial" font-size="12">+*</text>
+        <polygon points="190,445 185,455 195,455" fill="white" stroke="black" stroke-width="2" />
+        <text x="145" y="475" font-family="Arial" font-size="12">+1</text>
+
+        <!-- User to AssetRequest (One to Many) -->
+        <path d="M 330,260 L 375,260 L 375,700 L 450,700" stroke="black" stroke-width="2" fill="none" />
+        <text x="385" y="250" font-family="Arial" font-size="12">+1</text>
+        <text x="410" y="690" font-family="Arial" font-size="12">+1..*</text>
+
+        <!-- Asset to AssetRequest (One to Many) -->
+        <line x1="590" y1="500" x2="590" y2="570" stroke="black" stroke-width="2" />
+        <text x="600" y="515" font-family="Arial" font-size="12">+1</text>
+        <text x="600" y="560" font-family="Arial" font-size="12">+1..*</text>
+
+        <!-- AssetRequest to AssetReturn (One to One) -->
+        <line x1="730" y1="800" x2="850" y2="800" stroke="black" stroke-width="2" />
+        <text x="740" y="790" font-family="Arial" font-size="12">+1</text>
+        <text x="810" y="790" font-family="Arial" font-size="12">+0..1</text>
+        <polygon points="850,800 840,795 840,805" fill="white" stroke="black" stroke-width="2" />
+
+        <!-- Asset to Maintenance (One to Many) - SOLID LINE -->
+        <path d="M 730,290 L 810,290 L 810,290 L 850,290" stroke="black" stroke-width="2" fill="none" />
+        <text x="740" y="280" font-family="Arial" font-size="12">+1</text>
+        <text x="810" y="280" font-family="Arial" font-size="12">+0..*</text>
+
+        <!-- User to Maintenance (One to Many - as reporter) - LEFT SIDE ROUTE -->
+        <path d="M 190,440 L 40,440 L 40,1020 L 810,1020 L 810,290 L 850,290" stroke="black" stroke-width="2"
+            fill="none" />
+        <text x="200" y="1010" font-family="Arial" font-size="11">+1 (reporter)</text>
+
+        <!-- User to Maintenance (One to Many - as resolver/teknisi) - LEFT SIDE ROUTE -->
+        <path d="M 190,440 L 30,440 L 30,1040 L 790,1040 L 790,350 L 850,350" stroke="black" stroke-width="2"
+            fill="none" />
+        <text x="200" y="1030" font-family="Arial" font-size="11">+1 (resolver)</text>
+
+        <!-- Role to Permission (Many to Many) -->
+        <path d="M 330,590 L 380,590 L 380,1060 L 1220,1060 L 1220,690" stroke="black" stroke-width="2"
+            stroke-dasharray="5,5" fill="none" />
+        <text x="340" y="580" font-family="Arial" font-size="12">+*</text>
+        <text x="1190" y="710" font-family="Arial" font-size="12">+*</text>
+
+        <!-- Legend -->
+        <rect x="1200" y="80" width="250" height="160" fill="#f9f9f9" stroke="black" stroke-width="2" />
+        <text x="1325" y="105" font-family="Arial" font-size="14" font-weight="bold" text-anchor="middle">Legend</text>
+        <line x1="1200" y1="115" x2="1450" y2="115" stroke="black" stroke-width="1" />
+
+        <line x1="1210" y1="135" x2="1250" y2="135" stroke="black" stroke-width="2" />
+        <text x="1260" y="140" font-family="Arial" font-size="11">Association (Solid)</text>
+
+        <line x1="1210" y1="155" x2="1250" y2="155" stroke="black" stroke-width="2" stroke-dasharray="5,5" />
+        <text x="1260" y="160" font-family="Arial" font-size="11">Many-to-Many (Dashed)</text>
+
+        <text x="1210" y="180" font-family="Arial" font-size="11">- : Private attribute</text>
+        <text x="1210" y="195" font-family="Arial" font-size="11">+ : Public method</text>
+
+        <text x="1210" y="215" font-family="Arial" font-size="10" fill="#555">Kardinalitas: 1, *, 0..1, 1..*</text>
+    </svg>
+</body>
+
+</html>s

@@ -270,10 +270,14 @@ class AssetController extends Controller
             'category' => $request->category ?? 'all',
             'sort' => $request->sort ?? 'latest'
         ];
-
+        
         $assets = $this->assetService->buildAssetQuery($filters)->paginate(1000)->withQueryString();
         
         $categories = $this->assetService->getCategories();
+
+        if ($request->ajax()) {
+            return view('assets.partials.table', ['assets' => $assets])->render();
+        }
 
         return view('assets.index', [
             'title' => 'Katalog Aset IT',
@@ -762,5 +766,51 @@ class AssetController extends Controller
         }
 
         return response()->json(['items' => $items]);
+    }
+    /**
+     * API Search Asset (AJAX) - Ringan & Cepat
+     */
+    public function searchJson(Request $request)
+    {
+        $query = $request->get('q');
+        $status = $request->get('status'); // Optional filter
+
+        $assets = Asset::select('id', 'name', 'serial_number', 'status', 'category', 'image', 'location', 'lorong', 'rak', 'condition_notes')
+            ->with(['holder:id,name']) // Eager load holder name only
+            ->where(function($q) use ($query) {
+                $q->where('name', 'LIKE', "%{$query}%")
+                  ->orWhere('serial_number', 'LIKE', "%{$query}%");
+            });
+
+        if ($status) {
+            $assets->where('status', $status);
+        }
+
+        // Limit results for performance
+        $results = $assets->limit(20)->get()->map(function($asset) {
+            return [
+                'id' => $asset->id,
+                'text' => $asset->serial_number . ' - ' . $asset->name, // Standard Select2 format
+                'name' => $asset->name,
+                'serial_number' => $asset->serial_number,
+                'status' => $asset->status,
+                'category' => $asset->category,
+                'image' => $asset->image ? asset('storage/' . $asset->image) : null,
+                'location' => $asset->location,
+                'lorong' => $asset->lorong,
+                'rak' => $asset->rak,
+                'condition_notes' => $asset->condition_notes,
+                'holder_name' => $asset->holder ? $asset->holder->name : null,
+                // Helper booleans for frontend
+                'is_deployed' => $asset->status === 'deployed',
+                'is_maintenance' => $asset->status === 'maintenance',
+                'is_broken' => $asset->status === 'broken',
+                'is_restricted' => in_array($asset->status, ['deployed', 'maintenance', 'broken'])
+            ];
+        });
+
+        return response()->json([
+            'results' => $results
+        ]);
     }
 }

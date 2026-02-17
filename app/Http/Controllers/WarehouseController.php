@@ -53,6 +53,9 @@ class WarehouseController extends Controller
     /**
      * Form Mutasi Aset (Pindah Lokasi)
      */
+    /**
+     * Form Mutasi Aset (Pindah Lokasi)
+     */
     public function createMove(Request $request, $id = null)
     {
         // [SECURITY] Manual Gate Check
@@ -62,10 +65,12 @@ class WarehouseController extends Controller
 
         $selectedAsset = null;
         if ($id) {
-            $selectedAsset = Asset::find($id);
+            // Jika ada ID, load asset tersebut untuk pre-fill
+            $selectedAsset = Asset::with(['holder'])->find($id);
         }
 
         // Tampilkan view form mutasi
+        // [OPTIMASI] Tidak lagi mengirim $assetsData yang berat. Frotend akan pakai AJAX.
         return view('warehouse.move', [
             'title' => 'Mutasi Aset',
             'selectedAsset' => $selectedAsset,
@@ -91,6 +96,19 @@ class WarehouseController extends Controller
         ]);
 
         $asset = Asset::findOrFail($request->asset_id);
+
+        // [VALIDASI KETAT] Cek Status Restricted (Deployed, Maintenance, Broken)
+        $restrictedStatuses = ['deployed', 'maintenance', 'broken'];
+        if (in_array($asset->status, $restrictedStatuses)) {
+            $statusLabels = [
+                'deployed' => 'Sedang Dipinjam (Deployed)',
+                'maintenance' => 'Sedang Perbaikan (Maintenance)',
+                'broken' => 'Rusak (Broken)'
+            ];
+            $label = $statusLabels[$asset->status] ?? $asset->status;
+            return back()->with('error', "Gagal! Aset statusnya **{$label}** dan tidak dapat dimutasi lokasinya. Pastikan status aset 'Available' terlebih dahulu.");
+        }
+
         $oldLocation = $asset->location;
         $newLocation = $request->target_location;
 

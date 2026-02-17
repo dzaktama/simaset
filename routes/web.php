@@ -42,6 +42,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/charts/asset-stats', [AssetController::class, 'chartsData'])->name('charts.assets'); // Dipakai di dashboard
     Route::get('/charts/borrow-stats', [AssetController::class, 'borrowStats'])->name('charts.borrows');
     
+    // API Search (AJAX)
+    Route::get('/ajax/assets/search', [AssetController::class, 'searchJson'])->name('assets.searchJson');
+    
     // Lihat Katalog & Peta (Akses Semua User)
     Route::get('/assets', [AssetController::class, 'index'])->name('assets.index');
     Route::get('/assets/{asset}', [AssetController::class, 'show'])->where('asset', '[0-9]+')->name('assets.show');

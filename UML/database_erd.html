@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERD (Manual SVG) - SIMASET FULL</title>
+    <style>
+        body { margin: 0; padding: 20px; background: white; display: flex; justify-content: center; font-family: Arial, sans-serif; }
+        .entity-box { fill: white; stroke: black; stroke-width: 1.5; }
+        .entity-header { fill: #f0f0f0; stroke: black; stroke-width: 1.5; }
+        .entity-title { font-weight: bold; font-size: 14px; text-anchor: middle; }
+        .attr-text { font-size: 11px; }
+        .type-text { font-size: 10px; fill: #555; }
+        .pk-text { font-weight: bold; fill: #a00; font-size: 10px; }
+        .fk-text { font-weight: bold; fill: #00a; font-size: 10px; }
+        .line-conn { stroke: black; stroke-width: 1.5; fill: none; }
+        .group-box { fill: none; stroke: #ccc; stroke-width: 1; stroke-dasharray: 5,5; }
+        .group-label { fill: #999; font-size: 16px; font-weight: bold; text-anchor: start; }
+        .rel-label { font-size: 11px; fill: #555; text-anchor: middle; font-style: italic; paint-order: stroke; stroke: white; stroke-width: 3px; }
+    </style>
+</head>
+<body>
+    <svg width="2000" height="1500" xmlns="http://www.w3.org/2000/svg">
+        <text x="1000" y="30" font-size="24" font-weight="bold" text-anchor="middle">Entity Relationship Diagram (ERD) - SIMASET</text>
+
+        <!-- Markers -->
+        <defs>
+            <marker id="zeroOrMany" markerWidth="12" markerHeight="12" refX="12" refY="6" orient="auto">
+                <path d="M0,6 L12,6 M12,0 L0,6 L12,12" fill="none" stroke="black" stroke-width="1.5"/>
+                <circle cx="5" cy="6" r="3" fill="white" stroke="black" stroke-width="1.5"/>
+            </marker>
+            <marker id="oneOrMany" markerWidth="12" markerHeight="12" refX="12" refY="6" orient="auto">
+                <path d="M0,6 L12,6 M12,0 L0,6 L12,12" fill="none" stroke="black" stroke-width="1.5"/>
+                <path d="M4,2 L4,10" fill="none" stroke="black" stroke-width="1.5"/>
+            </marker>
+            <marker id="exactlyOne" markerWidth="12" markerHeight="12" refX="12" refY="6" orient="auto">
+                <path d="M0,6 L12,6" fill="none" stroke="black" stroke-width="1.5"/>
+                <path d="M6,2 L6,10 M10,2 L10,10" fill="none" stroke="black" stroke-width="1.5"/>
+            </marker>
+             <marker id="zeroOrOne" markerWidth="12" markerHeight="12" refX="12" refY="6" orient="auto">
+                <path d="M0,6 L12,6" fill="none" stroke="black" stroke-width="1.5"/>
+                <circle cx="6" cy="6" r="3" fill="white" stroke="black" stroke-width="1.5"/>
+                <path d="M10,2 L10,10" fill="none" stroke="black" stroke-width="1.5"/>
+            </marker>
+        </defs>
+
+        <!-- ================= GROUP 1: AUTHENTICATION (Top Left) ================= -->
+        <rect x="50" y="50" width="550" height="500" class="group-box"/>
+        <text x="60" y="80" class="group-label">AUTHENTICATION</text>
+
+        <!-- USER (Center of Group) -->
+        <g transform="translate(300, 200)">
+            <rect class="entity-box" width="220" height="240"/>
+            <rect class="entity-header" width="220" height="30"/>
+            <text x="110" y="20" class="entity-title">users</text>
+            <text x="10" y="50" class="pk-text">PK</text> <text x="30" y="50" class="attr-text">id</text> <text x="150" y="50" class="type-text">bigint</text>
+            <text x="10" y="70" class="fk-text">FK</text> <text x="30" y="70" class="attr-text">role_id</text> <text x="150" y="70" class="type-text">bigint</text>
+            <text x="30" y="90" class="attr-text">name</text> <text x="150" y="90" class="type-text">varchar</text>
+            <text x="30" y="110" class="attr-text">email</text> <text x="150" y="110" class="type-text">varchar</text>
+            <text x="30" y="130" class="attr-text">password</text> <text x="150" y="130" class="type-text">varchar</text>
+            <text x="30" y="150" class="attr-text">nik</text> <text x="150" y="150" class="type-text">varchar</text>
+            <text x="30" y="170" class="attr-text">phone</text> <text x="150" y="170" class="type-text">varchar</text>
+            <text x="30" y="190" class="attr-text">department</text> <text x="150" y="190" class="type-text">varchar</text>
+            <text x="30" y="210" class="attr-text">position</text> <text x="150" y="210" class="type-text">varchar</text>
+            <text x="30" y="230" class="attr-text">photo_path</text> <text x="150" y="230" class="type-text">text</text>
+        </g>
+
+        <!-- ROLE (Top Left) -->
+        <g transform="translate(100, 100)">
+            <rect class="entity-box" width="180" height="80"/>
+            <rect class="entity-header" width="180" height="25"/>
+            <text x="90" y="18" class="entity-title">roles</text>
+            <text x="10" y="40" class="pk-text">PK</text> <text x="30" y="40" class="attr-text">id</text>
+            <text x="30" y="60" class="attr-text">name</text>
+        </g>
+
+        <!-- PERMISSION (Bottom Left) -->
+        <g transform="translate(100, 400)">
+            <rect class="entity-box" width="180" height="80"/>
+            <rect class="entity-header" width="180" height="25"/>
+            <text x="90" y="18" class="entity-title">permissions</text>
+            <text x="10" y="40" class="pk-text">PK</text> <text x="30" y="40" class="attr-text">id</text>
+            <text x="30" y="60" class="attr-text">name</text>
+        </g>
+
+        <!-- PERMISSION_ROLE (Middle Left) -->
+        <g transform="translate(100, 250)">
+            <rect class="entity-box" width="180" height="80"/>
+            <rect class="entity-header" width="180" height="25"/>
+            <text x="90" y="18" class="entity-title">permission_role</text>
+            <text x="10" y="40" class="fk-text">FK</text> <text x="30" y="40" class="attr-text">permission_id</text>
+            <text x="10" y="60" class="fk-text">FK</text> <text x="30" y="60" class="attr-text">role_id</text>
+        </g>
+
+        <!-- Relations Group 1 -->
+        <line x1="190" y1="180" x2="190" y2="250" class="line-conn" marker-start="url(#exactlyOne)" marker-end="url(#zeroOrMany)"/> <!-- Role -> PermRole -->
+        <text x="210" y="215" class="rel-label">memiliki</text>
+
+        <line x1="190" y1="400" x2="190" y2="330" class="line-conn" marker-start="url(#exactlyOne)" marker-end="url(#zeroOrMany)"/> <!-- Perm -> PermRole -->
+        <text x="210" y="365" class="rel-label">termasuk</text>
+        
+        <!-- Role (280, 140) -> User (410, 200) FIXED PATH -->
+        <path d="M280,140 L410,140 L410,200" class="line-conn" marker-start="url(#exactlyOne)" marker-end="url(#zeroOrMany)"/>
+        <text x="380" y="135" class="rel-label">dimiliki_oleh</text>
+
+
+        <!-- ================= GROUP 2: INVENTORY (Top Right) ================= -->
+        <rect x="650" y="50" width="600" height="500" class="group-box"/>
+        <text x="660" y="80" class="group-label">INVENTORY</text>
+
+        <!-- ASSETS -->
+        <g transform="translate(1000, 200)">
+             <rect class="entity-box" width="220" height="260"/>
+            <rect class="entity-header" width="220" height="30"/>
+            <text x="110" y="20" class="entity-title">assets</text>
+            <text x="10" y="50" class="pk-text">PK</text> <text x="30" y="50" class="attr-text">id</text> <text x="150" y="50" class="type-text">bigint</text>
+            <text x="30" y="70" class="attr-text">name</text> <text x="150" y="70" class="type-text">varchar</text>
+            <text x="30" y="90" class="attr-text">serial_number</text> <text x="150" y="90" class="type-text">varchar</text>
+            <text x="30" y="110" class="attr-text">status</text> <text x="150" y="110" class="type-text">enum</text>
+            <text x="30" y="130" class="attr-text">quantity</text> <text x="150" y="130" class="type-text">int</text>
+            <text x="30" y="150" class="attr-text">location</text> <text x="150" y="150" class="type-text">varchar</text>
+            <text x="10" y="240" class="fk-text">FK</text> <text x="30" y="240" class="attr-text">user_id</text> <text x="150" y="240" class="type-text">bigint</text>
+        </g>
+
+        <!-- ASSET_HISTORIES -->
+        <g transform="translate(700, 200)">
+            <rect class="entity-box" width="200" height="150"/>
+            <rect class="entity-header" width="200" height="30"/>
+            <text x="100" y="20" class="entity-title">asset_histories</text>
+            <text x="10" y="50" class="pk-text">PK</text> <text x="30" y="50" class="attr-text">id</text>
+            <text x="10" y="70" class="fk-text">FK</text> <text x="30" y="70" class="attr-text">asset_id</text>
+            <text x="10" y="90" class="fk-text">FK</text> <text x="30" y="90" class="attr-text">user_id</text>
+            <text x="30" y="110" class="attr-text">action</text>
+        </g>
+        
+        <!-- Inventory Relations -->
+        <!-- User (520, 300) -> Asset (1000, 300) Holder Relation -->
+        <path d="M520,300 L1000,300" class="line-conn" marker-start="url(#zeroOrOne)" marker-end="url(#zeroOrMany)"/>
+        <text x="760" y="295" class="rel-label">memegang</text>
+        
+        <!-- Asset (1000, 250) -> History (900, 250) -->
+        <line x1="1000,250" x2="900,250" class="line-conn" marker-start="url(#exactlyOne)" marker-end="url(#zeroOrMany)"/>
+        <text x="960" y="245" class="rel-label">riwayat</text>
+        
+        <!-- User (520, 250) -> History (700, 250) -->
+        <line x1="520,250" x2="700,250" class="line-conn" marker-start="url(#exactlyOne)" marker-end="url(#zeroOrMany)"/>
+        <text x="610" y="245" class="rel-label">mencatat</text>
+
+
+        <!-- ================= GROUP 3: TRANSACTIONS (Bottom Right) ================= -->
+        <rect x="650" y="600" width="800" height="500" class="group-box"/>
+        <text x="660" y="630" class="group-label">TRANSACTIONS</text>
+
+        <!-- ASSET_REQUESTS -->
+        <g transform="translate(700, 650)">
+            <rect class="entity-box" width="220" height="220"/>
+            <rect class="entity-header" width="220" height="30"/>
+            <text x="110" y="20" class="entity-title">asset_requests</text>
+            <text x="10" y="50" class="pk-text">PK</text> <text x="30" y="50" class="attr-text">id</text>
+            <text x="10" y="70" class="fk-text">FK</text> <text x="30" y="70" class="attr-text">user_id</text>
+            <text x="10" y="90" class="fk-text">FK</text> <text x="30" y="90" class="attr-text">asset_id</text>
+            <text x="30" y="110" class="attr-text">status</text> <text x="150" y="110" class="type-text">enum</text>
+            <text x="30" y="130" class="attr-text">borrow_status</text> <text x="150" y="130" class="type-text">enum</text>
+        </g>
+
+        <!-- ASSET_RETURNS -->
+        <g transform="translate(700, 950)">
+            <rect class="entity-box" width="220" height="140"/>
+            <rect class="entity-header" width="220" height="30"/>
+            <text x="110" y="20" class="entity-title">asset_returns</text>
+            <text x="10" y="50" class="pk-text">PK</text> <text x="30" y="50" class="attr-text">id</text>
+            <text x="10" y="70" class="fk-text">FK</text> <text x="30" y="70" class="attr-text">request_id</text>
+            <text x="30" y="90" class="attr-text">return_date</text>
+            <text x="30" y="110" class="attr-text">condition</text>
+        </g>
+
+        <!-- MAINTENANCES -->
+        <g transform="translate(1000, 650)">
+            <rect class="entity-box" width="220" height="200"/>
+            <rect class="entity-header" width="220" height="30"/>
+            <text x="110" y="20" class="entity-title">maintenances</text>
+            <text x="10" y="50" class="pk-text">PK</text> <text x="30" y="50" class="attr-text">id</text>
+            <text x="10" y="70" class="fk-text">FK</text> <text x="30" y="70" class="attr-text">asset_id</text>
+            <text x="10" y="90" class="fk-text">FK</text> <text x="30" y="90" class="attr-text">user_id</text>
+            <text x="10" y="110" class="fk-text">FK</text> <text x="30" y="110" class="attr-text">resolver_id</text>
+            <text x="30" y="130" class="attr-text">status</text>
+            <text x="30" y="150" class="attr-text">problem_desc</text>
+        </g>
+
+        <!-- Transaction Relations -->
+        <!-- User (520, 350) -> Request (700, 650) FIXED: Route via Gap -->
+        <!-- User Right (520, 350) -> 580, 350 -> 580, 760 -> 700, 760 -->
+        <path d="M520,350 L580,350 L580,760 L700,760" class="line-conn" marker-start="url(#exactlyOne)" marker-end="url(#zeroOrMany)"/>
+        <text x="640" y="755" class="rel-label">mengajukan</text>
+
+        <!-- Asset (1110, 460) -> Request (920, 650) FIXED -->
+        <path d="M1110,460 L1110,620 L860,620 L860,650" class="line-conn" marker-start="url(#exactlyOne)" marker-end="url(#zeroOrMany)"/>
+        <text x="965" y="615" class="rel-label">diminta</text>
+
+        <!-- Asset (1210, 460) -> Maintenance (1000, 650) FIXED -->
+        <!-- Asset Right (1210, 330) -> 1260, 330 -> 1260, 620 -> 1110, 620 -> 1110, 650 -->
+        <path d="M1220,330 L1260,330 L1260,620 L1110,620 L1110,650" class="line-conn" marker-start="url(#exactlyOne)" marker-end="url(#zeroOrMany)"/>
+        <text x="1205" y="615" class="rel-label">mengalami</text>
+
+        <!-- User (520, 440) -> Maintenance (1000, 750) FIXED: Route BOTTOM -->
+        <path d="M520,420 L580,420 L580,1150 L1110,1150 L1110,850" class="line-conn" marker-start="url(#exactlyOne)" marker-end="url(#zeroOrMany)"/>
+        <text x="845" y="1145" class="rel-label">melapor</text>
+
+        <!-- Request -> Return -->
+        <line x1="810" y1="870" x2="810" y2="950" class="line-conn" marker-start="url(#exactlyOne)" marker-end="url(#zeroOrOne)"/>
+        <text x="830" y="910" class="rel-label">dikembalikan</text>
+
+
+        <!-- ================= GROUP 4: COMMUNICATION (Bottom Left) ================= -->
+        <rect x="50" y="600" width="550" height="500" class="group-box"/>
+        <text x="60" y="630" class="group-label">COMMUNICATION</text>
+
+        <!-- CONVERSATIONS -->
+        <g transform="translate(100, 650)">
+            <rect class="entity-box" width="180" height="80"/>
+            <rect class="entity-header" width="180" height="25"/>
+            <text x="90" y="18" class="entity-title">conversations</text>
+            <text x="10" y="40" class="pk-text">PK</text> <text x="30" y="40" class="attr-text">id</text>
+            <text x="30" y="60" class="attr-text">type</text>
+        </g>
+
+        <!-- PARTICIPANTS -->
+        <g transform="translate(100, 800)">
+            <rect class="entity-box" width="180" height="80"/>
+            <rect class="entity-header" width="180" height="25"/>
+            <text x="90" y="18" class="entity-title">participants</text>
+            <text x="10" y="40" class="fk-text">FK</text> <text x="30" y="40" class="attr-text">conversation_id</text>
+            <text x="10" y="60" class="fk-text">FK</text> <text x="30" y="60" class="attr-text">user_id</text>
+        </g>
+
+        <!-- MESSAGES -->
+        <g transform="translate(350, 725)">
+            <rect class="entity-box" width="200" height="120"/>
+            <rect class="entity-header" width="200" height="25"/>
+            <text x="100" y="18" class="entity-title">messages</text>
+            <text x="10" y="40" class="pk-text">PK</text> <text x="30" y="40" class="attr-text">id</text>
+            <text x="10" y="60" class="fk-text">FK</text> <text x="30" y="60" class="attr-text">conversation_id</text>
+            <text x="10" y="80" class="fk-text">FK</text> <text x="30" y="80" class="attr-text">sender_id</text>
+            <text x="30" y="100" class="attr-text">body</text>
+        </g>
+        
+        <!-- Communication Relations -->
+        <line x1="190" y1="730" x2="190" y2="800" class="line-conn" marker-start="url(#exactlyOne)" marker-end="url(#oneOrMany)"/> <!-- Conv -> Part -->
+        <text x="220" y="765" class="rel-label">terdiri</text>
+
+        <!-- User -> Participant: Route through GAP (x=330) FIXED -->
+        <!-- User (400, 440) -> 400, 580 -> 330, 580 -> 330, 840 -> 280, 840 -->
+        <path d="M400,440 L400,580 L330,580 L330,840 L280,840" class="line-conn" marker-start="url(#exactlyOne)" marker-end="url(#zeroOrMany)"/>
+        <text x="340" y="610" class="rel-label">bergabung</text>
+        
+        <!-- Conv -> Msg (Orthogonal) FIXED -->
+        <path d="M280,690 L320,690 L320,785 L350,785" class="line-conn" fill="none" marker-start="url(#exactlyOne)" marker-end="url(#zeroOrMany)"/>
+        <text x="330" y="740" class="rel-label">memuat</text>
+        
+        <!-- User -> Msg (Sender) FIXED -->
+        <path d="M480,440 L480,725" class="line-conn" marker-start="url(#exactlyOne)" marker-end="url(#zeroOrMany)"/>
+        <text x="490" y="600" class="rel-label">mengirim</text>
+
+
+        <!-- ================= GROUP 5: GUIDES (Far Right) ================= -->
+        <rect x="1300" y="50" width="250" height="500" class="group-box"/>
+        <text x="1310" y="80" class="group-label">GUIDES</text>
+
+        <!-- GUIDES -->
+        <g transform="translate(1320, 150)">
+            <rect class="entity-box" width="200" height="80"/>
+            <rect class="entity-header" width="200" height="25"/>
+            <text x="100" y="18" class="entity-title">guides</text>
+            <text x="10" y="40" class="pk-text">PK</text> <text x="30" y="40" class="attr-text">id</text>
+            <text x="30" y="60" class="attr-text">title</text>
+        </g>
+        
+        <!-- STEPS -->
+        <g transform="translate(1320, 300)">
+            <rect class="entity-box" width="200" height="80"/>
+            <rect class="entity-header" width="200" height="25"/>
+            <text x="100" y="18" class="entity-title">guide_steps</text>
+            <text x="10" y="40" class="fk-text">FK</text> <text x="30" y="40" class="attr-text">guide_id</text>
+            <text x="30" y="60" class="attr-text">content</text>
+        </g>
+        
+        <line x1="1420" y1="230" x2="1420" y2="300" class="line-conn" marker-start="url(#exactlyOne)" marker-end="url(#oneOrMany)"/>
+        <text x="1440" y="265" class="rel-label">langkah</text>
+
+    </svg>
+</body>
+</html>

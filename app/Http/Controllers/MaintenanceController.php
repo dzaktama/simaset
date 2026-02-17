@@ -80,13 +80,13 @@ class MaintenanceController extends Controller
             }
         }
         
-        // Hanya aset dengan status 'broken' (rusak) yang ditampilkan di dropdown
-        // Karena hanya aset rusak yang perlu diperbaiki
-        $assets = Asset::with('holder')->where('status', 'broken')->get();
+        // [OPTIMASI] Hapus load semua aset yang berat
+        // $assets = Asset::with('holder')->where('status', 'broken')->get();
+        // Kita kirim array kosong, nanti Select2 yang handle via AJAX
 
         return view('maintenances.create', [
             'title' => 'Input Perbaikan Baru',
-            'assets' => $assets,
+            'assets' => [], // Empty by default
             'selectedAsset' => $asset,
             'maintenanceError' => $maintenanceError
         ]);

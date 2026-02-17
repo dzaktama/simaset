@@ -108,6 +108,8 @@ class ReportController extends Controller
             'orientation' => $request->query('orientation', 'portrait'),
             'search' => $request->search,
         ];
+        
+        $isPreview = !$request->has('download'); // [FIX] Define variable
 
         // --- CABANG 1: LAPORAN PEMINJAMAN ---
         if ($request->type === 'borrowing') {

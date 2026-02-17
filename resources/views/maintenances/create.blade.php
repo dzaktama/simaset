@@ -224,46 +224,80 @@
 <script src="//unpkg.com/alpinejs" defer></script>
 
 <script>
-    const allAssets = @json($assets);
+    // const allAssets = @ json($assets); // REMOVED
     const initialAssetId = "{{ $selectedAsset->id ?? '' }}";
+    // Prepare initial data manual (karena allAssets sudah tidak ada)
+    const initialAsset = @json($selectedAsset);
 
     function maintenanceForm() {
         return {
-            selectedAsset: null,
+            selectedAsset: initialAsset || null,
             
             init() {
-                // 1. INIT Select2 FIRST (before populating options)
+                // 1. INIT Select2 with AJAX
                 $('#assetSelect').select2({
-                    placeholder: "Cari Aset...",
+                    placeholder: "Cari Serial Number / Nama Aset...",
                     allowClear: true,
                     width: '100%',
+                    ajax: {
+                        url: "{{ route('assets.searchJson') }}",
+                        dataType: 'json',
+                        delay: 250,
+                        data: function (params) {
+                            return {
+                                q: params.term, // search term
+                                status: 'broken' // FILTER: Hanya cari aset rusak
+                            };
+                        },
+                        processResults: function (data) {
+                            return {
+                                results: data.results
+                            };
+                        },
+                        cache: true
+                    },
+                    minimumInputLength: 1,
                     language: {
+                        inputTooShort: function() {
+                            return "Ketik minimal 1 karakter untuk mencari...";
+                        },
                         noResults: function() {
-                            return "Aset tidak ditemukan (Cek filter status).";
+                            return "Aset rusak tidak ditemukan.";
+                        },
+                        searching: function() {
+                            return "Mencari...";
                         }
                     }
                 }).on('change', (e) => {
-                    const id = e.target.value;
-                    this.selectedAsset = id ? allAssets.find(a => a.id == id) : null;
+                    // Update AlpineJS state manually because Select2 changes DOM jquery-style
+                    const data = $('#assetSelect').select2('data')[0];
+                    if (data) {
+                         // Mapping format Select2 ke object asset kita
+                         // Note: properties from Select2 ajax result are directly accessible in `data`
+                         this.selectedAsset = {
+                             id: data.id,
+                             name: data.name,
+                             serial_number: data.serial_number,
+                             image: data.image || null, // URL string
+                             status: data.status,
+                             category: data.category,
+                             location: data.location,
+                             lorong: data.lorong,
+                             rak: data.rak,
+                             condition_notes: data.condition_notes,
+                             // holder?
+                         };
+                    } else {
+                        this.selectedAsset = null;
+                    }
                 });
 
-                // 2. POPULATE options directly from allAssets
-                const $select = $('#assetSelect');
-                $select.empty().append('<option value="">-- Cari Serial Number / Nama Aset --</option>');
-                
-                allAssets.forEach(asset => {
-                    const optionText = `${asset.serial_number} - ${asset.name}`;
-                    const isSelected = (asset.id == initialAssetId);
-                    const option = new Option(optionText, asset.id, isSelected, isSelected);
-                    $select.append(option);
-                });
-
-                // 3. SET initial value if coming from redirect
-                if (initialAssetId) {
-                    this.selectedAsset = allAssets.find(a => a.id == initialAssetId);
-                    setTimeout(() => {
-                        $select.val(initialAssetId).trigger('change.select2');
-                    }, 100);
+                // 2. SET initial value if coming from redirect/controller
+                if (initialAssetId && initialAsset) {
+                    // Create option manually since it's not loaded via AJAX yet
+                    const optionText = `${initialAsset.serial_number} - ${initialAsset.name}`;
+                    const customOption = new Option(optionText, initialAssetId, true, true);
+                    $('#assetSelect').append(customOption).trigger('change');
                 }
             }
         }
