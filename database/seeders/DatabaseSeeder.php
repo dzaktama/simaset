@@ -253,5 +253,25 @@ class DatabaseSeeder extends Seeder
                 'reason' => 'Menunggu persetujuan.'
             ]);
         }
+        // 5. TAMBAHAN LOGBOOK SPESIFIK (1 - 13 FEBRUARI 2026)
+        $logStart = \Carbon\Carbon::create(2026, 2, 1);
+        $logEnd = \Carbon\Carbon::create(2026, 2, 13);
+        $logPeriod = \Carbon\CarbonPeriod::create($logStart, $logEnd);
+        
+        $logActions = ['check_out', 'check_in', 'maintenance', 'status_change', 'moved'];
+        
+        foreach ($logPeriod as $date) {
+            $dailyLogs = rand(3, 8); // 3-8 logs per hari
+            for ($i = 0; $i < $dailyLogs; $i++) {
+                AssetHistory::create([
+                    'asset_id' => $assets->random()->id,
+                    'user_id' => $users[rand(0, count($users)-1)]->id,
+                    'action' => $logActions[rand(0, count($logActions)-1)],
+                    'notes' => 'Aktivitas rutin tercatat sistem (Logbook Harian).',
+                    'created_at' => $date->copy()->setTime(rand(8, 17), rand(0, 59)),
+                    'updated_at' => $date->copy()->setTime(rand(8, 17), rand(0, 59)), 
+                ]);
+            }
+        }
     }
 }

@@ -1,0 +1,13 @@
+.git
+.gitignore
+.vscode
+.qodo
+node_modules
+vendor
+public/build
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/testing/*
+storage/framework/views/*
+storage/logs/*
+.env
