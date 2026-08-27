@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Hash;
+use App\Models\AssetRequest;
 
 class ProfileController extends Controller
 {
@@ -12,9 +14,20 @@ class ProfileController extends Controller
      */
     public function edit()
     {
+        $user = auth()->user();
+        
+        // Fetch active borrowed assets for this user
+        $borrowedAssets = AssetRequest::with('asset')
+            ->where('user_id', $user->id)
+            ->where('status', 'approved')
+            ->whereNull('returned_at')
+            ->latest('borrowed_at')
+            ->get();
+
         return view('profile.edit', [
-            'user' => auth()->user(),
-            'title' => 'Profile Saya'
+            'user' => $user,
+            'title' => 'Profile Saya',
+            'borrowedAssets' => $borrowedAssets
         ]);
     }
 
@@ -25,17 +38,38 @@ class ProfileController extends Controller
     {
         $user = auth()->user();
 
+        // Separate validation rules for profile and password to handle them individually if needed, 
+        // but since it's one form or two forms on the same page, we can handle it based on input.
+
+        if ($request->has('update_password')) {
+            $validated = $request->validate([
+                'current_password' => ['required', 'current_password'],
+                'password' => ['required', 'string', 'min:8', 'confirmed'],
+            ]);
+
+            $user->update([
+                'password' => Hash::make($validated['password']),
+            ]);
+
+            return back()->with('success', 'Password berhasil diubah!');
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            // 'password' => ['nullable', 'min:8', 'confirmed'], // Optional: Password change
+            'phone' => ['nullable', 'string', 'max:20'],
+            'department' => ['nullable', 'string', 'max:100'],
+            'position' => ['nullable', 'string', 'max:100'],
         ]);
 
         $user->update([
             'name' => $validated['name'],
             'email' => $validated['email'],
+            'phone' => $validated['phone'],
+            'department' => $validated['department'],
+            'position' => $validated['position'],
         ]);
 
-        return back()->with('success', 'Profile updated successfully!');
+        return back()->with('success', 'Profil berhasil diperbarui!');
     }
 }
