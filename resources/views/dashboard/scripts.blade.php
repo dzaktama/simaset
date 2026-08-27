@@ -132,10 +132,23 @@
             if(loading) loading.classList.remove('hidden');
 
             try{
-                const borrowRes = await fetch(`/charts/borrow-stats?range=${range}`);
+                // Fetch secara bersamaan (Concurrent) agar 2x lebih cepat
+                const [borrowRes, assetRes] = await Promise.all([
+                    fetch(`/charts/borrow-stats?range=${range}`),
+                    fetch(`/charts/asset-stats?range=${range}`)
+                ]);
+                
                 const borrowJson = await borrowRes.json();
-                const assetRes = await fetch(`/charts/asset-stats?range=${range}`);
                 const assetJson = await assetRes.json();
+
+                const chartOptions = {
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    animation: { duration: 300 }, // Percepat animasi render
+                    interaction: { mode: 'index', intersect: false }, 
+                    plugins: { legend: { position: 'bottom' } }, 
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } 
+                };
 
                 // Chart 1
                 if (borrowChart) borrowChart.destroy();
@@ -148,7 +161,7 @@
                             { label: 'Ditolak', data: borrowJson.series.rejected, fill: true, backgroundColor: 'rgba(239,68,68,0.1)', borderColor: 'rgba(239,68,68,1)', borderWidth: 2.5, tension: 0.4 }
                         ]
                     },
-                    options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+                    options: chartOptions
                 });
 
                 // Chart 2
@@ -159,7 +172,7 @@
                         labels: assetJson.series.labels,
                         datasets: [{ label: 'Aset Ditambahkan', data: assetJson.series.data, fill: true, backgroundColor: 'rgba(34,197,94,0.1)', borderColor: 'rgba(34,197,94,1)', borderWidth: 2.5, tension: 0.4 }]
                     },
-                    options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+                    options: { ...chartOptions, plugins: { legend: { display: false } } }
                 });
 
                 // Pie Chart
@@ -171,13 +184,12 @@
                         labels: ['Available','Deployed','Maintenance','Broken'],
                         datasets: [{ data: [sc.available||0, sc.deployed||0, sc.maintenance||0, sc.broken||0], backgroundColor: ['#10B981','#3B82F6','#F59E0B','#EF4444'], borderWidth: 3 }]
                     },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
+                    options: { responsive: true, maintainAspectRatio: false, animation: { duration: 300 }, plugins: { legend: { position: 'top' } } }
                 });
 
             }catch(err){ 
                 console.error('Gagal load chart data:', err); 
             } finally {
-                const loading = document.getElementById('chartLoading');
                 if(loading) loading.classList.add('hidden');
             }
         }
