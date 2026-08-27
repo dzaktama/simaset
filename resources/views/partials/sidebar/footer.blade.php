@@ -37,11 +37,11 @@
             <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-indigo-600">
                 Profile Saya
             </a>
-            @if(in_array(optional(auth()->user()->role)->slug, ['admin', 'super_admin']))
+            @can('user.view')
                  <a href="{{ route('users.index') }}" class="block px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-indigo-600">
                     Kelola User
                 </a>
-            @endif
+            @endcan
             <div class="border-t border-gray-100 my-1"></div>
             <form action="{{ route('logout') }}" method="POST">
                 @csrf

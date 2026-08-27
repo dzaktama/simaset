@@ -1,8 +1,6 @@
 {{-- SECTION 1: MASTER --}}
-@canany(['dashboard.view', 'asset.view', 'asset.map'])
-
 <div x-data="{ 
-    open: localStorage.getItem('sidebar_master') === 'true', 
+    open: localStorage.getItem('sidebar_master') !== 'false', 
     showModal: false
 }" 
 x-init="$watch('open', val => localStorage.setItem('sidebar_master', val))">
@@ -105,8 +103,12 @@ x-init="$watch('open', val => localStorage.setItem('sidebar_master', val))">
             </a>
             @endcan
 
+            <a href="{{ route('assets.my') }}" class="group flex items-center px-3 py-1.5 text-[13px] font-medium rounded-r-lg transition-all duration-200 {{ request()->routeIs('assets.my') ? 'bg-indigo-50 text-indigo-700 border-l-4 border-indigo-600 -ml-[2px]' : 'text-gray-600 hover:bg-gray-50 hover:text-indigo-600' }}">
+                <svg class="shrink-0 h-4 w-4 mr-2.5 {{ request()->routeIs('assets.my') ? 'text-indigo-600' : 'text-gray-400 group-hover:text-indigo-500' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
+                <span>Aset Saya</span>
+            </a>
+
             @can('dashboard.stats')
-            {{-- FIXED ROUTE: warehouse.dashboard -> warehouse.index --}}
             <a href="{{ route('warehouse.index') }}" class="group flex items-center px-3 py-1.5 text-[13px] font-medium rounded-r-lg transition-all duration-200 {{ request()->routeIs('warehouse.index') ? 'bg-indigo-50 text-indigo-700 border-l-4 border-indigo-600 -ml-[2px]' : 'text-gray-600 hover:bg-gray-50 hover:text-indigo-600' }}">
                     <svg class="shrink-0 h-4 w-4 mr-2.5 {{ request()->routeIs('warehouse.index') ? 'text-indigo-600' : 'text-gray-400 group-hover:text-indigo-500' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
                 <span>Dashboard Gudang</span>
@@ -121,7 +123,6 @@ x-init="$watch('open', val => localStorage.setItem('sidebar_master', val))">
             @endcan
 
             @can('asset.map')
-            {{-- Placeholder Lokasi --}}
             <a href="{{ route('assets.map') }}" class="group flex items-center px-3 py-1.5 text-[13px] font-medium rounded-r-lg transition-all duration-200 {{ request()->routeIs('assets.map') ? 'bg-indigo-50 text-indigo-700 border-l-4 border-indigo-600 -ml-[2px]' : 'text-gray-600 hover:bg-gray-50 hover:text-indigo-600' }}">
                 <svg class="shrink-0 h-4 w-4 mr-2.5 {{ request()->routeIs('assets.map') ? 'text-indigo-600' : 'text-gray-400 group-hover:text-indigo-500' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                 <span>Lokasi Barang</span>
@@ -130,4 +131,3 @@ x-init="$watch('open', val => localStorage.setItem('sidebar_master', val))">
         </nav>
     </div>
 </div>
-@endcanany

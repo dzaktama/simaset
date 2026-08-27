@@ -95,13 +95,13 @@ x-init="$watch('open', val => localStorage.setItem('sidebar_laporan', val))">
     <div x-ref="content" class="overflow-hidden transition-all duration-300"
          :style="open ? 'max-height: ' + $refs.content.scrollHeight + 'px; opacity: 1' : 'max-height: 0px; opacity: 0'">
         <nav class="space-y-0.5 pl-2 border-l-2 border-gray-100 ml-2">
-            {{-- Analytics (Only Admin/Super) --}}
-            @if(in_array(optional(auth()->user()->role)->slug, ['admin', 'super_admin']))
+            {{-- Analytics --}}
+            @can('dashboard.stats')
             <a href="{{ route('analytics.index') }}" class="group flex items-center px-3 py-1.5 text-[13px] font-medium rounded-r-lg transition-all duration-200 {{ request()->routeIs('analytics.*') ? 'bg-indigo-50 text-indigo-700 border-l-4 border-indigo-600 -ml-[2px]' : 'text-gray-600 hover:bg-gray-50 hover:text-indigo-600' }}">
                 <svg class="shrink-0 h-4 w-4 mr-2.5 {{ request()->routeIs('analytics.*') ? 'text-indigo-600' : 'text-gray-400 group-hover:text-indigo-500' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
                 <span>Pusat Data</span>
             </a>
-            @endif
+            @endcan
 
             @can('report.view')
             <a href="{{ route('reports.index') }}" class="group flex items-center px-3 py-1.5 text-[13px] font-medium rounded-r-lg transition-all duration-200 {{ request()->routeIs('reports.index') ? 'bg-indigo-50 text-indigo-700 border-l-4 border-indigo-600 -ml-[2px]' : 'text-gray-600 hover:bg-gray-50 hover:text-indigo-600' }}">
