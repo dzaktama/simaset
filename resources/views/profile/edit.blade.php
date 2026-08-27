@@ -36,16 +36,37 @@
                     <h3 class="font-semibold text-gray-800">Informasi Dasar & Pekerjaan</h3>
                 </div>
                 <div class="p-6">
-                    <form action="{{ route('profile.update') }}" method="POST">
+                    <form action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         @method('PATCH')
 
+                        @php
+                            $isSuperAdmin = optional($user->role)->slug === 'super_admin';
+                        @endphp
+
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            
+                            {{-- Foto Profil --}}
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Foto Profil (Opsional)</label>
+                                <div class="flex items-center gap-4">
+                                    <div class="w-16 h-16 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
+                                        @if($user->avatar)
+                                            <img src="{{ asset('storage/' . $user->avatar) }}" class="w-full h-full object-cover">
+                                        @else
+                                            <svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                                        @endif
+                                    </div>
+                                    <input type="file" name="avatar" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 transition-all">
+                                </div>
+                                @error('avatar')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                            </div>
+
                             {{-- Nama --}}
                             <div>
                                 <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Nama Lengkap</label>
                                 <input type="text" name="name" id="name" value="{{ old('name', $user->name) }}" 
-                                       class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors">
+                                       class="w-full rounded-lg border border-gray-300 px-4 py-2 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors">
                                 @error('name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                             </div>
 
@@ -53,7 +74,7 @@
                             <div>
                                 <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Alamat Email</label>
                                 <input type="email" name="email" id="email" value="{{ old('email', $user->email) }}" 
-                                       class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors">
+                                       class="w-full rounded-lg border border-gray-300 px-4 py-2 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors">
                                 @error('email')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                             </div>
 
@@ -61,15 +82,19 @@
                             <div>
                                 <label for="employee_id" class="block text-sm font-medium text-gray-700 mb-2">ID Karyawan (NIP/NIK)</label>
                                 <input type="text" name="employee_id" id="employee_id" value="{{ old('employee_id', $user->employee_id) }}" 
-                                       class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50 text-gray-500" readonly>
-                                <p class="text-xs text-gray-400 mt-1">*Hubungi HR untuk mengubah ID Karyawan.</p>
+                                       class="w-full rounded-lg border border-gray-300 px-4 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 {{ $isSuperAdmin ? 'bg-white text-gray-900' : 'bg-gray-100 text-gray-500 cursor-not-allowed' }}" 
+                                       {{ $isSuperAdmin ? '' : 'readonly' }}>
+                                @if(!$isSuperAdmin)
+                                <p class="text-xs text-gray-400 mt-1">*Hanya Super Admin yang dapat mengubah ID Karyawan.</p>
+                                @endif
+                                @error('employee_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                             </div>
 
                             {{-- Nomor Telepon --}}
                             <div>
                                 <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">Nomor Telepon (WhatsApp)</label>
                                 <input type="text" name="phone" id="phone" value="{{ old('phone', $user->phone) }}" 
-                                       class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors">
+                                       class="w-full rounded-lg border border-gray-300 px-4 py-2 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors">
                                 @error('phone')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                             </div>
 
@@ -77,7 +102,7 @@
                             <div>
                                 <label for="department" class="block text-sm font-medium text-gray-700 mb-2">Departemen</label>
                                 <input type="text" name="department" id="department" value="{{ old('department', $user->department) }}" 
-                                       class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors">
+                                       class="w-full rounded-lg border border-gray-300 px-4 py-2 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors">
                                 @error('department')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                             </div>
 
@@ -85,8 +110,17 @@
                             <div>
                                 <label for="position" class="block text-sm font-medium text-gray-700 mb-2">Jabatan</label>
                                 <input type="text" name="position" id="position" value="{{ old('position', $user->position) }}" 
-                                       class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors">
+                                       class="w-full rounded-lg border border-gray-300 px-4 py-2 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors">
                                 @error('position')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                            </div>
+
+                            {{-- Lokasi Kerja --}}
+                            <div class="md:col-span-2">
+                                <label for="work_location" class="block text-sm font-medium text-gray-700 mb-2">Lokasi Kerja / Ruangan</label>
+                                <input type="text" name="work_location" id="work_location" value="{{ old('work_location', $user->work_location) }}" 
+                                       placeholder="Misal: Gedung A Lantai 2, Ruang IT"
+                                       class="w-full rounded-lg border border-gray-300 px-4 py-2 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors">
+                                @error('work_location')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                             </div>
                         </div>
 
@@ -116,21 +150,21 @@
                             <div>
                                 <label for="current_password" class="block text-sm font-medium text-gray-700 mb-2">Password Saat Ini</label>
                                 <input type="password" name="current_password" id="current_password" required
-                                       class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                       class="w-full rounded-lg border border-gray-300 px-4 py-2 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                                 @error('current_password')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                             </div>
 
                             <div>
                                 <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Password Baru</label>
                                 <input type="password" name="password" id="password" required
-                                       class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                       class="w-full rounded-lg border border-gray-300 px-4 py-2 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                                 @error('password')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                             </div>
 
                             <div>
                                 <label for="password_confirmation" class="block text-sm font-medium text-gray-700 mb-2">Konfirmasi Password Baru</label>
                                 <input type="password" name="password_confirmation" id="password_confirmation" required
-                                       class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                       class="w-full rounded-lg border border-gray-300 px-4 py-2 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                             </div>
                         </div>
 
@@ -151,8 +185,12 @@
             
             {{-- Kartu Nama (Badge) --}}
             <div class="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-2xl p-6 text-center text-white shadow-lg shadow-indigo-200">
-                <div class="w-20 h-20 mx-auto bg-white/20 rounded-full flex items-center justify-center text-3xl font-bold backdrop-blur-sm border-2 border-white/50 mb-4">
-                    {{ strtoupper(substr($user->name, 0, 1)) }}
+                <div class="w-24 h-24 mx-auto bg-white/20 rounded-full flex items-center justify-center overflow-hidden border-2 border-white/50 mb-4 backdrop-blur-sm">
+                    @if($user->avatar)
+                        <img src="{{ asset('storage/' . $user->avatar) }}" class="w-full h-full object-cover">
+                    @else
+                        <span class="text-4xl font-bold">{{ strtoupper(substr($user->name, 0, 1)) }}</span>
+                    @endif
                 </div>
                 <h3 class="font-bold text-xl">{{ $user->name }}</h3>
                 <p class="text-indigo-100 text-sm mt-1">{{ $user->email }}</p>

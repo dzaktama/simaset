@@ -54,21 +54,44 @@ class ProfileController extends Controller
             return back()->with('success', 'Password berhasil diubah!');
         }
 
-        $validated = $request->validate([
+        $rules = [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'phone' => ['nullable', 'string', 'max:20'],
             'department' => ['nullable', 'string', 'max:100'],
             'position' => ['nullable', 'string', 'max:100'],
-        ]);
+            'work_location' => ['nullable', 'string', 'max:255'],
+            'avatar' => ['nullable', 'image', 'max:2048'],
+        ];
 
-        $user->update([
+        // Hanya Super Admin yang boleh ubah employee_id
+        if (optional($user->role)->slug === 'super_admin') {
+            $rules['employee_id'] = ['nullable', 'string', 'max:100'];
+        }
+
+        $validated = $request->validate($rules);
+
+        $updateData = [
             'name' => $validated['name'],
             'email' => $validated['email'],
             'phone' => $validated['phone'],
             'department' => $validated['department'],
             'position' => $validated['position'],
-        ]);
+            'work_location' => $validated['work_location'] ?? null,
+        ];
+
+        if (optional($user->role)->slug === 'super_admin' && array_key_exists('employee_id', $validated)) {
+            $updateData['employee_id'] = $validated['employee_id'];
+        }
+
+        if ($request->hasFile('avatar')) {
+            if ($user->avatar) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($user->avatar);
+            }
+            $updateData['avatar'] = $request->file('avatar')->store('avatars', 'public');
+        }
+
+        $user->update($updateData);
 
         return back()->with('success', 'Profil berhasil diperbarui!');
     }

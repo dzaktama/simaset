@@ -41,11 +41,13 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'avatar',
         'role_id', // Ganti 'role' & 'permissions' dengan 'role_id'
         'employee_id',
         'phone',      
         'department', 
-        'position',   
+        'position',
+        'work_location',
     ];
 
     /**
