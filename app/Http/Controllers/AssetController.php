@@ -615,7 +615,7 @@ class AssetController extends Controller
                 DB::raw('COUNT(*) as count')
             )
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->groupBy('date_key')
+            ->groupByRaw($groupBy)
             ->get();
 
         foreach ($assets as $asset) {
@@ -702,7 +702,7 @@ class AssetController extends Controller
                 DB::raw('SUM(CASE WHEN status = "rejected" THEN 1 ELSE 0 END) as rejected_count')
             )
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->groupBy('date_key')
+            ->groupByRaw($groupBy)
             ->get();
 
         // 3. Mapping Data ke Array
