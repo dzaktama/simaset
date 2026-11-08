@@ -70,6 +70,10 @@
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
                                     Sedang Dipinjam
                                 </span>
+                            @elseif($borrowing->status == 'pending_return')
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">
+                                    Menunggu Verifikasi Kembali
+                                </span>
                             @elseif($borrowing->status == 'rejected')
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200">
                                     Ditolak
@@ -78,6 +82,9 @@
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
                                     Selesai (Dikembalikan)
                                 </span>
+                                @if($borrowing->assetReturn?->hasOutstandingFine())
+                                    <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200">Denda</span>
+                                @endif
                             @else
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
                                     {{ ucfirst($borrowing->status) }}

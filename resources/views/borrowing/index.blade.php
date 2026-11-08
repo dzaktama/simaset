@@ -102,6 +102,7 @@
                 <select name="borrowing_status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     <option value="">Semua Status</option>
                     <option value="active" {{ request('borrowing_status') == 'active' ? 'selected' : '' }}>Aktif</option>
+                    <option value="pending_return" {{ request('borrowing_status') == 'pending_return' ? 'selected' : '' }}>Menunggu Verifikasi Kembali</option>
                     <option value="returned" {{ request('borrowing_status') == 'returned' ? 'selected' : '' }}>Dikembalikan</option>
                     <option value="rejected" {{ request('borrowing_status') == 'rejected' ? 'selected' : '' }}>Ditolak</option>
                 </select>
@@ -237,6 +238,10 @@
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                     <span class="w-2 h-2 bg-green-600 rounded-full mr-2 animate-pulse"></span>
                                     Aktif
+                                </span>
+                            @elseif($borrowing->borrowing_status === 'pending_return')
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                    Menunggu Verifikasi
                                 </span>
                             @elseif($borrowing->borrowing_status === 'returned')
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
