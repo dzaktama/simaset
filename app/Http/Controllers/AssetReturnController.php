@@ -120,8 +120,9 @@ class AssetReturnController extends Controller
             $asset->increment('quantity', $qtyToReturn);
             $asset->update(['status' => 'available']);
         } else {
-            // Jika rusak/maintenance, stok TIDAK nambah ke 'available'
-            // Status aset berubah jadi broken/maintenance
+            // Jika rusak/maintenance, unit fisik tetap kembali ke gudang (stok bertambah),
+            // tetapi status broken/maintenance membuat aset tidak dapat dipinjam sampai diperbaiki
+            $asset->increment('quantity', $qtyToReturn);
             $asset->update(['status' => $finalCondition]); 
             
             // [NEW] Auto-Create Maintenance Ticket
