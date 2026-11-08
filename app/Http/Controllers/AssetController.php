@@ -26,6 +26,8 @@ class AssetController extends Controller
         $this->assetService = $assetService;
         
         // Middleware Permission Checks
+        // [PRESENTASI FR-02 #2] Tiap aksi dijaga izin berbeda: create/store butuh asset.create,
+        //     edit/update butuh asset.edit, destroy butuh asset.delete.
         $this->middleware('can:asset.create')->only(['create', 'store']);
         $this->middleware('can:asset.edit')->only(['edit', 'update']);
         $this->middleware('can:asset.delete')->only(['destroy']);
@@ -349,6 +351,8 @@ class AssetController extends Controller
      */
     public function store(Request $request)
     {
+        // [PRESENTASI FR-02 #3] Validasi di server: nama wajib, jumlah minimal 1, foto gambar maksimal
+        //     2 MB.
         $request->validate([
             'name' => 'required|string|max:255',
             'category' => 'required',
@@ -364,12 +368,16 @@ class AssetController extends Controller
 
         // 1. GENERATE PREFIX (AAA)
         // Ambil 3 huruf pertama dari nama aset (Uppercase)
+        // [PRESENTASI FR-02 #4] Awalan nomor seri: 3 huruf pertama nama aset (huruf besar). Contoh
+        //     'Keyboard' menjadi KEY.
         $prefix = strtoupper(substr(preg_replace('/[^a-zA-Z]/', '', $request->name), 0, 3));
         if (strlen($prefix) < 3) {
             $prefix = strtoupper(str_pad($prefix, 3, 'X')); // Fallback jika nama < 3 huruf
         }
 
         // 2. CARI URUTAN TERAKHIR (LAST NUMBER)
+        // [PRESENTASI FR-02 #5] Mencari nomor seri terakhir dengan awalan yang sama, supaya nomor
+        //     berikutnya tidak pernah kembar (mengatasi duplikasi di spreadsheet).
         $lastAsset = Asset::where('serial_number', 'regexp', "^$prefix-[0-9]{5}$")
                           ->orderBy('serial_number', 'desc')
                           ->first();
@@ -409,6 +417,8 @@ class AssetController extends Controller
         $inputQty = (int) $request->quantity;
         $createdSNs = [];
 
+        // [PRESENTASI FR-02 #6] Transaksi: semua unit aset yang dibuat disimpan sekaligus. Jika satu
+        //     gagal, semuanya dibatalkan (rollBack).
         DB::beginTransaction();
         try {
             for ($i = 0; $i < $inputQty; $i++) {
@@ -420,9 +430,13 @@ class AssetController extends Controller
                 $assetData['serial_number'] = $serialNumber;
                 $assetData['quantity'] = 1; // FORCE 1
                 
+                // [PRESENTASI FR-02 #7] Perulangan: input jumlah 10 membuat 10 record, masing-masing
+                //     stok 1 dan nomor seri berurutan.
                 $asset = Asset::create($assetData);
                 
                 // Catat History
+                // [PRESENTASI FR-02 #8] Setiap aset baru dicatat ke tabel asset_histories sebagai
+                //     jejak audit (siapa, kapan, apa).
                 AssetHistory::create([
                     'asset_id' => $asset->id,
                     'user_id' => auth()->id(),

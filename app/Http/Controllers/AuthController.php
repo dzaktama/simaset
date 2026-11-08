@@ -27,6 +27,8 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         // [IMPROVISASI] Validasi Captcha
+        // [PRESENTASI FR-01 #2] Validasi input di server sebelum password dicek. Captcha mencegah
+        //     percobaan login otomatis (bot).
         $request->validate([
             'email' => 'required|email',
             'password' => 'required',
@@ -41,6 +43,8 @@ class AuthController extends Controller
 
         $remember = $request->boolean('remember-me');
 
+        // [PRESENTASI FR-01 #3] Inti login: Auth::attempt mencocokkan email dan hash bcrypt di
+        //     database. Jika cocok, session_id diganti (regenerate) agar tidak bisa dibajak.
         if (Auth::attempt($credentials, $remember)) {
             $request->session()->regenerate();
             
@@ -50,6 +54,8 @@ class AuthController extends Controller
         }
 
         // Kalau password salah, input email jangan dihilangkan (UX)
+        // [PRESENTASI FR-01 #4] Jika login gagal: kembali ke form, tampilkan pesan error, dan isi
+        //     ulang email supaya pengguna tidak mengetik ulang.
         return back()->with('loginError', 'Login gagal! Email atau password salah.')->withInput($request->only('email'));
     }
 

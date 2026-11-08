@@ -4,7 +4,7 @@ title: "Panduan Presentasi Source Code SIMASET"
 
 # Panduan Presentasi Source Code SIMASET
 
-Dokumen ini dipakai sebagai pegangan saat menjelaskan kode di VS Code. Setiap fitur (FR-01 sampai FR-08) punya urutan file yang dibuka, bagian yang ditunjuk, dan kalimat penjelasnya. Path ditulis dari akar proyek (`simaset/`). Nomor baris sesuai kode pada branch `main` saat dokumen ini dibuat, jadi jika file berubah, cari nama fungsinya.
+Dokumen ini dipakai sebagai pegangan saat menjelaskan kode di VS Code. Setiap fitur (FR-01 sampai FR-08) punya urutan file yang dibuka, bagian yang ditunjuk, dan kalimat penjelasnya. Path ditulis dari akar proyek (`simaset/`). Di kode sudah ditambahkan komentar `[PRESENTASI FR-xx #n]`. Cari teks itu (Ctrl+Shift+F di VS Code) untuk langsung loncat ke bagian yang dimaksud. Nomor baris dihitung saat dokumen ini dibuat; jika file berubah, andalkan tag-nya.
 
 ## 1. Gambaran Umum Alur Kode
 
@@ -39,104 +39,121 @@ Catatan: bagian Dzaky adalah FR-05 sampai FR-08. Pembagian dua orang mengikuti `
 
 ## 3. Panduan Per Fitur
 
+Cara memakai tabel: buka file di kolom **File dan baris**, cari komentar `[PRESENTASI FR-xx #n]` yang sudah ditambahkan di kode (komentar itu tepat di atas baris yang ditunjuk). Kolom **Jenis** memberi tahu apakah yang ditunjuk itu route, fungsi (method), variabel, kondisi if, pemanggilan fungsi, atau class, supaya istilahnya tepat saat bicara. Kolom **Yang diucapkan** adalah kalimat yang bisa dibaca atau diucapkan ulang dengan kata sendiri.
+
+
 ### FR-01 Login dan Hak Akses
 
-| Urutan | File dan lokasi | Yang ditunjuk | Kalimat penjelasan |
-|---|---|---|---|
-| 1 | `routes/web.php` baris 26 | `Route::post('/login', 'login')->middleware('guest')` | Route login hanya bisa diakses tamu. Orang yang sudah login diarahkan keluar oleh middleware `guest`. |
-| 2 | `app/Http/Controllers/AuthController.php` baris 27-36 | `$request->validate([... 'captcha' => 'required|captcha'])` | Sebelum cek password, input divalidasi. Captcha mencegah percobaan login otomatis. |
-| 3 | `app/Http/Controllers/AuthController.php` baris 44-46 | `Auth::attempt(...)` dan `session()->regenerate()` | `Auth::attempt` mencocokkan email dengan hash bcrypt di database. Jika cocok, ID sesi diganti agar tidak bisa dibajak (session fixation). |
-| 4 | `app/Http/Controllers/AuthController.php` baris 53 | `back()->with('loginError', ...)` | Jika gagal, pesan error ditampilkan dan email tetap terisi supaya pengguna tidak mengetik ulang. |
-| 5 | `app/Models/User.php` baris 77 | `hasPermission()` | Inti hak akses. Urutannya: izin khusus milik user, lalu bypass Super Admin, lalu izin bawaan peran. |
-| 6 | `app/Providers/AppServiceProvider.php` baris 39-47 | `Cache::remember('app_permissions', ...)` dan `Gate::define` | Daftar izin dibaca dari tabel `permissions`, disimpan di cache 24 jam, lalu tiap izin didaftarkan sebagai Gate. Inilah yang membuat `can:borrow.action` di route dan controller bekerja. |
 
-Pertanyaan yang mungkin muncul: "Kenapa password bisa ditolak saat tambah user?" Jawab: `AppServiceProvider.php` baris 29-33 memakai `Password::defaults()` (minimal 8 karakter, huruf besar dan kecil, angka, simbol, dan dicek ke daftar password bocor).
+| No | File dan baris | Yang ditunjuk | Jenis | Yang diucapkan |
+|---|---|---|---|---|
+| 1 | `routes/web.php` baris 28 (tag FR-01 #1) | `Route::post('/login', 'login')->middleware('guest')` | Route (definisi URL) | Ini route, yaitu pintu masuk URL /login dengan method POST. Middleware guest membuat orang yang sudah login tidak bisa membukanya lagi. |
+| 2 | `app/Http/Controllers/AuthController.php` baris 32 (tag FR-01 #2) | `$request->validate([...])`, khususnya aturan `'captcha' => 'required|captcha'` | Pemanggilan method validate() | Ini pemanggilan method validate. Sebelum password dicek, email, password, dan captcha divalidasi dulu supaya bot tidak bisa mencoba login berulang. |
+| 3 | `app/Http/Controllers/AuthController.php` baris 48 (tag FR-01 #3) | `if (Auth::attempt($credentials, $remember))` | Kondisi if dengan method Auth::attempt() | Ini kondisi if. Method Auth::attempt mencocokkan email dengan password yang di-hash bcrypt di database. Kalau cocok, ID sesi diganti agar tidak bisa dibajak. |
+| 4 | `app/Http/Controllers/AuthController.php` baris 59 (tag FR-01 #4) | `return back()->with('loginError', ...)` | Statement return (redirect + pesan) | Ini statement return. Kalau login gagal, pengguna dikembalikan ke form dengan pesan error dan emailnya tetap terisi. |
+| 5 | `app/Models/User.php` baris 79 (tag FR-01 #5) | `public function hasPermission($permission)` | Method (fungsi) pada Model | Ini method di model User. Semua pengecekan hak akses berpusat di sini, dengan tiga lapis: izin khusus user, bypass Super Admin, lalu izin bawaan peran. |
+| 6 | `app/Providers/AppServiceProvider.php` baris 43 (tag FR-01 #6) | `$permissions = Cache::remember('app_permissions', ...)` | Variabel $permissions dengan Cache::remember() | Ini variabel yang diisi dari cache. Daftar izin diambil dari tabel permissions dan disimpan 24 jam supaya aplikasi tidak bolak-balik ke database. |
+| 7 | `app/Providers/AppServiceProvider.php` baris 50 (tag FR-01 #7) | `Gate::define($permission, function ($user) ...)` | Pemanggilan method Gate::define() di dalam foreach | Ini pemanggilan Gate::define di dalam perulangan. Tiap izin didaftarkan sebagai Gate, jadi penulisan can:nama-izin di route dan controller langsung berfungsi. |
 
 ### FR-02 CRUD Data Aset
 
-| Urutan | File dan lokasi | Yang ditunjuk | Kalimat penjelasan |
-|---|---|---|---|
-| 1 | `routes/web.php` baris 87 | `Route::resource('assets', AssetController::class)` | Satu baris ini membuat route index, create, store, show, edit, update, dan destroy sekaligus. |
-| 2 | `app/Http/Controllers/AssetController.php` baris 29-31 | `middleware('can:asset.create')`, `asset.edit`, `asset.delete` | Tiap aksi dijaga izin yang berbeda. Staf biasa bisa melihat, tetapi tidak bisa menambah atau menghapus. |
-| 3 | `app/Http/Controllers/AssetController.php` baris 352-364 | `$request->validate([...])` | Semua input divalidasi di server: nama wajib, jumlah minimal 1, foto maksimal 2 MB. |
-| 4 | `app/Http/Controllers/AssetController.php` baris 366-382 | Pembuatan prefix dan nomor seri | Nomor seri dibentuk otomatis dari 3 huruf nama aset dan nomor urut 5 digit (contoh `KEY-00001`). Ini menyelesaikan masalah duplikasi nomor seri saat masih memakai spreadsheet. |
-| 5 | `app/Http/Controllers/AssetController.php` baris 412-436 | `DB::beginTransaction()` dan perulangan `Asset::create` | Jika jumlah 10, dibuat 10 record dengan stok masing-masing 1, semuanya dalam satu transaksi. Jika satu gagal, tidak ada yang tersimpan. |
-| 6 | `app/Http/Controllers/AssetController.php` baris 426-431 | `AssetHistory::create([... 'action' => 'created'])` | Pembuatan aset dicatat ke riwayat. |
-| 7 | `app/Models/Asset.php` baris 121-126 | `activeRequest()` | Relasi untuk mengetahui siapa yang sedang memegang aset (peminjaman berstatus approved). |
+
+| No | File dan baris | Yang ditunjuk | Jenis | Yang diucapkan |
+|---|---|---|---|---|
+| 1 | `routes/web.php` baris 93 (tag FR-02 #1) | `Route::resource('assets', AssetController::class)` | Route resource | Ini route resource. Satu baris menghasilkan seluruh route CRUD untuk aset. |
+| 2 | `app/Http/Controllers/AssetController.php` baris 31 (tag FR-02 #2) | tiga baris `$this->middleware('can:asset.create' / 'asset.edit' / 'asset.delete')` | Pemanggilan method middleware() di konstruktor | Ini konstruktor controller yang memasang middleware. Setiap aksi punya izin sendiri, jadi staf biasa bisa melihat aset tetapi tidak bisa menambah atau menghapus. |
+| 3 | `app/Http/Controllers/AssetController.php` baris 356 (tag FR-02 #3) | `$request->validate([...])` | Pemanggilan method validate() | Ini validasi input. Nama wajib diisi, jumlah minimal 1, dan foto harus gambar maksimal 2 MB. |
+| 4 | `app/Http/Controllers/AssetController.php` baris 373 (tag FR-02 #4) | `$prefix = strtoupper(substr(preg_replace(...), 0, 3))` | Variabel $prefix (assignment) | Ini variabel prefix. Isinya tiga huruf pertama nama aset, misalnya Keyboard menjadi KEY, sebagai awalan nomor seri. |
+| 5 | `app/Http/Controllers/AssetController.php` baris 381 (tag FR-02 #5) | `$lastAsset = Asset::where('serial_number', 'regexp', ...)` | Variabel $lastAsset (hasil query) | Ini variabel hasil query. Sistem mencari nomor seri terakhir dengan awalan yang sama, sehingga nomor berikutnya tidak pernah kembar. |
+| 6 | `app/Http/Controllers/AssetController.php` baris 422 (tag FR-02 #6) | `DB::beginTransaction();` sampai `DB::commit();` | Pemanggilan method transaksi database | Ini awal transaksi database. Kalau saya input 10 unit lalu satu gagal, kesepuluhnya dibatalkan, jadi data tidak setengah tersimpan. |
+| 7 | `app/Http/Controllers/AssetController.php` baris 435 (tag FR-02 #7) | `$asset = Asset::create($assetData);` di dalam `for` | Variabel $asset dengan method create() | Ini perulangan yang membuat satu record per unit. Input 10 akan menjadi 10 baris dengan nomor seri berurutan. |
+| 8 | `app/Http/Controllers/AssetController.php` baris 440 (tag FR-02 #8) | `AssetHistory::create([... 'action' => 'created'])` | Pemanggilan method create() pada model AssetHistory | Ini pencatatan riwayat. Setiap aset baru masuk ke tabel asset_histories sebagai jejak audit. |
+| 9 | `app/Models/Asset.php` baris 123 (tag FR-02 #9) | `public function activeRequest()` | Method relasi pada Model | Ini method relasi di model Asset. Dari sini sistem tahu siapa yang sedang memegang aset, yaitu peminjaman yang berstatus approved. |
 
 ### FR-03 Pengajuan Peminjaman oleh Staf
 
-| Urutan | File dan lokasi | Yang ditunjuk | Kalimat penjelasan |
-|---|---|---|---|
-| 1 | `routes/web.php` baris 74 | `Route::post('/borrowing', ...)` | Route pengajuan dari modal "Pinjam" di katalog aset. |
-| 2 | `app/Http/Controllers/BorrowingController.php` baris 19-26 | Konstruktor dengan `can:borrow.request` | Hanya yang punya izin `borrow.request` yang boleh mengajukan. |
-| 3 | `app/Http/Controllers/BorrowingController.php` baris 104-111 | `$request->validate` | Tanggal kembali tidak boleh sebelum hari ini, alasan wajib diisi. |
-| 4 | `app/Http/Controllers/BorrowingController.php` baris 118-119 | `Asset::lockForUpdate()->findOrFail(...)` | Baris aset dikunci selama transaksi, sehingga dua orang yang mengajukan bersamaan tidak bisa mengambil stok yang sama (mencegah double booking). |
-| 5 | `app/Http/Controllers/BorrowingController.php` baris 122-131 | Cek `status !== 'available'` dan `quantity <` | Aset rusak, sedang diperbaiki, atau stoknya kurang ditolak sebelum pengajuan dibuat. |
-| 6 | `app/Http/Controllers/BorrowingController.php` baris 139-147 | `AssetRequest::create([... 'status' => 'pending'])` | Pengajuan disimpan dengan status `pending`. Stok belum berkurang, baru berkurang saat admin menyetujui. |
+
+| No | File dan baris | Yang ditunjuk | Jenis | Yang diucapkan |
+|---|---|---|---|---|
+| 1 | `routes/web.php` baris 78 (tag FR-03 #1) | `Route::post('/borrowing', [BorrowingController::class, 'store'])` | Route (definisi URL) | Ini route pengajuan peminjaman. Dipanggil dari tombol Pinjam di katalog aset. |
+| 2 | `app/Http/Controllers/BorrowingController.php` baris 25 (tag FR-03 #2) | `$this->middleware('can:borrow.request')->only(['store'])` | Pemanggilan method middleware() di konstruktor | Ini middleware di konstruktor. Hanya yang punya izin borrow.request yang boleh mengajukan peminjaman. |
+| 3 | `app/Http/Controllers/BorrowingController.php` baris 110 (tag FR-03 #3) | `$request->validate([...])` | Pemanggilan method validate() | Ini validasi. Aset harus benar-benar ada, tanggal kembali tidak boleh sebelum hari ini, dan alasan wajib diisi. |
+| 4 | `app/Http/Controllers/BorrowingController.php` baris 126 (tag FR-03 #4) | `$asset = Asset::lockForUpdate()->findOrFail(...)` | Variabel $asset dengan method lockForUpdate() | Ini variabel yang diisi dengan query terkunci. lockForUpdate mengunci baris aset, jadi dua orang yang mengajukan bersamaan tidak bisa berebut stok yang sama. |
+| 5 | `app/Http/Controllers/BorrowingController.php` baris 131 (tag FR-03 #5) | `if ($asset->status !== 'available')` | Kondisi if (cek status aset) | Ini kondisi if. Aset yang rusak, sedang diperbaiki, atau sudah dipinjam langsung ditolak. |
+| 6 | `app/Http/Controllers/BorrowingController.php` baris 150 (tag FR-03 #6) | `AssetRequest::create([... 'status' => 'pending'])` | Pemanggilan method create() pada model AssetRequest | Ini penyimpanan transaksi peminjaman dengan status pending. Stok belum berkurang, baru berkurang saat admin menyetujui. |
 
 ### FR-04 Approval dan Monitoring Peminjaman oleh Admin
 
-| Urutan | File dan lokasi | Yang ditunjuk | Kalimat penjelasan |
-|---|---|---|---|
-| 1 | `routes/web.php` baris 100-104 | Route `/borrowing`, `approve`, `reject` dengan `can:borrow.action` | Aksi ini hanya untuk admin. |
-| 2 | `app/Http/Controllers/BorrowingController.php` baris 33 | `index()` | Halaman monitoring: daftar semua pengajuan dengan pencarian dan filter status. |
-| 3 | `app/Http/Controllers/BorrowingController.php` baris 285 | `AssetRequest::...->lockForUpdate()->findOrFail($id)` | Pengajuan dikunci supaya tidak disetujui dua kali oleh dua admin. |
-| 4 | `app/Http/Controllers/BorrowingController.php` baris 287-294 | Cek `status !== 'pending'` dan cek stok ulang | Stok dicek lagi karena bisa berubah sejak pengajuan dibuat. |
-| 5 | `app/Http/Controllers/BorrowingController.php` baris 297-302 | `decrement('quantity', ...)` dan status `deployed` | Stok dikurangi saat disetujui. Jika stok jadi 0, status aset menjadi `deployed`. |
-| 6 | `app/Http/Controllers/BorrowingController.php` baris 331 | `reject()` | Penolakan menyimpan catatan admin tanpa mengubah stok. |
+
+| No | File dan baris | Yang ditunjuk | Jenis | Yang diucapkan |
+|---|---|---|---|---|
+| 1 | `routes/web.php` baris 110 (tag FR-04 #1) | `Route::post('/borrowing/{id}/approve', ...)->middleware('can:borrow.action')` | Route (definisi URL) | Ini route persetujuan. Middleware can:borrow.action membuatnya hanya bisa diakses admin. |
+| 2 | `app/Http/Controllers/BorrowingController.php` baris 36 (tag FR-04 #2) | `public function index(Request $request)` | Method (fungsi) controller | Ini method index untuk monitoring. Admin melihat semua pengajuan, bisa mencari dan memfilter berdasarkan status. |
+| 3 | `app/Http/Controllers/BorrowingController.php` baris 298 (tag FR-04 #3) | `$assetRequest = AssetRequest::with('asset')->lockForUpdate()->findOrFail($id)` | Variabel $assetRequest dengan method lockForUpdate() | Ini variabel pengajuan yang dikunci. Dua admin tidak bisa menyetujui pengajuan yang sama secara bersamaan. |
+| 4 | `app/Http/Controllers/BorrowingController.php` baris 302 (tag FR-04 #4) | `if ($assetRequest->status !== 'pending')` | Kondisi if (cek status pengajuan) | Ini kondisi if. Hanya pengajuan pending yang boleh disetujui, dan stok dicek ulang karena bisa berubah sejak diajukan. |
+| 5 | `app/Http/Controllers/BorrowingController.php` baris 314 (tag FR-04 #5) | `$assetRequest->asset->decrement('quantity', ...)` | Pemanggilan method decrement() | Ini method decrement yang mengurangi stok di data master aset. Kalau stok jadi nol, status aset menjadi deployed. |
+| 6 | `app/Http/Controllers/BorrowingController.php` baris 350 (tag FR-04 #6) | `public function reject(Request $request, $id)` | Method (fungsi) controller | Ini method reject. Admin menolak dengan catatan, status berubah, dan stok tidak berubah. |
 
 ### FR-05 Pengembalian Barang dan Pencatatan Kondisi Aset
 
-| Urutan | File dan lokasi | Yang ditunjuk | Kalimat penjelasan |
-|---|---|---|---|
-| 1 | `routes/web.php` baris 107-108 | `Route::resource('returns', ...)` dan `returns.verify` | Pengembalian dua tahap: staf mengajukan, admin memverifikasi. |
-| 2 | `app/Http/Controllers/AssetReturnController.php` baris 14-20 | Middleware `can:return.verify` | Verifikasi hanya untuk admin atau teknisi. Pengajuan (`store`) terbuka untuk pengguna yang login. |
-| 3 | `app/Http/Controllers/AssetReturnController.php` baris 44-57 | Validasi `condition` dan `photo_proof_1` | Staf wajib memilih kondisi dan mengunggah minimal satu foto bukti (maksimal tiga). |
-| 4 | `app/Http/Controllers/AssetReturnController.php` baris 59-61 | Cek `returned` / `pending_return` | Mencegah pengembalian ganda. |
-| 5 | `app/Http/Controllers/AssetReturnController.php` baris 75-89 | `AssetReturn::create([... 'status' => 'pending'])` lalu status request `pending_return` | Data pengembalian dan foto disimpan, status peminjaman menunggu verifikasi. Stok belum bertambah. |
-| 6 | `app/Http/Controllers/AssetReturnController.php` baris 97-125 | `verify()`: kondisi akhir dan `increment('quantity', ...)` | Admin boleh mengubah kondisi akhir setelah memeriksa barang. Stok bertambah di sini, dan status aset mengikuti kondisi akhir. |
-| 7 | `app/Http/Controllers/AssetReturnController.php` baris 149-165 | Tutup tiket dan `AssetHistory::create(... 'returned')` | Peminjaman ditutup (`returned`), denda dan kondisi akhir masuk riwayat. |
+
+| No | File dan baris | Yang ditunjuk | Jenis | Yang diucapkan |
+|---|---|---|---|---|
+| 1 | `routes/web.php` baris 119 (tag FR-05 #1) | `Route::post('/returns/{return}/verify', ...)` | Route (definisi URL) | Ini route verifikasi. Pengembalian punya dua tahap: staf mengajukan, lalu admin memverifikasi. |
+| 2 | `app/Http/Controllers/AssetReturnController.php` baris 21 (tag FR-05 #2) | `$this->middleware('can:return.verify')->only([...])` | Pemanggilan method middleware() di konstruktor | Ini middleware di konstruktor. Verifikasi hanya untuk admin atau teknisi, sedangkan pengajuan oleh staf terbuka untuk semua yang login. |
+| 3 | `app/Http/Controllers/AssetReturnController.php` baris 49 (tag FR-05 #3) | `$validated = $request->validate([...])`, khususnya `'photo_proof_1' => 'required|image|max:2048'` | Variabel $validated dari method validate() | Ini variabel hasil validasi. Staf wajib memilih kondisi dan mengunggah minimal satu foto bukti. |
+| 4 | `app/Http/Controllers/AssetReturnController.php` baris 65 (tag FR-05 #4) | `if ($assetRequest->status == 'returned' || ... 'pending_return')` | Kondisi if (anti pengembalian ganda) | Ini kondisi if untuk mencegah pengembalian ganda. |
+| 5 | `app/Http/Controllers/AssetReturnController.php` baris 83 (tag FR-05 #5) | `AssetReturn::create([... 'status' => 'pending'])` | Pemanggilan method create() pada model AssetReturn | Ini penyimpanan transaksi pengembalian berstatus pending. Stok belum bertambah sampai admin memverifikasi. |
+| 6 | `app/Http/Controllers/AssetReturnController.php` baris 125 (tag FR-05 #6) | `$finalCondition = $request->input('final_condition', $return->condition)` | Variabel $finalCondition | Ini variabel kondisi akhir. Admin boleh mengoreksi kondisi setelah memeriksa fisik barang, kalau tidak diubah dipakai kondisi dari staf. |
+| 7 | `app/Http/Controllers/AssetReturnController.php` baris 130 (tag FR-05 #7) | `if ($finalCondition == 'available') { $asset->increment('quantity', ...) }` | Kondisi if dengan method increment() | Ini kondisi if. Stok bertambah di sini, saat verifikasi, bukan saat staf mengajukan. Status aset mengikuti kondisi akhir. |
+| 8 | `app/Http/Controllers/AssetReturnController.php` baris 174 (tag FR-05 #8) | `AssetHistory::create([... 'action' => 'returned'])` | Pemanggilan method create() pada model AssetHistory | Ini pencatatan riwayat pengembalian. Kondisi akhir dan denda tersimpan sebagai jejak audit. |
 
 ### FR-06 Laporan Kerusakan
 
-Laporan kerusakan lahir dari dua jalur. Jelaskan keduanya.
+Laporan kerusakan lahir dari dua jalur: otomatis (dari verifikasi pengembalian) dan manual (dari halaman aset). Jelaskan keduanya.
 
-| Urutan | File dan lokasi | Yang ditunjuk | Kalimat penjelasan |
-|---|---|---|---|
-| 1 | `app/Http/Controllers/AssetReturnController.php` baris 128-140 | Blok `Maintenance::create([...'status' => 'pending'])` | Jalur otomatis: jika kondisi akhir `broken` atau `maintenance`, sistem langsung membuat tiket perbaikan dengan catatan dari staf. |
-| 2 | `app/Http/Controllers/MaintenanceController.php` baris 137-142 | `store()`: cek `Gate::denies('asset.edit')` | Jalur manual: tiket dibuat langsung dari halaman aset, hanya untuk yang punya izin. |
-| 3 | `app/Http/Controllers/MaintenanceController.php` baris 143-153 | Validasi | Tanggal mulai tidak boleh sebelum hari ini, deskripsi masalah wajib. |
-| 4 | `app/Http/Controllers/MaintenanceController.php` baris 166-168 | Cek `status === 'deployed'` | Aset yang sedang dipinjam tidak boleh diperbaiki dulu, harus dikembalikan. |
-| 5 | `app/Http/Controllers/MaintenanceController.php` baris 170-188 | `AssetHistory::create`, `Maintenance::create`, `$asset->update(['status' => 'maintenance'])` | Riwayat dicatat, tiket dibuat berstatus `on_process`, dan aset otomatis tidak bisa dipinjam. |
+
+| No | File dan baris | Yang ditunjuk | Jenis | Yang diucapkan |
+|---|---|---|---|---|
+| 1 | `app/Http/Controllers/AssetReturnController.php` baris 143 (tag FR-06 #1) | `if (in_array($finalCondition, ['maintenance', 'broken']))` | Kondisi if dengan fungsi in_array() | Ini jalur otomatis laporan kerusakan. Kalau barang kembali rusak, sistem langsung membuat tiket perbaikan tanpa input tambahan. |
+| 2 | `app/Http/Controllers/MaintenanceController.php` baris 146 (tag FR-06 #2) | `if (Gate::denies('asset.edit'))` | Kondisi if dengan method Gate::denies() | Ini jalur manual. Gate::denies menolak pengguna yang tidak punya izin asset.edit. |
+| 3 | `app/Http/Controllers/MaintenanceController.php` baris 151 (tag FR-06 #3) | `$request->validate([...])` | Pemanggilan method validate() | Ini validasi tiket perbaikan. Aset harus ada, vendor dan deskripsi masalah wajib, tanggal mulai tidak boleh sebelum hari ini. |
+| 4 | `app/Http/Controllers/MaintenanceController.php` baris 176 (tag FR-06 #4) | `if ($asset->status === 'deployed')` | Kondisi if (cek status aset) | Ini kondisi if. Aset yang sedang dipinjam tidak boleh diperbaiki sebelum dikembalikan. |
+| 5 | `app/Http/Controllers/MaintenanceController.php` baris 189 (tag FR-06 #5) | `Maintenance::create([... 'status' => 'on_process'])` | Pemanggilan method create() pada model Maintenance | Ini pembuatan tiket perbaikan berstatus on_process. |
+| 6 | `app/Http/Controllers/MaintenanceController.php` baris 202 (tag FR-06 #6) | `$asset->update(['status' => 'maintenance'])` | Pemanggilan method update() pada variabel $asset | Ini perubahan status aset. Setelah tiket dibuat, aset otomatis menjadi maintenance dan tidak bisa dipinjam. |
 
 ### FR-07 Teknisi Memantau Perbaikan
 
-| Urutan | File dan lokasi | Yang ditunjuk | Kalimat penjelasan |
-|---|---|---|---|
-| 1 | `routes/web.php` baris 88 | `Route::resource('maintenances', ...)` | Route modul perbaikan. |
-| 2 | `app/Http/Controllers/MaintenanceController.php` baris 12-16 dan 20 | Konstruktor `can:maintenance.view` dan `index()` | Teknisi melihat daftar tiket perbaikan, diurutkan dari tanggal mulai terbaru. |
-| 3 | `app/Http/Controllers/MaintenanceController.php` baris 205-209 | `Gate::none(['asset.edit', 'maintenance.action'])` | Teknisi memakai izin `maintenance.action`, admin memakai `asset.edit`. Keduanya boleh mengubah status. |
-| 4 | `app/Http/Controllers/MaintenanceController.php` baris 210-218 | Validasi `status` `on_process,completed,cancelled` | Tiga status yang boleh dipilih teknisi. |
-| 5 | `app/Http/Controllers/MaintenanceController.php` baris 222-238 | Blok `if ($request->status == 'completed')` | Saat selesai, tanggal selesai dan ID teknisi (`resolver_id`) diisi otomatis, jadi siapa yang menyelesaikan perbaikan tercatat. |
-| 6 | `app/Http/Controllers/MaintenanceController.php` baris 254-256 | `status === 'completed'` lalu `asset->status = 'available'` | Perbaikan selesai membuat aset bisa dipinjam lagi. |
-| 7 | `app/Http/Controllers/MaintenanceController.php` baris 288-290 | `elseif ($request->status === 'cancelled')` | Jika perbaikan dibatalkan, aset ditandai `broken`. |
+
+| No | File dan baris | Yang ditunjuk | Jenis | Yang diucapkan |
+|---|---|---|---|---|
+| 1 | `routes/web.php` baris 95 (tag FR-07 #1) | `Route::resource('maintenances', MaintenanceController::class)` | Route resource | Ini route resource untuk modul perbaikan. |
+| 2 | `app/Http/Controllers/MaintenanceController.php` baris 17 (tag FR-07 #2) | `$this->middleware('can:maintenance.view')->only(['index', 'show'])` | Pemanggilan method middleware() di konstruktor | Ini middleware di konstruktor. Melihat daftar perbaikan butuh izin maintenance.view. |
+| 3 | `app/Http/Controllers/MaintenanceController.php` baris 24 (tag FR-07 #3) | `public function index()` | Method (fungsi) controller | Ini method index. Teknisi memantau semua tiket perbaikan di sini, terbaru di atas. |
+| 4 | `app/Http/Controllers/MaintenanceController.php` baris 223 (tag FR-07 #4) | `if (Gate::none(['asset.edit', 'maintenance.action']))` | Kondisi if dengan method Gate::none() | Ini kondisi if dengan Gate::none. Teknisi memakai izin maintenance.action dan admin memakai asset.edit, kalau keduanya tidak ada akses ditolak. |
+| 5 | `app/Http/Controllers/MaintenanceController.php` baris 229 (tag FR-07 #5) | `'status' => 'required|in:on_process,completed,cancelled'` | Aturan validasi (elemen array) | Ini aturan validasi status. Hanya tiga nilai yang diterima: sedang diproses, selesai, atau dibatalkan. |
+| 6 | `app/Http/Controllers/MaintenanceController.php` baris 242 (tag FR-07 #6) | `if ($request->status == 'completed')` | Kondisi if (status selesai) | Ini kondisi if untuk status selesai. Tanggal selesai dan ID teknisi diisi otomatis supaya tercatat siapa yang menyelesaikan. |
+| 7 | `app/Http/Controllers/MaintenanceController.php` baris 278 (tag FR-07 #7) | `$maintenance->asset->status = 'available'` | Assignment properti ($maintenance->asset->status) | Ini assignment status aset. Setelah perbaikan selesai, aset kembali available dan bisa dipinjam. |
+| 8 | `app/Http/Controllers/MaintenanceController.php` baris 312 (tag FR-07 #8) | `elseif ($request->status === 'cancelled')` | Kondisi elseif (status dibatalkan) | Ini kondisi elseif. Kalau perbaikan dibatalkan, aset ditandai broken karena belum diperbaiki. |
 
 ### FR-08 Laporan Rekapitulasi Data Aset
 
-| Urutan | File dan lokasi | Yang ditunjuk | Kalimat penjelasan |
-|---|---|---|---|
-| 1 | `routes/web.php` baris 115-119 | Grup `can:report.view` | Seluruh route laporan dibatasi izin `report.view`. |
-| 2 | `app/Http/Controllers/ReportController.php` baris 46-65 | `index()`: `selectRaw('status, COUNT(*)')->groupBy('status')` | Ringkasan jumlah aset per status (tersedia, dipinjam, dll.) diambil dengan satu query agregat, bukan beberapa query. |
-| 3 | `app/Http/Controllers/ReportController.php` baris 97 | `exportPdf()` | Menerima filter (pencarian, status, urutan, orientasi, judul, catatan) lalu membuat PDF dengan logo, tabel aset, dan opsi foto. |
-| 4 | `app/Http/Controllers/ReportController.php` baris 292-313 | `exportExcel()`: pilihan `csv` atau `xlsx` | Pengguna memilih format. CSV dialirkan langsung (`response()->stream`). |
-| 5 | `app/Http/Controllers/ReportController.php` baris 319-330 | Cabang `type === 'borrowing'` | Laporan peminjaman memakai query berbeda dengan filter rentang tanggal. |
-| 6 | `app/Services/SimpleXlsx.php` | Kelas pembuat XLSX | File XLSX dibuat oleh service buatan sendiri, tanpa pustaka tambahan. |
+
+| No | File dan baris | Yang ditunjuk | Jenis | Yang diucapkan |
+|---|---|---|---|---|
+| 1 | `routes/web.php` baris 127 (tag FR-08 #1) | `Route::middleware(['can:report.view'])->group(...)` | Grup route dengan middleware | Ini grup route. Semua route laporan dikunci dengan izin report.view. |
+| 2 | `app/Http/Controllers/ReportController.php` baris 58 (tag FR-08 #2) | `$statusCounts = Asset::selectRaw('status, COUNT(*) as total')->groupBy('status')` | Variabel $statusCounts (query agregat) | Ini variabel hasil query agregat. Satu query menghitung jumlah aset per status, lebih efisien daripada beberapa query terpisah. |
+| 3 | `app/Http/Controllers/ReportController.php` baris 102 (tag FR-08 #3) | `public function exportPdf(Request $request)` | Method (fungsi) controller | Ini method exportPdf. Laporan PDF dibuat sesuai filter yang dipilih, dengan cabang untuk laporan peminjaman dan laporan aset. |
+| 4 | `app/Http/Controllers/ReportController.php` baris 301 (tag FR-08 #4) | `$format = $request->query('format', 'xlsx')` | Variabel $format | Ini variabel format. Pengguna memilih CSV atau XLSX, dan defaultnya XLSX. |
+| 5 | `app/Http/Controllers/ReportController.php` baris 307 (tag FR-08 #5) | `if ($format === 'csv')` | Kondisi if (cabang CSV) | Ini kondisi if untuk format CSV. Data ditulis baris demi baris langsung ke output. |
+| 6 | `app/Http/Controllers/ReportController.php` baris 324 (tag FR-08 #6) | `return response()->stream($callback, 200, $headers)` | Statement return dengan response()->stream() | Ini statement return dengan stream. File dikirim sebagai aliran sehingga hemat memori. |
+| 7 | `app/Http/Controllers/ReportController.php` baris 332 (tag FR-08 #7) | `if ($request->type === 'borrowing')` | Kondisi if (cabang jenis laporan) | Ini kondisi if untuk jenis laporan. Kalau tipenya borrowing yang dibuat laporan peminjaman, selain itu laporan aset. |
+| 8 | `app/Services/SimpleXlsx.php` baris 10 (tag FR-08 #8) | `class SimpleXlsx` | Class (kelas) service | Ini class service buatan sendiri yang membuat file XLSX tanpa pustaka tambahan. |
 
 ## 4. Urutan Saran Saat Presentasi
 
 1. Buka `routes/web.php` dan jelaskan tiga grup route: tamu, login, dan izin dinamis.
-2. FR-01: tunjukkan bahwa semua izin berpusat di `User.php` baris 77 dan `AppServiceProvider.php`.
+2. FR-01: tunjukkan bahwa semua izin berpusat di `User.php` (tag FR-01 #5) dan `AppServiceProvider.php` (tag FR-01 #6-7).
 3. FR-02 sampai FR-04: ikuti satu aset dari dibuat, diajukan, sampai disetujui. Stok berubah di `approve()`.
 4. FR-05 sampai FR-07: lanjutkan satu aset yang sama dikembalikan rusak, otomatis jadi tiket, lalu diperbaiki teknisi sampai `available` lagi.
 5. FR-08: tutup dengan laporan rekap yang merangkum semua status tadi.
@@ -147,17 +164,18 @@ Alur satu aset ini saling terhubung lewat kolom `status` pada tabel `assets`:
 | Status aset | Diubah oleh | File |
 |---|---|---|
 | `available` | Aset dibuat atau perbaikan selesai | `AssetController.php`, `MaintenanceController.php` |
-| `deployed` | Peminjaman disetujui dan stok habis | `BorrowingController.php` baris 297-302 |
+| `deployed` | Peminjaman disetujui dan stok habis | `BorrowingController.php` (`approve()`, tag FR-04 #5) |
 | `broken` / `maintenance` | Verifikasi pengembalian atau tiket perbaikan dibuat | `AssetReturnController.php`, `MaintenanceController.php` |
-| `available` lagi | Perbaikan `completed` | `MaintenanceController.php` baris 254-256 |
+| `available` lagi | Perbaikan `completed` | `MaintenanceController.php` (`update()`, tag FR-07 #7) |
 
 ## 5. Pertanyaan yang Mungkin Ditanyakan
 
 | Pertanyaan | Jawaban singkat | Tunjukkan di |
 |---|---|---|
-| Kenapa memakai transaksi database? | Supaya stok, status, dan riwayat berubah bersamaan. Jika ada error di tengah, semuanya dibatalkan. | `BorrowingController.php` baris 115 dan 163-169 |
-| Bagaimana mencegah dua orang meminjam barang terakhir? | `lockForUpdate()` mengunci baris aset selama transaksi. | `BorrowingController.php` baris 119 |
-| Apa bedanya peran dan izin? | Peran punya kumpulan izin bawaan. Pengguna bisa diberi izin khusus yang menimpa peran. | `User.php` baris 77-96 |
-| Kenapa stok bertambah saat verifikasi, bukan saat pengajuan pengembalian? | Barang baru dianggap kembali setelah admin memeriksa fisik dan fotonya. | `AssetReturnController.php` baris 97-125 |
+| Kenapa memakai transaksi database? | Supaya stok, status, dan riwayat berubah bersamaan. Jika ada error di tengah, semuanya dibatalkan. | `BorrowingController.php` (`store()`, tag FR-03 #4) |
+| Bagaimana mencegah dua orang meminjam barang terakhir? | `lockForUpdate()` mengunci baris aset selama transaksi. | `BorrowingController.php` (tag FR-03 #4) |
+| Apa bedanya peran dan izin? | Peran punya kumpulan izin bawaan. Pengguna bisa diberi izin khusus yang menimpa peran. | `User.php` (tag FR-01 #5) |
+| Kenapa stok bertambah saat verifikasi, bukan saat pengajuan pengembalian? | Barang baru dianggap kembali setelah admin memeriksa fisik dan fotonya. | `AssetReturnController.php` (`verify()`, tag FR-05 #7) |
 | Siapa yang tahu aset ini pernah diubah siapa? | Tabel `asset_histories` mencatat aksi, pelaku, dan catatan. | `app/Models/AssetHistory.php` |
 | Apakah kode ini aman dari input jahat? | Semua input divalidasi di server, akses dijaga Gate, dan form dilindungi token CSRF bawaan Laravel. | Metode `validate` di tiap controller |
+| Kenapa password lemah ditolak saat tambah user? | `Password::defaults()` mewajibkan minimal 8 karakter, huruf besar dan kecil, angka, simbol, dan mengecek daftar password bocor. | `AppServiceProvider.php` (tag FR-01 #8) |

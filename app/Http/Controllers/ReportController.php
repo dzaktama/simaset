@@ -53,6 +53,8 @@ class ReportController extends Controller
                            ->orderBy('category')
                            ->pluck('category');
 
+        // [PRESENTASI FR-08 #2] Rekap jumlah aset per status (tersedia, dipinjam, rusak, dst.) dengan
+        //     SATU query agregat, bukan beberapa query terpisah.
         $statusCounts = Asset::selectRaw('status, COUNT(*) as total')->groupBy('status')->pluck('total', 'status');
 
         return view('reports.index', [
@@ -94,6 +96,9 @@ class ReportController extends Controller
      * Export PDF dengan Preview (via iframe)
      * Menerima parameter: search, status, sort, orientation, custom_title, admin_notes, show_images
      */
+    // [PRESENTASI FR-08 #3] Membuat laporan PDF dengan logo, tabel aset, dan filter (pencarian,
+    //     status, urutan, orientasi, judul, catatan). Ada dua cabang: laporan peminjaman dan laporan
+    //     aset.
     public function exportPdf(Request $request)
     {
         // LOGIC UMUM: Setup Variabel Dasar
@@ -291,10 +296,14 @@ class ReportController extends Controller
      */
     public function exportExcel(Request $request)
     {
+        // [PRESENTASI FR-08 #4] Format ekspor dipilih pengguna lewat URL: csv atau xlsx (default
+        //     xlsx).
         $format = $request->query('format', 'xlsx');
         $ext = $format === 'csv' ? 'csv' : 'xlsx'; // xlsx for valid OpenXML
         $fileName = ($request->type === 'borrowing' ? 'Laporan_Peminjaman_' : 'Laporan_Aset_') . now()->format('Y-m-d_H-i-s') . '.' . $ext;
 
+        // [PRESENTASI FR-08 #5] Cabang CSV: data ditulis baris demi baris ke output, tanpa memuat
+        //     semuanya ke memori.
         if ($format === 'csv') {
             $headers = [
                 "Content-type" => "text/csv",
@@ -310,12 +319,16 @@ class ReportController extends Controller
                 fclose($file);
             };
     
+            // [PRESENTASI FR-08 #6] File CSV dikirim sebagai aliran (stream) sehingga hemat memori
+            //     untuk data besar.
             return response()->stream($callback, 200, $headers);
         } else {
             // Valid XLSX using Custom Service
             $data = [];
             
             // --- BRANCH 1: BORROWING ---
+            // [PRESENTASI FR-08 #7] Cabang laporan peminjaman (kolom peminjam, aset, tanggal
+            //     pinjam/kembali, status). Selain itu dipakai laporan aset.
             if ($request->type === 'borrowing') {
                 // Header
                 $data[] = ['No', 'Peminjam', 'Aset', 'Serial Number', 'Tanggal Pinjam', 'Tanggal Kembali', 'Status', 'Keperluan'];

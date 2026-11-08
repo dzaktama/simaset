@@ -23,6 +23,8 @@ Route::get('/', function () {
 // 2. Rute Autentikasi (Tamu/Belum Login)
 Route::controller(AuthController::class)->group(function () {
     Route::get('/login', 'showLoginForm')->name('login')->middleware('guest');
+    // [PRESENTASI FR-01 #1] Route login. Middleware 'guest' artinya hanya tamu (belum login) yang
+    //     boleh membuka dan mengirim form login.
     Route::post('/login', 'login')->middleware('guest');
     // Route::get('/register', 'showRegisterForm')->name('register')->middleware('guest');
     // Route::post('/register', 'register')->middleware('guest');
@@ -71,6 +73,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/chat/send', [App\Http\Controllers\ChatController::class, 'sendMessage'])->name('chat.send');
 
     // Transaksi Peminjaman (User)
+    // [PRESENTASI FR-03 #1] Route pengajuan peminjaman, dipanggil dari modal 'Pinjam' pada katalog
+    //     aset.
     Route::post('/borrowing', [BorrowingController::class, 'store'])->name('borrowing.store');
     Route::get('/borrowing/history', [BorrowingController::class, 'userHistory'])->name('borrowing.history');
     Route::get('/borrowing/{id}', [BorrowingController::class, 'show'])->name('borrowing.show'); // Detail Shared
@@ -84,7 +88,10 @@ Route::middleware(['auth'])->group(function () {
     
     // 1. MANAJEMEN ASET
     Route::post('/assets/add-stock', [AssetController::class, 'addStock'])->name('assets.addStock'); // ROUTE BARU: Tambah Stok
+    // [PRESENTASI FR-02 #1] Satu baris ini membuat 7 route CRUD aset sekaligus (index, create, store,
+    //     show, edit, update, destroy).
     Route::resource('assets', AssetController::class)->except(['index', 'show']); // Index/Show bisa diakses publik/login
+    // [PRESENTASI FR-07 #1] Route modul perbaikan: daftar, detail, buat, dan update tiket.
     Route::resource('maintenances', App\Http\Controllers\MaintenanceController::class);
 
     // 1.b MANAJEMEN GUDANG (BARU)
@@ -98,6 +105,8 @@ Route::middleware(['auth'])->group(function () {
     // 2. SIRKULASI (Admin/Staff Operasional)
     // Aksi Admin Peminjaman
     Route::get('/borrowing', [BorrowingController::class, 'index'])->name('borrowing.index')->middleware('can:borrow.action'); 
+    // [PRESENTASI FR-04 #1] Route persetujuan peminjaman. Hanya admin (izin borrow.action) yang bisa
+    //     mengaksesnya.
     Route::post('/borrowing/{id}/approve', [BorrowingController::class, 'approve'])->name('borrowing.approve')->middleware('can:borrow.action');
     Route::put('/borrowing/{id}/extend', [BorrowingController::class, 'extendDuration'])->name('borrowing.extend')->middleware('can:borrow.action'); // ROUTE BARU
     Route::post('/borrowing/{id}/reject', [BorrowingController::class, 'reject'])->name('borrowing.reject')->middleware('can:borrow.action');
@@ -105,6 +114,8 @@ Route::middleware(['auth'])->group(function () {
 
     // Verifikasi Pengembalian
     Route::resource('returns', AssetReturnController::class)->only(['index', 'show', 'update', 'store']);
+    // [PRESENTASI FR-05 #1] Route verifikasi pengembalian oleh admin. Pengembalian dua tahap: staf
+    //     mengajukan, admin memverifikasi.
     Route::post('/returns/{return}/verify', [AssetReturnController::class, 'verify'])->name('returns.verify');
 
     // Rute Penyamaran (Mode Override - Login sebagai user lain)
@@ -112,6 +123,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/impersonate/{user}', [AuthController::class, 'impersonate'])->name('impersonate');
 
     // 3. LAPORAN & AUDIT
+    // [PRESENTASI FR-08 #1] Seluruh route laporan (index, PDF, Excel) dibatasi izin report.view.
     Route::middleware(['can:report.view'])->group(function() {
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/pdf', [ReportController::class, 'exportPdf'])->name('reports.pdf');

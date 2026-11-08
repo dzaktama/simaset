@@ -21,6 +21,7 @@ class BorrowingController extends Controller
         // Hanya user dengan permission 'borrow.action' (Admin) yang bisa index, approve, reject
         $this->middleware('can:borrow.action')->only(['index', 'approve', 'reject']);
         // Hanya user dengan permission 'borrow.request' (Semua User) yang bisa store/pinjam
+        // [PRESENTASI FR-03 #2] Hanya user dengan izin borrow.request yang boleh mengajukan.
         $this->middleware('can:borrow.request')->only(['store']);
         // Hanya user yang login yang bisa lihat history sendiri
         $this->middleware('can:borrow.view')->only(['userHistory']);
@@ -30,6 +31,8 @@ class BorrowingController extends Controller
      * [FUNCTION] Menampilkan daftar semua peminjaman (Untuk Admin)
      * File View: resources/views/borrowing/index.blade.php
      */
+    // [PRESENTASI FR-04 #2] Halaman monitoring peminjaman: daftar semua pengajuan dengan pencarian dan
+    //     filter status.
     public function index(Request $request)
     {
         // [DATABASE] Eager Loading ('with') untuk optimasi query, mengambil data user dan asset sekaligus
@@ -102,6 +105,8 @@ class BorrowingController extends Controller
     public function store(Request $request)
     {
         // [VALIDATION] Memastikan data input valid
+        // [PRESENTASI FR-03 #3] Validasi: aset harus ada di database, jumlah minimal 1, tanggal
+        //     kembali tidak boleh sebelum hari ini, alasan wajib.
         $request->validate([
             'asset_id' => 'required|exists:assets,id',
             'quantity' => 'required|integer|min:1',
@@ -116,9 +121,13 @@ class BorrowingController extends Controller
             DB::beginTransaction();
 
             // [LOCKING] lockForUpdate mencegah double booking saat concurrent request
+            // [PRESENTASI FR-03 #4] Baris aset dikunci selama transaksi, sehingga dua orang yang
+            //     mengajukan bersamaan tidak bisa mengambil stok yang sama (anti double booking).
             $asset = Asset::lockForUpdate()->findOrFail($request->asset_id);
 
             // [LOGIC] Aset rusak / dalam perbaikan tidak boleh dipinjam
+            // [PRESENTASI FR-03 #5] Aset rusak, sedang diperbaiki, atau sedang dipinjam ditolak
+            //     sebelum pengajuan dibuat.
             if ($asset->status !== 'available') {
                 DB::rollBack();
                 return back()->with('error', 'Aset sedang tidak tersedia untuk dipinjam.')->withInput();
@@ -136,6 +145,8 @@ class BorrowingController extends Controller
             }
 
             // [DATABASE] Simpan data peminjaman
+            // [PRESENTASI FR-03 #6] Pengajuan disimpan dengan status 'pending'. Stok belum berkurang;
+            //     stok baru berkurang saat admin menyetujui (FR-04).
             AssetRequest::create([
                 'user_id' => auth()->id(),
                 'asset_id' => $request->asset_id,
@@ -282,8 +293,12 @@ class BorrowingController extends Controller
         try {
             DB::beginTransaction();
 
+            // [PRESENTASI FR-04 #3] Pengajuan dikunci supaya tidak bisa disetujui dua kali oleh dua
+            //     admin pada saat bersamaan.
             $assetRequest = AssetRequest::with('asset')->lockForUpdate()->findOrFail($id);
             
+            // [PRESENTASI FR-04 #4] Hanya pengajuan berstatus pending yang boleh diproses. Stok juga
+            //     dicek ulang di bawahnya karena bisa berubah sejak pengajuan dibuat.
             if ($assetRequest->status !== 'pending') {
                 return back()->with('error', 'Permintaan sudah diproses sebelumnya.');
             }
@@ -294,6 +309,8 @@ class BorrowingController extends Controller
             }
 
             // [DATABASE] Kurangi Stok Aset
+            // [PRESENTASI FR-04 #5] Stok aset dikurangi saat disetujui. Jika stok jadi 0, status aset
+            //     berubah menjadi 'deployed'. Di sini transaksi mengubah data master.
             $assetRequest->asset->decrement('quantity', $assetRequest->quantity ?? 1);
             
             // Jika stok habis, tandai sebagai deployed
@@ -328,6 +345,8 @@ class BorrowingController extends Controller
     /**
      * [FUNCTION] Menolak Peminjaman (Untuk Admin)
      */
+    // [PRESENTASI FR-04 #6] Penolakan pengajuan: menyimpan catatan admin dan mengubah status menjadi
+    //     rejected. Stok tidak berubah.
     public function reject(Request $request, $id)
     {
         $request->validate(['admin_note' => 'required|string|max:500']);
