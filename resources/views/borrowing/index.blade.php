@@ -361,7 +361,7 @@
 </div>
 
 <script>
-    let currentBorrowingId = null;
+    var currentBorrowingId = null;
 
     function openReturnModal(borrowingId) {
         currentBorrowingId = borrowingId;

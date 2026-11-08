@@ -264,14 +264,9 @@
                     <div class="bg-gradient-to-br from-gray-50 to-gray-100 p-6 rounded-xl border border-gray-200 text-center shadow-sm">
                         <h4 class="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">QR Code</h4>
                         <div class="bg-white p-4 rounded-lg inline-block border border-gray-200 shadow-sm">
-                            {{-- Ganti Logic QR Code jika perlu, disini asumsi pake library simple-qrcode atau generate manual --}}
-                            {{-- Jika $asset->qr_code berisi path file --}}
-                            @if(file_exists(public_path('storage/'.$asset->qr_code)))
-                                <img src="{{ asset('storage/'.$asset->qr_code) }}" alt="QR Code" class="w-40 h-40">
-                            @else
-                                {{-- Fallback jika QR dinamis --}}
-                                {!! QrCode::size(160)->generate($asset->serial_number) !!}
-                            @endif
+                            {{-- [FIX] $asset->qr_code berisi data URL SVG (bukan path file), sehingga file_exists() selalu gagal
+                                 dan QR justru berisi serial number, bukan link detail aset. --}}
+                            <img src="{{ $asset->qr_code }}" alt="QR Code {{ $asset->serial_number }}" class="w-40 h-40">
                         </div>
                         <p class="text-xs text-gray-500 mt-3">Scan untuk akses detail aset secara cepat.</p>
                     </div>
