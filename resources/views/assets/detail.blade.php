@@ -166,7 +166,7 @@
                     {{-- Action Buttons --}}
                     <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t">
                         @auth
-                        @if (auth()->user()->role === 'admin')
+                        @if (in_array(auth()->user()->role?->slug, ['admin', 'super_admin']))
                             <a href="{{ route('assets.edit', $asset) }}" class="flex-1 px-4 py-3 bg-yellow-500 text-white rounded-lg font-bold hover:bg-yellow-600 transition text-center shadow-sm flex justify-center items-center gap-2">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                 Edit Aset
@@ -288,5 +288,5 @@
 </div>
 
 {{-- Script AlpineJS (Wajib untuk Carousel) --}}
-<script src="//unpkg.com/alpinejs" defer></script>
+{{-- [FIX] AlpineJS sudah dimuat di layouts/main; memuat dua kali membuat komponen diinisialisasi ganda --}}
 @endsection

@@ -17,6 +17,10 @@ class AssetController extends Controller
 {
     private AssetService $assetService;
 
+    // [PERF] Batas data yang dirender di dashboard (sebelumnya seluruh tabel)
+    private const DASHBOARD_LOG_LIMIT = 100;
+    private const DASHBOARD_MODAL_LIMIT = 100;
+
     public function __construct(AssetService $assetService)
     {
         $this->assetService = $assetService;
@@ -56,9 +60,10 @@ class AssetController extends Controller
     private function adminDashboardView(Request $request) 
     {
         // --- LOGIC ADMIN ---
-        $logQuery = AssetHistory::with(['user', 'asset']);
+        // [PERF] Log aktivitas dibatasi (sebelumnya ->get() tanpa limit + N+1 user.role)
+        $logQuery = AssetHistory::with(['user.role', 'asset:id,name']);
 
-        if ($request->has('search_log') && $request->search_log != '') {
+        if ($request->filled('search_log')) {
             $search = $request->search_log;
             $logQuery->where(function($q) use ($search) {
                 $q->whereHas('user', function($u) use ($search) {
@@ -72,42 +77,59 @@ class AssetController extends Controller
             });
         }
 
-        $activities = $logQuery->latest()->get();
+        $activities = $logQuery->latest()->take(self::DASHBOARD_LOG_LIMIT)->get();
+
+        // [PERF] Satu query agregat menggantikan 8 query COUNT terpisah
+        $statusCounts = Asset::select('status', DB::raw('count(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status');
+        $countOf = fn(array $statuses) => (int) collect($statuses)->sum(fn($st) => $statusCounts[$st] ?? 0);
+        $totalAssets = (int) $statusCounts->sum();
 
         // Kategori Chart
         $categories = Asset::select('category', DB::raw('count(*) as total'))
             ->groupBy('category')
             ->pluck('total', 'category')
             ->toArray();
-        
-        // Hitung Broken Assets
-        $brokenAssets = Asset::whereIn('status', ['broken', 'missing'])->count();
+
+        // [PERF] Daftar untuk modal statistik: kolom secukupnya + eager load peminjam
+        // (accessor holder sebelumnya memicu 3 query per aset).
+        $modalColumns = ['id', 'name', 'serial_number', 'status', 'user_id', 'created_at'];
+        $listQuery = fn() => Asset::select($modalColumns)->with('activeRequest.user:id,name')->latest()->take(self::DASHBOARD_MODAL_LIMIT);
+
+        $pending = AssetRequest::with(['user', 'asset'])->where('status', 'pending')->latest()->get();
 
         return view('home', [
-            // 'dashboard_type' removed (default to role-based view logic in blade)
             'title' => 'Dashboard Admin',
             'stats' => [
-                'total' => Asset::count(),
-                'available' => Asset::where('status', 'available')->count(),
-                'deployed' => Asset::where('status', 'deployed')->count(),
-                'maintenance' => Asset::whereIn('status', ['maintenance', 'broken'])->count(),
-                'pending_requests' => AssetRequest::where('status', 'pending')->count(),
+                'total' => $totalAssets,
+                'available' => $countOf(['available']),
+                'deployed' => $countOf(['deployed']),
+                'maintenance' => $countOf(['maintenance', 'broken']),
+                'pending_requests' => $pending->count(),
             ],
-            'listTotal' => Asset::with('holder')->latest()->get(),
-            'listAvailable' => Asset::where('status', 'available')->latest()->get(),
-            'listDeployed' => Asset::where('status', 'deployed')->with('holder')->latest()->get(),
-            'listMaintenance' => Asset::whereIn('status', ['maintenance', 'broken'])->with('holder')->latest()->get(),
+            'listTotal' => $listQuery()->get(),
+            'listAvailable' => $listQuery()->where('status', 'available')->get(),
+            'listDeployed' => $listQuery()->where('status', 'deployed')->get(),
+            'listMaintenance' => $listQuery()->whereIn('status', ['maintenance', 'broken'])->get(),
             
-            'listPending' => AssetRequest::with(['user', 'asset'])->where('status', 'pending')->latest()->get(),
-            'recentRequests' => AssetRequest::with(['user', 'asset'])->where('status', 'pending')->latest()->take(5)->get(),
+            'listPending' => $pending,
+            'recentRequests' => $pending->take(5),
             
             'activities' => $activities,
             'categories' => $categories,
-            'totalAssets' => Asset::count(), 
-            'deployedAssets' => Asset::where('status', 'deployed')->count(),
-            'maintenanceAssets' => Asset::where('status', 'maintenance')->count(),
-            'brokenAssets' => $brokenAssets,
-            'recentActivities' => AssetHistory::with(['asset', 'user'])->latest()->take(5)->get()
+            'totalAssets' => $totalAssets, 
+            'deployedAssets' => $countOf(['deployed']),
+            'maintenanceAssets' => $countOf(['maintenance']),
+            'brokenAssets' => $countOf(['broken', 'missing']),
+            'recentActivities' => $activities->take(5),
+
+            // [PERF] Data grafik awal disisipkan langsung ke halaman agar grafik
+            // tampil tanpa menunggu 2 request AJAX tambahan.
+            'initialCharts' => [
+                'borrow' => $this->borrowStats(new Request(['range' => 'monthly']))->getData(true),
+                'asset' => $this->chartsData(new Request(['range' => 'monthly']))->getData(true),
+            ],
         ]);
     }
 
@@ -170,7 +192,7 @@ class AssetController extends Controller
             'pendingRequestsCount' => $pendingRequests,
             'recentActivities' => $recentActivities,
             'myActiveAssets' => $myActiveAssets,
-            'activities' => AssetHistory::with(['asset', 'user'])->latest()->get(), 
+            'activities' => AssetHistory::with(['asset:id,name', 'user.role'])->latest()->take(self::DASHBOARD_LOG_LIMIT)->get(), 
             // Null safety for admin properties if view expects them
             'stats' => [], 'categories' => [],
             'listTotal' => collect([]), 
@@ -436,7 +458,7 @@ class AssetController extends Controller
         return view('assets.detail', [
             'title' => 'Detail Aset - ' . $asset->name,
             'asset' => $asset,
-            'history' => $asset->histories()->latest()->get()
+            'history' => $asset->histories()->with('user:id,name')->latest()->take(50)->get()
         ]);
     }
 
@@ -560,11 +582,20 @@ class AssetController extends Controller
      */
     public function scanQrImage($id)
     {
-        // Gunakan API Eksternal yang stabil agar gambar selalu muncul (Tanpa dependensi server)
         $url = route('assets.show', $id);
-        $qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' . urlencode($url);
-        
-        return redirect($qrApiUrl);
+
+        // [PERF] QR dibuat lokal dalam format SVG (tidak butuh Imagick, tanpa ketergantungan API eksternal)
+        // dan di-cache browser 1 hari. Fallback ke API eksternal jika library gagal.
+        try {
+            $svg = QrCode::format('svg')->size(200)->margin(1)->generate($url);
+            return response($svg, 200, [
+                'Content-Type' => 'image/svg+xml',
+                'Cache-Control' => 'private, max-age=86400',
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+            return redirect('https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' . urlencode($url));
+        }
     }
 
     /**
@@ -698,8 +729,8 @@ class AssetController extends Controller
         // 2. Query Database
         $requests = \App\Models\AssetRequest::select(
                 DB::raw("$groupBy as date_key"),
-                DB::raw('SUM(CASE WHEN status = "approved" THEN 1 ELSE 0 END) as approved_count'),
-                DB::raw('SUM(CASE WHEN status = "rejected" THEN 1 ELSE 0 END) as rejected_count')
+                DB::raw("SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved_count"),
+                DB::raw("SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected_count")
             )
             ->whereBetween('created_at', [$startDate, $endDate])
             ->groupByRaw($groupBy)
@@ -776,7 +807,7 @@ class AssetController extends Controller
         $status = $request->get('status'); // Optional filter
 
         $assets = Asset::select('id', 'name', 'serial_number', 'status', 'category', 'image', 'location', 'lorong', 'rak', 'condition_notes')
-            ->with(['holder:id,name']) // Eager load holder name only
+            ->with(['activeRequest.user:id,name']) // [PERF] holder adalah accessor dari activeRequest.user
             ->where(function($q) use ($query) {
                 $q->where('name', 'LIKE', "%{$query}%")
                   ->orWhere('serial_number', 'LIKE', "%{$query}%");

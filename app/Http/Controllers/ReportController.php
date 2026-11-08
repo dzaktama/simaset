@@ -12,6 +12,10 @@ class ReportController extends Controller
 {
     private AssetService $assetService;
 
+    // [PERF] Jumlah baris maksimum saat LIVE PREVIEW (DomPDF lambat untuk ratusan baris + QR SVG + foto).
+    // Download tetap berisi seluruh data.
+    private const PREVIEW_LIMIT = 30;
+
     public function __construct(AssetService $assetService)
     {
         $this->assetService = $assetService;
@@ -49,12 +53,15 @@ class ReportController extends Controller
                            ->orderBy('category')
                            ->pluck('category');
 
+        $statusCounts = Asset::selectRaw('status, COUNT(*) as total')->groupBy('status')->pluck('total', 'status');
+
         return view('reports.index', [
             'title' => 'Generator Laporan Aset',
             'categories' => $categories, // Dikirim ke view
-            'totalAssets' => Asset::count(),
-            'availableAssets' => Asset::where('status', 'available')->count(),
-            'deployedAssets' => Asset::where('status', 'deployed')->count(),
+            // [PERF] Satu query agregat menggantikan 3 query COUNT
+            'totalAssets' => $statusCounts->sum(),
+            'availableAssets' => $statusCounts['available'] ?? 0,
+            'deployedAssets' => $statusCounts['deployed'] ?? 0,
         ]);
     }
 
@@ -63,7 +70,7 @@ class ReportController extends Controller
      */
     public function report(Request $request)
     {
-        $assets = Asset::with('holder')->get();
+        $assets = Asset::with('activeRequest.user')->get();
         $requests = AssetRequest::with(['user', 'asset'])->latest()->get();
 
         $summary = [
@@ -109,7 +116,8 @@ class ReportController extends Controller
             'search' => $request->search,
         ];
         
-        $isPreview = !$request->has('download'); // [FIX] Define variable
+        $isPreview = !($request->has('download') && $request->download == 1);
+        $commonData['isPreview'] = $isPreview;
 
         // --- CABANG 1: LAPORAN PEMINJAMAN ---
         if ($request->type === 'borrowing') {
@@ -144,15 +152,16 @@ class ReportController extends Controller
                 $query->where('status', $request->status);
             }
 
-            $requests = $query->latest();
-            
-            // [OPTIMISASI] Limit data jika hanya Preview (bukan Download)
-            $requests = $requests->get();
+            $query->latest();
+
+            // [PERF] Limit data jika hanya Preview (bukan Download)
+            $totalCount = (clone $query)->count();
+            $requests = $isPreview ? $query->take(self::PREVIEW_LIMIT)->get() : $query->get();
             
             $data = array_merge($commonData, [
                 'title' => 'Laporan Riwayat Peminjaman',
                 'requests' => $requests,
-                'isPreview' => $isPreview
+                'totalCount' => $totalCount,
             ]);
 
             $pdf = Pdf::loadView('pdf.borrowing_report', $data)
@@ -161,7 +170,7 @@ class ReportController extends Controller
         } else {
             // --- CABANG 2: LAPORAN ASET (DEFAULT) ---
             
-            $query = Asset::with('holder');
+            $query = Asset::with('activeRequest.user');
 
             // Filter Pencarian
             if ($request->filled('search')) {
@@ -205,12 +214,15 @@ class ReportController extends Controller
                 default: $query->latest(); break;
             }
 
-            // [REVISI] Tampilkan SEMUA data sesuai request user (Unimited)
-            $assets = $query->get();
+            // [PERF] Download = seluruh data; Preview = PREVIEW_LIMIT baris pertama
+            $totalCount = (clone $query)->count();
+            $assets = $isPreview ? $query->take(self::PREVIEW_LIMIT)->get() : $query->get();
 
-            // Convert Images Logic
-            $assets->each(function ($asset) {
-                if ($asset->image) {
+            $showImages = (bool) $request->query('show_images', 1);
+
+            // Convert Images Logic (hanya jika kolom foto ditampilkan)
+            $assets->each(function ($asset) use ($showImages) {
+                if ($showImages && $asset->image) {
                     $imagePath = storage_path('app/public/' . $asset->image);
                     if (file_exists($imagePath)) {
                         $asset->image_base64 = $this->assetService->fileToBase64($imagePath);
@@ -227,7 +239,8 @@ class ReportController extends Controller
                 'assets' => $assets,
                 'filterCategory' => $request->category == 'all' ? 'Semua Kategori' : $request->category,
                 'filterSort' => $this->getSortLabel($sort),
-                'showImages' => $request->query('show_images', 1),
+                'showImages' => $showImages,
+                'totalCount' => $totalCount,
             ]);
 
             $pdf = Pdf::loadView('pdf.assets_report', $data)
@@ -235,13 +248,22 @@ class ReportController extends Controller
         }
 
         // OUTPUT
-        if ($request->has('download') && $request->download == 1) {
-            $prefix = $request->type === 'borrowing' ? 'Laporan_Peminjaman_' : 'Laporan_Aset_';
-            $filename = $prefix . now()->format('Y-m-d_H-i-s') . '.pdf';
-            return $pdf->download($filename);
-        }
+        try {
+            if (!$isPreview) {
+                $prefix = $request->type === 'borrowing' ? 'Laporan_Peminjaman_' : 'Laporan_Aset_';
+                $filename = $prefix . now()->format('Y-m-d_H-i-s') . '.pdf';
+                return $pdf->download($filename);
+            }
 
-        return $pdf->stream('preview.pdf');
+            return $pdf->stream('preview.pdf');
+        } catch (\Throwable $e) {
+            // [ERROR HANDLING] Jangan tampilkan stack trace di iframe preview
+            report($e);
+            return response(
+                '<div style="font-family:sans-serif;padding:24px;color:#b91c1c">Gagal membuat laporan PDF. Coba kurangi filter/foto atau hubungi admin.</div>',
+                500
+            );
+        }
     }
 
     /**
@@ -335,7 +357,7 @@ class ReportController extends Controller
                 // Header
                 $data[] = ['No', 'Nama Aset', 'Serial Number', 'Kategori', 'Lokasi', 'Kondisi', 'Status', 'Stok', 'Pengguna Saat Ini'];
 
-                $query = Asset::with('holder');
+                $query = Asset::with('activeRequest.user');
 
                 // Filter Logic
                 if ($request->filled('search')) {

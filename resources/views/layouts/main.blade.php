@@ -6,20 +6,15 @@
     <title>@yield('title', $title ?? 'SIMASET Vitech Asia')</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     
+    {{-- [PERF] Tailwind dikompilasi oleh Vite (resources/css/app.css). Tailwind Play CDN dihapus:
+         CDN tsb. mengompilasi CSS di browser saat runtime (~400KB JS + MutationObserver) dan tidak untuk produksi. --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                }
-            }
-        }
-    </script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    {{-- [PERF] Versi library dipin (tanpa redirect "latest") dan dimuat defer agar tidak memblokir render --}}
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://rsms.me" crossorigin>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     
     {{-- FONTS --}}
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
@@ -31,7 +26,6 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: #1f2937; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 5px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #6b7280; }
-    </style>
     </style>
     <script>
         window.currentUserId = {{ auth()->id() ?? 'null' }};
@@ -153,7 +147,6 @@
             resetTimer();
         })();
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     {{-- SIMPLE SPA/PJAX NAVIGATION --}}
     <script>
@@ -214,7 +207,7 @@
             }
         }
 
-        function updateContent(html, title, pushState = true, url = null) {
+        async function updateContent(html, title, pushState = true, url = null) {
             const main = document.getElementById('page-container');
             
             // 1. Create a temporary container to parse the HTML and easily extract scripts
@@ -234,21 +227,65 @@
             }
             
             // 4. Re-execute Scripts
-            scripts.forEach(oldScript => {
-                const newScript = document.createElement('script');
-                
-                // Copy attributes
-                Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-                
-                // Copy content
-                newScript.textContent = oldScript.textContent;
-                
-                // Append to body (or main) to execute
-                document.body.appendChild(newScript);
-                
-                // Optional: remove after execution to keep DOM clean? 
-                // document.body.removeChild(newScript); 
-            });
+            // [FIX] Halaman yang dibuka lewat navigasi SPA tidak pernah menerima event DOMContentLoaded,
+            // sehingga inisialisasi (mis. preview Laporan) tidak jalan dan loading berputar terus.
+            // Listener DOMContentLoaded/load ditampung lalu dipanggil setelah semua script dieksekusi.
+            const deferredReady = [];
+            const origDocAdd = document.addEventListener;
+            const origWinAdd = window.addEventListener;
+            document.addEventListener = function (type, fn, opts) {
+                if (type === 'DOMContentLoaded') { deferredReady.push(fn); return; }
+                return origDocAdd.call(this, type, fn, opts);
+            };
+            window.addEventListener = function (type, fn, opts) {
+                if (type === 'load' || type === 'DOMContentLoaded') { deferredReady.push(fn); return; }
+                return origWinAdd.call(this, type, fn, opts);
+            };
+
+            let scriptFailed = false;
+            const onScriptError = (ev) => { scriptFailed = true; console.error('SPA script error:', ev.message); };
+            origWinAdd.call(window, 'error', onScriptError);
+
+            try {
+                // Eksekusi berurutan: script eksternal ditunggu sampai selesai dimuat sebelum
+                // script inline berikutnya (mis. select2 harus siap sebelum dipakai).
+                for (const oldScript of scripts) {
+                    const src = oldScript.getAttribute('src');
+                    // Library yang sudah dimuat layout tidak perlu diunduh & dieksekusi ulang
+                    if (src && document.querySelector(`head script[src="${src}"]`)) continue;
+
+                    const newScript = document.createElement('script');
+                    Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+
+                    if (src) {
+                        newScript.async = false;
+                        await new Promise(resolve => {
+                            newScript.onload = newScript.onerror = resolve;
+                            document.body.appendChild(newScript);
+                        });
+                        continue;
+                    }
+
+                    // [FIX] Script inline dieksekusi ulang di scope global yang sama; deklarasi `const/let`
+                    // tingkat atas akan error "already been declared" saat halaman dibuka kedua kalinya.
+                    // Diubah menjadi `var` (boleh dideklarasi ulang) hanya untuk eksekusi ulang SPA.
+                    newScript.textContent = oldScript.textContent.replace(/^(\s*)(const|let)\s+(?=[A-Za-z_$])/gm, '$1var ');
+                    document.body.appendChild(newScript);
+                    document.body.removeChild(newScript);
+                }
+            } finally {
+                document.addEventListener = origDocAdd;
+                window.addEventListener = origWinAdd;
+                window.removeEventListener('error', onScriptError);
+            }
+
+            // Fallback: jika ada script yang gagal, muat ulang halaman penuh agar fitur tetap berjalan
+            if (scriptFailed && url) {
+                window.location.href = url;
+                return;
+            }
+
+            deferredReady.forEach(fn => { try { fn.call(document, new Event('DOMContentLoaded')); } catch (e) { console.error(e); } });
 
             // 5. Re-init Alpine
             if (window.Alpine) {

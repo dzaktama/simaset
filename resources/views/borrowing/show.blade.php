@@ -23,7 +23,7 @@
             </div>
             
             {{-- Tombol Kembali --}}
-            <a href="{{ auth()->user()->role === 'admin' ? route('borrowing.index') : route('borrowing.history') }}" 
+            <a href="{{ in_array(auth()->user()->role?->slug, ['admin', 'super_admin']) ? route('borrowing.index') : route('borrowing.history') }}" 
                class="text-blue-600 hover:text-blue-900 flex items-center gap-2 self-start sm:self-center transition-colors duration-200">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>

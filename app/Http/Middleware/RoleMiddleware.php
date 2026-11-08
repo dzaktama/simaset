@@ -23,10 +23,12 @@ class RoleMiddleware
 
         // 1. Cek Mode Penyamaran (Impersonation)
         // Jika session 'impersonate_role' ada, gunakan itu sebagai role sementara
-        $currentRole = session('impersonate_role', $user->role);
+        // [FIX] $user->role adalah model Role (RBAC) -> gunakan slug
+        $realRole = optional($user->role)->slug;
+        $currentRole = session('impersonate_role', $realRole);
 
         // 2. Super Admin Bypass (Kecuali sedang menyamar)
-        if ($user->role === 'super_admin' && !session('impersonate_role')) {
+        if ($realRole === 'super_admin' && !session('impersonate_role')) {
             return $next($request);
         }
 

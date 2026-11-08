@@ -2,10 +2,8 @@
 @include('partials.stats_modal', ['id' => 'modalTotalAssets', 'title' => 'Daftar Seluruh Aset', 'items' => $listTotal])
 @include('partials.stats_modal', ['id' => 'modalAvailableAssets', 'title' => 'Aset Tersedia', 'items' => $listAvailable])
 
-@php
-    $deployedList = \App\Models\Asset::with('holder')->where('status', 'deployed')->latest()->get();
-@endphp
-@include('partials.stats_modal', ['id' => 'modalDeployedAssets', 'title' => 'Aset Sedang Dipinjam', 'items' => $deployedList])
+{{-- [PERF] Pakai $listDeployed dari controller (sebelumnya query ulang di view + N+1 holder) --}}
+@include('partials.stats_modal', ['id' => 'modalDeployedAssets', 'title' => 'Aset Sedang Dipinjam', 'items' => $listDeployed])
 
 @include('partials.stats_modal', ['id' => 'modalPendingRequests', 'title' => 'Daftar Request', 'items' => $listPending])
 @include('partials.stats_modal', ['id' => 'modalMaintenanceAssets', 'title' => 'Aset Rusak', 'items' => $listMaintenance])

@@ -1,4 +1,4 @@
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{{-- [PERF] Chart.js dimuat sekali di layout (versi dipin + defer), tidak lagi dobel di sini --}}
 <script>
     // 1. Sidebar & Utility
     function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
@@ -127,31 +127,55 @@
         document.getElementById('dot0').addEventListener('click', () => { currentSlide = 0; updateCarousel(); });
         document.getElementById('dot1').addEventListener('click', () => { currentSlide = 1; updateCarousel(); });
 
-        async function loadCharts(range = 'monthly'){
-            const loading = document.getElementById('chartLoading');
-            if(loading) loading.classList.remove('hidden');
+        // [PERF] Cache hasil per range di sisi klien + data awal dari server
+        const chartCache = {};
+        @isset($initialCharts)
+        chartCache.monthly = @json($initialCharts);
+        @endisset
+        let pendingController = null;
 
-            try{
-                // Fetch secara bersamaan (Concurrent) agar 2x lebih cepat
-                const [borrowRes, assetRes] = await Promise.all([
-                    fetch(`/charts/borrow-stats?range=${range}`),
-                    fetch(`/charts/asset-stats?range=${range}`)
-                ]);
-                
-                const borrowJson = await borrowRes.json();
-                const assetJson = await assetRes.json();
+        // Chart.js dimuat dengan `defer`; tunggu sampai siap tanpa memblokir render halaman
+        function whenChartReady() {
+            if (window.Chart) return Promise.resolve();
+            return new Promise(resolve => {
+                const check = () => window.Chart ? resolve() : setTimeout(check, 30);
+                check();
+            });
+        }
 
-                const chartOptions = {
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    animation: { duration: 300 }, // Percepat animasi render
-                    interaction: { mode: 'index', intersect: false }, 
-                    plugins: { legend: { position: 'bottom' } }, 
-                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } 
-                };
+        async function fetchRange(range) {
+            if (pendingController) pendingController.abort();
+            pendingController = new AbortController();
+            const opts = { signal: pendingController.signal, headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } };
+            // Fetch secara bersamaan (Concurrent)
+            const [borrowRes, assetRes] = await Promise.all([
+                fetch(`/charts/borrow-stats?range=${range}`, opts),
+                fetch(`/charts/asset-stats?range=${range}`, opts)
+            ]);
+            if (!borrowRes.ok || !assetRes.ok) throw new Error('HTTP ' + borrowRes.status + '/' + assetRes.status);
+            return { borrow: await borrowRes.json(), asset: await assetRes.json() };
+        }
 
-                // Chart 1
-                if (borrowChart) borrowChart.destroy();
+        function renderCharts(data) {
+            const borrowJson = data.borrow;
+            const assetJson = data.asset;
+            const chartOptions = {
+                responsive: true, 
+                maintainAspectRatio: false, 
+                animation: { duration: 300 },
+                interaction: { mode: 'index', intersect: false }, 
+                plugins: { legend: { position: 'bottom' } }, 
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } 
+            };
+
+            // Update data chart yang sudah ada (lebih ringan daripada destroy + create ulang)
+            if (borrowChart) {
+                borrowChart.data.labels = borrowJson.series.labels;
+                borrowChart.data.datasets[0].data = borrowJson.series.approved;
+                borrowChart.data.datasets[1].data = borrowJson.series.rejected;
+                borrowChart.update();
+            } else {
+                Chart.getChart(borrowCanvas)?.destroy();
                 borrowChart = new Chart(borrowCtx, {
                     type: 'line',
                     data: {
@@ -163,9 +187,14 @@
                     },
                     options: chartOptions
                 });
+            }
 
-                // Chart 2
-                if (assetChart) assetChart.destroy();
+            if (assetChart) {
+                assetChart.data.labels = assetJson.series.labels;
+                assetChart.data.datasets[0].data = assetJson.series.data;
+                assetChart.update();
+            } else {
+                Chart.getChart(assetCanvas)?.destroy();
                 assetChart = new Chart(assetCtx, {
                     type: 'line',
                     data: {
@@ -174,27 +203,48 @@
                     },
                     options: { ...chartOptions, plugins: { legend: { display: false } } }
                 });
+            }
 
-                // Pie Chart
-                const sc = assetJson.statusCounts;
-                if (pieChart) pieChart.destroy();
+            const sc = assetJson.statusCounts;
+            const pieData = [sc.available||0, sc.deployed||0, sc.maintenance||0, sc.broken||0];
+            if (pieChart) {
+                pieChart.data.datasets[0].data = pieData;
+                pieChart.update();
+            } else {
+                Chart.getChart(pieCanvas)?.destroy();
                 pieChart = new Chart(pieCtx, {
                     type: 'doughnut',
                     data: {
                         labels: ['Available','Deployed','Maintenance','Broken'],
-                        datasets: [{ data: [sc.available||0, sc.deployed||0, sc.maintenance||0, sc.broken||0], backgroundColor: ['#10B981','#3B82F6','#F59E0B','#EF4444'], borderWidth: 3 }]
+                        datasets: [{ data: pieData, backgroundColor: ['#10B981','#3B82F6','#F59E0B','#EF4444'], borderWidth: 3 }]
                     },
                     options: { responsive: true, maintainAspectRatio: false, animation: { duration: 300 }, plugins: { legend: { position: 'top' } } }
                 });
-
-            }catch(err){ 
-                console.error('Gagal load chart data:', err); 
-            } finally {
-                if(loading) loading.classList.add('hidden');
             }
         }
 
-        window.dashboardLoadCharts = loadCharts;
+        let currentRange = 'monthly';
+        async function loadCharts(range = currentRange, force = false){
+            currentRange = range;
+            const loading = document.getElementById('chartLoading');
+            const cached = !force && chartCache[range];
+            if(loading && !cached) loading.classList.remove('hidden');
+
+            try{
+                const data = cached || await fetchRange(range);
+                chartCache[range] = data;
+                await whenChartReady();
+                if (range !== currentRange) return; // user sudah pindah range
+                renderCharts(data);
+            }catch(err){ 
+                if (err.name !== 'AbortError') console.error('Gagal load chart data:', err); 
+            } finally {
+                if(loading && range === currentRange) loading.classList.add('hidden');
+            }
+        }
+
+        // Tombol refresh memaksa ambil data terbaru dari server
+        window.dashboardLoadCharts = (range) => loadCharts(range || currentRange, true);
 
         loadCharts('monthly');
 

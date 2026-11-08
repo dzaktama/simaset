@@ -119,7 +119,7 @@
                 <td><strong>Pencarian:</strong></td>
                 <td>{{ $search ?: '-' }}</td>
                 <td><strong>Total Data:</strong></td>
-                <td>{{ count($requests) }} Peminjaman</td>
+                <td>{{ $totalCount ?? count($requests) }} Peminjaman</td>
             </tr>
         </table>
     </div>
@@ -213,6 +213,13 @@
             @endforelse
         </tbody>
     </table>
+    {{-- [PERF] Mode preview hanya merender sebagian baris agar cepat tampil --}}
+    @if(!empty($isPreview) && isset($totalCount) && $totalCount > count($requests))
+        <p style="margin-top: 8px; font-size: 9px; color: #b45309; text-align: center;">
+            Preview menampilkan {{ count($requests) }} dari {{ $totalCount }} data. Klik "Download PDF Report" untuk laporan lengkap.
+        </p>
+    @endif
+
 
     {{-- FOOTER NOTE --}}
     @if(isset($adminNotes) && $adminNotes != '-')
