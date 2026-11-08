@@ -24,7 +24,7 @@ class UserController extends Controller
     public function index()
     {
         return view('users.index', [
-            'users' => User::with('role')->latest()->paginate(10),
+            'users' => User::with(['role', 'assets.activeRequest.user'])->latest()->paginate(10), // [PERF] eager load assets (sebelumnya N+1 per baris)
             'title' => 'Daftar Pengguna'
         ]);
     }

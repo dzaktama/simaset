@@ -153,10 +153,10 @@
 {{-- DATA ASSETS (Disimpan di JS Variable untuk Filtering Client-side yang Cepat) --}}
 <script>
     // Data Aset dari Controller (Di-pass sebagai JSON)
-    const allAssets = {!! json_encode($assets) !!};
+    var allAssets = {!! json_encode($assets) !!};
     
     // Config Rak
-    const totalRacks = 50; 
+    var totalRacks = 50; 
 
     // Helper functions
     function selectArea(areaName) {

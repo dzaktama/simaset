@@ -1,7 +1,7 @@
 {{-- [PERF] Chart.js sudah dimuat (dipin + defer) di layouts/main --}}
 <script>
-    const chartInstances = {};
-    const chartConfig = {
+    var chartInstances = {};
+    var chartConfig = {
         borrowingTrend: { type: 'line', multiAxis: true, smooth: true }, // Indigo
         maintenanceCost: { type: 'line', color: 'rgb(249, 115, 22)', fill: true, smooth: true }, // Orange
         topUsers: { type: 'bar', indexAxis: 'y', color: 'rgb(16, 185, 129)' }, // Emerald
@@ -14,7 +14,7 @@
         assetAging: { type: 'bar', color: 'rgb(107, 114, 128)' }, // Gray
     };
 
-    const chartState = {};
+    var chartState = {};
 
     function initChartState(id) {
         if(!chartState[id]) {
