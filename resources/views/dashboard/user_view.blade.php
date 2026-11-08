@@ -265,7 +265,7 @@
     
     {{-- Footer Info (No Pagination - All Data Displayed) --}}
     <div class="px-6 py-3 border-t border-gray-200 bg-gray-50 rounded-b-xl flex justify-between items-center">
-        <span class="text-xs text-gray-500">Menampilkan semua data (Auto-scroll) • Total {{ is_countable($activities) ? count($activities) : 0 }} Aktivitas</span>
+        <span class="text-xs text-gray-500">Menampilkan {{ is_countable($activities) ? count($activities) : 0 }} aktivitas terbaru</span>
         <button onclick="document.getElementById('user-activity-log-scroll').scrollTo({top: 0, behavior: 'smooth'})" class="text-xs text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1">
             <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
             Ke Atas

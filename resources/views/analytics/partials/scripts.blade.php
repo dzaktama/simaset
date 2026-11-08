@@ -1,4 +1,4 @@
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{{-- [PERF] Chart.js sudah dimuat (dipin + defer) di layouts/main --}}
 <script>
     const chartInstances = {};
     const chartConfig = {
@@ -283,9 +283,8 @@
         setPreset('month'); 
     }
 
-    // Run on initial load
+    // Run on initial load (navigasi SPA juga memicu handler ini lewat layouts/main).
+    // [FIX] Listener 'content:loaded' dihapus: listener menumpuk di window setiap kali halaman
+    // dibuka lewat SPA sehingga semua grafik dimuat berkali-kali (juga di halaman lain).
     document.addEventListener('DOMContentLoaded', initDashboardCharts);
-    
-    // Run on PJAX content load
-    window.addEventListener('content:loaded', initDashboardCharts);
 </script>

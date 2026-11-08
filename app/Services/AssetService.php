@@ -270,7 +270,7 @@ class AssetService
      */
     public function buildAssetQuery(array $filters = [])
     {
-        $query = Asset::with(['activeRequest.user']);
+        $query = Asset::with(['activeRequest.user', 'activeMaintenance']);
 
         // Search
         if (!empty($filters['search'])) {

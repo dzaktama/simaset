@@ -118,7 +118,7 @@
                 <td><strong>Pencarian:</strong></td>
                 <td>{{ $filterSearch ?? '-' }}</td>
                 <td><strong>Total Data:</strong></td>
-                <td>{{ count($assets) }} Unit</td>
+                <td>{{ $totalCount ?? count($assets) }} Unit</td>
             </tr>
         </table>
     </div>
@@ -220,6 +220,13 @@
             @endforelse
         </tbody>
     </table>
+    {{-- [PERF] Mode preview hanya merender sebagian baris agar cepat tampil --}}
+    @if(!empty($isPreview) && isset($totalCount) && $totalCount > count($assets))
+        <p style="margin-top: 8px; font-size: 9px; color: #b45309; text-align: center;">
+            Preview menampilkan {{ count($assets) }} dari {{ $totalCount }} data. Klik "Download PDF Report" untuk laporan lengkap.
+        </p>
+    @endif
+
 
     {{-- FOOTER NOTE --}}
     @if(isset($adminNotes) && $adminNotes != '-')

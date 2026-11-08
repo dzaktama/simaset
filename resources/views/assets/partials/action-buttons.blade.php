@@ -1,14 +1,7 @@
 <div class="flex items-center justify-center gap-2">
-    {{-- Generate QR Code Base64 --}}
-    @php
-        $scanUrl = route('assets.scan', $asset->id);
-        $qrCodeBase64 = '';
-        try {
-            $qrCodeBase64 = 'data:image/png;base64,' . base64_encode(
-                \SimpleSoftwareIO\QrCode\Facades\QrCode::format('png')->size(200)->margin(1)->generate($scanUrl)
-            );
-        } catch (\Exception $e) {}
-    @endphp
+    {{-- [PERF] QR code TIDAK lagi dibuat per baris saat render katalog (sebelumnya PNG 200px x jumlah aset x 2 tampilan).
+         Modal detail memuat QR secara lazy dari route assets.scan_image hanya saat dibuka. --}}
+    @php $qrCodeBase64 = ''; @endphp
 
     {{-- BUTTON: DETAIL --}}
     <button onclick="openDetailModal({{ json_encode($asset) }}, {{ json_encode($asset->holder) }}, '{{ $qrCodeBase64 }}')" class="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 hover:text-indigo-800 transition border border-indigo-200" title="Detail">
@@ -39,7 +32,8 @@
         @elseif($asset->status === 'maintenance')
             {{-- Aset dalam MAINTENANCE - tampilkan tombol "Lihat Tiket Aktif" --}}
             @php
-                $activeTicket = \App\Models\Maintenance::where('asset_id', $asset->id)->where('status', 'on_process')->first();
+                // [PERF] Pakai relasi yang sudah di-eager-load (tidak query per baris)
+                $activeTicket = $asset->relationLoaded('activeMaintenance') ? $asset->activeMaintenance : $asset->activeMaintenance()->first();
             @endphp
             @if($activeTicket)
                 <a href="{{ route('maintenances.show', $activeTicket) }}" class="p-2 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 border border-orange-200 transition" title="Lihat Tiket Aktif">
@@ -49,7 +43,7 @@
         @endif
         {{-- Status available/deployed: Tidak ada tombol service karena aset tidak butuh perbaikan --}}
 
-    @elseif(auth()->user()->role == 'service_center')
+    @elseif(auth()->user()->role?->slug === 'service_center')
         {{-- BUTTON: SERVICE (SC) - Hanya untuk status broken atau lihat tiket untuk maintenance --}}
         @if($asset->status === 'broken')
             {{-- Aset RUSAK --}}
@@ -59,7 +53,8 @@
         @elseif($asset->status === 'maintenance')
             {{-- Aset dalam MAINTENANCE --}}
             @php
-                $activeTicketSC = \App\Models\Maintenance::where('asset_id', $asset->id)->where('status', 'on_process')->first();
+                // [PERF] Pakai relasi yang sudah di-eager-load (tidak query per baris)
+                $activeTicketSC = $asset->relationLoaded('activeMaintenance') ? $asset->activeMaintenance : $asset->activeMaintenance()->first();
             @endphp
             @if($activeTicketSC)
                 <a href="{{ route('maintenances.show', $activeTicketSC) }}" class="p-2 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 border border-orange-200 transition" title="Lihat Tiket Aktif">

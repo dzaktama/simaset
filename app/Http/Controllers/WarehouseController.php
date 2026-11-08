@@ -66,7 +66,7 @@ class WarehouseController extends Controller
         $selectedAsset = null;
         if ($id) {
             // Jika ada ID, load asset tersebut untuk pre-fill
-            $selectedAsset = Asset::with(['holder'])->find($id);
+            $selectedAsset = Asset::with(['activeRequest.user'])->find($id);
         }
 
         // Tampilkan view form mutasi

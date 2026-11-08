@@ -46,6 +46,9 @@
                                 @endforeach
                             </tbody>
                         </table>
+                        @if($items->count() >= 100)
+                            <p class="text-center text-xs text-gray-500 py-3">Menampilkan 100 data terbaru. Lihat selengkapnya di <a href="{{ route('assets.index') }}" class="text-indigo-600 font-semibold hover:underline">Katalog Aset</a>.</p>
+                        @endif
                     @endif
                 </div>
             </div>

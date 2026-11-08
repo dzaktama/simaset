@@ -14,7 +14,8 @@ class IsAdmin
     public function handle(Request $request, Closure $next): Response
     {
         // Cek apakah user sudah login dan role-nya admin
-        if (auth()->check() && auth()->user()->role === 'admin') {
+        // [FIX] Sejak RBAC, $user->role adalah model Role (bukan string) -> bandingkan slug-nya
+        if (auth()->check() && in_array(optional(auth()->user()->role)->slug, ['admin', 'super_admin'], true)) {
             return $next($request);
         }
 

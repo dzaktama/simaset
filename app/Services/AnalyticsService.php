@@ -8,9 +8,20 @@ use App\Models\Maintenance;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Schema;
 
 class AnalyticsService
 {
+    /**
+     * [PERF] Cek kolom users.department sekali per request (sebelumnya query skema setiap pemanggilan)
+     */
+    private ?bool $hasDepartment = null;
+
+    private function usersHaveDepartment(): bool
+    {
+        return $this->hasDepartment ??= Schema::hasColumn('users', 'department');
+    }
+
     /**  
      * narik data buat chartnya
      */
@@ -45,9 +56,9 @@ class AnalyticsService
 
             // 2. Aset Paling Sering Dipinjam (Top 5)
             case 'topAssets':
-                $data = AssetRequest::select('asset_id', DB::raw('count(*) as total'))
+                $data = AssetRequest::withoutEagerLoads()->select('asset_id', DB::raw('count(*) as total'))
                     ->where('status', 'approved')
-                    ->with('asset')
+                    ->with('asset:id,name')
                     ->groupBy('asset_id')
                     ->orderByDesc('total')
                     ->take(5)
@@ -94,7 +105,7 @@ class AnalyticsService
             // 5. Distribusi Aset per Departemen
             case 'departmentDist':
                 // Join Asset -> User -> Department
-                $hasDept = \Schema::hasColumn('users', 'department');
+                $hasDept = $this->usersHaveDepartment();
                 $col = $hasDept ? 'users.department' : 'users.role';
 
                 $data = Asset::join('users', 'assets.user_id', '=', 'users.id') // Holder
@@ -145,8 +156,8 @@ class AnalyticsService
 
             // 9. User Paling Aktif
             case 'topUsers':
-                $data = AssetRequest::select('user_id', DB::raw('count(*) as total'))
-                    ->with('user')
+                $data = AssetRequest::withoutEagerLoads()->select('user_id', DB::raw('count(*) as total'))
+                    ->with('user:id,name')
                     ->groupBy('user_id')
                     ->orderByDesc('total')
                     ->take(5)
@@ -392,7 +403,7 @@ class AnalyticsService
                 $title = 'Distribusi Aset per Departemen/Role';
                 $headers = ['Departemen/Role', 'Jumlah Aset'];
                 // Logic similar to getData
-                $hasDept = \Schema::hasColumn('users', 'department');
+                $hasDept = $this->usersHaveDepartment();
                 $col = $hasDept ? 'users.department' : 'users.role';
                 $items = Asset::join('users', 'assets.user_id', '=', 'users.id')
                     ->select($col, DB::raw('count(*) as total'))

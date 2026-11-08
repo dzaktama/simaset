@@ -104,6 +104,13 @@ class Asset extends Model
     }
     // -----------------------------------------------
 
+    // [FIX] Relasi riwayat aset. AssetController@show memanggil $asset->histories(),
+    // tetapi relasi ini belum ada sehingga halaman detail aset error 500.
+    public function histories()
+    {
+        return $this->hasMany(AssetHistory::class);
+    }
+
     // [New] Maintenance Relation
     public function maintenances()
     {
@@ -113,7 +120,15 @@ class Asset extends Model
     // Relasi untuk mengambil request yang sedang aktif
     public function activeRequest()
     {
-        return $this->hasOne(AssetRequest::class)->where('status', 'approved')->latest();
+        // [PERF] without('asset'): AssetRequest punya $with = ['user','asset'];
+        // relasi asset tidak perlu dimuat ulang karena parent-nya sudah aset ini.
+        return $this->hasOne(AssetRequest::class)->where('status', 'approved')->latest()->without('asset');
+    }
+
+    // [PERF] Tiket perbaikan yang sedang berjalan (dipakai tombol aksi katalog, menggantikan query per baris)
+    public function activeMaintenance()
+    {
+        return $this->hasOne(Maintenance::class)->where('status', 'on_process')->latest();
     }
 
     // 3. SCOPE FILTER 
@@ -139,29 +154,33 @@ class Asset extends Model
     public function getHolderAttribute()
     {
         // Cek jika ada `activeRequest` yang sudah di-load
-        if ($this->relationLoaded('activeRequest') && $this->activeRequest) {
-            return $this->activeRequest->user;
+        // [PERF] Jika relasi sudah di-eager-load (walaupun hasilnya null), JANGAN query ulang.
+        // Sebelumnya aset tanpa peminjam aktif selalu memicu query baru (N+1).
+        return $this->activeRequestLoaded()?->user;
+    }
+
+    /**
+     * [PERF] Muat relasi activeRequest sekali saja per instance (lazy load ter-cache),
+     * lalu pakai hasilnya untuk accessor holder / assigned_date / return_date.
+     */
+    protected function activeRequestLoaded()
+    {
+        if (!$this->relationLoaded('activeRequest')) {
+            $this->load('activeRequest.user');
         }
-        // Fallback jika tidak di-load
-        return $this->activeRequest()->first()->user ?? null;
+        return $this->getRelation('activeRequest');
     }
 
     // 5. ATRIBUT BARU: AMBIL TANGGAL PINJAM DARI RELASI
     public function getAssignedDateAttribute()
     {
-        if ($this->relationLoaded('activeRequest') && $this->activeRequest) {
-            return $this->activeRequest->borrowed_at;
-        }
-        return $this->activeRequest()->first()->borrowed_at ?? null;
+        return $this->activeRequestLoaded()?->borrowed_at;
     }
 
     // 6. ATRIBUT BARU: AMBIL TANGGAL KEMBALI DARI RELASI
     public function getReturnDateAttribute()
     {
-        if ($this->relationLoaded('activeRequest') && $this->activeRequest) {
-            return $this->activeRequest->return_date;
-        }
-        return $this->activeRequest()->first()->return_date ?? null;
+        return $this->activeRequestLoaded()?->return_date;
     }
 
     /**
