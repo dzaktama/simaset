@@ -5,6 +5,8 @@ namespace App\Services;
 use ZipArchive;
 use Illuminate\Support\Facades\Response;
 
+// [PRESENTASI FR-08 #8] Pembuat file XLSX buatan sendiri (tanpa pustaka tambahan). Dipakai
+//     ReportController::exportExcel untuk format xlsx.
 class SimpleXlsx
 {
     /**

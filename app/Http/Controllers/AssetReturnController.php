@@ -27,6 +27,8 @@ class AssetReturnController extends Controller
     {
         // Semua aksi admin/teknisi butuh izin 'return.verify'.
         // store & submitFineProof dibuka untuk user, tetapi dicek kepemilikannya di dalam method.
+        // [PRESENTASI FR-05 #2] Verifikasi hanya untuk admin/teknisi. Method store (pengajuan oleh
+        //     staf) sengaja dibiarkan terbuka untuk user yang login (kepemilikan dicek di dalam method).
         $this->middleware('can:return.verify')->only([
             'index', 'verify', 'reject', 'confirmFine', 'rejectFineProof', 'waiveFine',
         ]);
@@ -74,6 +76,8 @@ class AssetReturnController extends Controller
      */
     public function store(Request $request)
     {
+        // [PRESENTASI FR-05 #3] Staf wajib memilih kondisi aset (good/broken/maintenance) dan
+        //     mengunggah minimal 1 foto bukti (maksimal 3, tiap file 2 MB).
         $validated = $request->validate([
             'asset_request_id' => 'required|integer|exists:asset_requests,id',
             'condition' => 'required|in:good,broken,maintenance',
@@ -96,6 +100,8 @@ class AssetReturnController extends Controller
 
                 abort_unless($assetRequest->user_id === auth()->id(), 403, 'Anda tidak berhak mengembalikan aset ini.');
 
+                // [PRESENTASI FR-05 #4] Mencegah pengembalian ganda: aset yang sudah dikembalikan atau sedang
+                //     menunggu verifikasi ditolak.
                 if ($assetRequest->status === 'pending_return') {
                     throw new \DomainException('Pengembalian aset ini sedang menunggu verifikasi admin.');
                 }
@@ -113,6 +119,8 @@ class AssetReturnController extends Controller
                     }
                 }
 
+                // [PRESENTASI FR-05 #5] Menyimpan data pengembalian beserta foto bukti. Status peminjaman
+                //     menjadi 'pending_return'. Stok BELUM bertambah.
                 AssetReturn::create([
                     'asset_request_id' => $assetRequest->id,
                     'user_id' => auth()->id(),
@@ -145,6 +153,8 @@ class AssetReturnController extends Controller
      */
     public function verify(Request $request, $id)
     {
+        // [PRESENTASI FR-05 #6] Kondisi akhir ditentukan admin setelah memeriksa fisik barang
+        //     (bisa berbeda dari kondisi yang dilaporkan staf).
         $data = $request->validate([
             'final_condition' => 'required|in:available,maintenance,broken',
             'fine' => 'nullable|numeric|min:0|max:999999999',
@@ -170,10 +180,14 @@ class AssetReturnController extends Controller
                 $qty = $assetRequest?->quantity ?: 1;
                 $final = $data['final_condition'];
 
+                // [PRESENTASI FR-05 #7] Stok bertambah HANYA di sini (saat verifikasi). Status aset mengikuti
+                //     kondisi akhir: layak menjadi available, selain itu maintenance/broken.
                 // Unit fisik selalu kembali ke gudang; status aset menentukan bisa dipinjam lagi atau tidak.
                 $asset->increment('quantity', $qty);
                 $asset->update(['status' => $final]);
 
+                // [PRESENTASI FR-06 #1] Jalur OTOMATIS laporan kerusakan: jika kondisi akhir rusak/perlu
+                //     perbaikan, sistem langsung membuat tiket perbaikan di tabel maintenances.
                 if (in_array($final, ['maintenance', 'broken'], true)) {
                     Maintenance::create([
                         'asset_id' => $asset->id,
@@ -202,6 +216,8 @@ class AssetReturnController extends Controller
                     'return_notes' => $return->notes,
                 ]);
 
+                // [PRESENTASI FR-05 #8] Menutup tiket peminjaman (status 'returned') lalu mencatat kondisi
+                //     akhir dan denda ke riwayat aset.
                 AssetHistory::create([
                     'asset_id' => $asset->id,
                     'user_id' => auth()->id(),

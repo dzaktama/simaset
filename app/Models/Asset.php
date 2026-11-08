@@ -118,6 +118,8 @@ class Asset extends Model
     }
 
     // Relasi untuk mengambil request yang sedang aktif
+    // [PRESENTASI FR-02 #9] Relasi hasOne: peminjaman berstatus approved yang masih aktif. Dipakai
+    //     untuk mengetahui siapa yang sedang memegang aset.
     public function activeRequest()
     {
         // [PERF] without('asset'): AssetRequest punya $with = ['user','asset'];

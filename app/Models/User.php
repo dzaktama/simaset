@@ -74,6 +74,8 @@ class User extends Authenticatable
      * @param string $permission Nama izin (contoh: 'asset.create')
      * @return bool
      */
+    // [PRESENTASI FR-01 #5] Pusat pengecekan hak akses. Urutan: (1) izin khusus milik user, (2) Super
+    //     Admin bypass, (3) izin bawaan peran (role).
     public function hasPermission($permission)
     {
         // 1. Prioritas Utama: Cek Custom Permission User (Override)

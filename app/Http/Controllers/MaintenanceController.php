@@ -12,11 +12,15 @@ class MaintenanceController extends Controller
     public function __construct()
     {
         // Permission check moved to individual methods for better UX (Redirect + Message)
+        // [PRESENTASI FR-07 #2] Melihat daftar dan detail perbaikan butuh izin maintenance.view
+        //     (teknisi dan admin).
         $this->middleware('can:maintenance.view')->only(['index', 'show']);
     }
     /**
      * Display a listing of the maintenance logs.
      */
+    // [PRESENTASI FR-07 #3] Daftar tiket perbaikan diurutkan dari tanggal mulai terbaru dan dipaginasi
+    //     10 per halaman. Inilah layar 'memantau perbaikan' untuk teknisi.
     public function index()
     {
         $maintenances = Maintenance::with('asset')
@@ -137,9 +141,13 @@ class MaintenanceController extends Controller
     public function store(Request $request)
     {
         // [SECURITY]
+        // [PRESENTASI FR-06 #2] Jalur MANUAL laporan kerusakan: tiket dibuat dari halaman aset. Hanya
+        //     yang punya izin asset.edit yang boleh.
         if (\Illuminate\Support\Facades\Gate::denies('asset.edit')) {
             abort(403, 'Unauthorized action.');
         }
+        // [PRESENTASI FR-06 #3] Validasi tiket: aset harus ada, nama vendor wajib, tanggal mulai tidak
+        //     boleh sebelum hari ini, deskripsi masalah wajib.
         $request->validate([
             'asset_id' => 'required|exists:assets,id',
             'vendor_name' => 'required|string',
@@ -163,6 +171,8 @@ class MaintenanceController extends Controller
 
             // Validasi Status: Jangan izinkan maintenance jika aset sedang 'deployed' (dipinjam user)
             // Kecuali Super Admin yang mungkin punya policy bypass (tapi logic standar tetap harus return dulu)
+            // [PRESENTASI FR-06 #4] Aset yang sedang dipinjam tidak boleh langsung diperbaiki; harus
+            //     diproses pengembaliannya dulu.
             if ($asset->status === 'deployed') {
                 return back()->with('error', 'Aset sedang dipinjam (Status: Deployed). Harap proses pengembalian terlebih dahulu.');
             }
@@ -174,6 +184,8 @@ class MaintenanceController extends Controller
                 'notes' => 'Laporan kerusakan dibuat. Aset masuk perbaikan.',
             ]);
 
+            // [PRESENTASI FR-06 #5] Membuat tiket perbaikan berstatus on_process, lengkap dengan
+            //     vendor, tanggal mulai, deskripsi, dan biaya.
             Maintenance::create([
                 'asset_id' => $request->asset_id,
                 'user_id' => auth()->id(), // Teknisi yang membuat tiket
@@ -185,6 +197,8 @@ class MaintenanceController extends Controller
             ]);
 
             // 2. Update Asset Status
+            // [PRESENTASI FR-06 #6] Status aset otomatis menjadi 'maintenance' sehingga aset tidak
+            //     bisa dipinjam sampai perbaikan selesai.
             $asset->update(['status' => 'maintenance']);
 
             DB::commit();
@@ -204,10 +218,14 @@ class MaintenanceController extends Controller
     {
         // [SECURITY]
         // Teknisi memakai izin 'maintenance.action'; Admin memakai 'asset.edit'
+        // [PRESENTASI FR-07 #4] Teknisi memakai izin maintenance.action, admin memakai asset.edit.
+        //     Jika tidak punya keduanya, perubahan status ditolak.
         if (\Illuminate\Support\Facades\Gate::none(['asset.edit', 'maintenance.action'])) {
             return redirect()->back()->with('error', 'Anda tidak memiliki hak akses untuk mengubah status perbaikan.');
         }
         $request->validate([
+            // [PRESENTASI FR-07 #5] Hanya tiga status yang valid: on_process (dikerjakan), completed
+            //     (selesai), cancelled (dibatalkan).
             'status' => 'required|in:on_process,completed,cancelled',
             'vendor_name' => 'nullable|string',
             'start_date' => 'nullable|date',
@@ -219,6 +237,8 @@ class MaintenanceController extends Controller
         DB::beginTransaction();
         try {
             // LOGIC BARU: Auto Timestamp & Prevention Error
+            // [PRESENTASI FR-07 #6] Saat selesai: tanggal selesai (completion_date) dan ID teknisi
+            //     (resolver_id) diisi otomatis, jadi tercatat siapa yang menyelesaikan.
             if ($request->status == 'completed') {
                 $completionDate = now();
                 $request->merge(['completion_date' => $completionDate]);
@@ -253,6 +273,8 @@ class MaintenanceController extends Controller
             // Jika Selesai, kembalikan status aset
             // Jika Selesai, kembalikan status aset
             if ($request->status === 'completed') {
+                // [PRESENTASI FR-07 #7] Perbaikan selesai: status aset kembali 'available' sehingga
+                //     bisa dipinjam lagi.
                 $maintenance->asset->status = 'available';
 
                 // CEK JIKA ADA REQUEST MUTASI (Deferred Mutation)
@@ -285,6 +307,8 @@ class MaintenanceController extends Controller
             } 
             // Jika Dibatalkan, kembalikan ke available (atau status sebelumnya jika ada logic advanced)
             // Jika Dibatalkan, tandai aset sebagai BROKEN (Rusak) karena belum diperbaiki
+            // [PRESENTASI FR-07 #8] Perbaikan dibatalkan: aset ditandai 'broken' karena belum
+            //     diperbaiki, sehingga tetap tidak bisa dipinjam.
             elseif ($request->status === 'cancelled') {
                 $maintenance->asset->update(['status' => 'broken']);
             }
