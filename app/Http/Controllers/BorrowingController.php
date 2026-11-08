@@ -118,6 +118,12 @@ class BorrowingController extends Controller
             // [LOCKING] lockForUpdate mencegah double booking saat concurrent request
             $asset = Asset::lockForUpdate()->findOrFail($request->asset_id);
 
+            // [LOGIC] Aset rusak / dalam perbaikan tidak boleh dipinjam
+            if ($asset->status !== 'available') {
+                DB::rollBack();
+                return back()->with('error', 'Aset sedang tidak tersedia untuk dipinjam.')->withInput();
+            }
+
             // [LOGIC] Cek ketersediaan stok
             if ($asset->quantity < $request->quantity) {
                 return back()->with('error', 'Stok aset tidak mencukupi!')->withInput();

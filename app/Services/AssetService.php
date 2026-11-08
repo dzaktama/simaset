@@ -375,7 +375,7 @@ class AssetService
     public function generateQrCodeDataUrl(Asset $asset): string
     {
         // URL detail aset yang akan di-encode di QR code
-        $detailUrl = route('assets.scan', ['id' => $asset->id]); // Asumsikan route 'assets.scan' ada
+        $detailUrl = route('assets.scan', $asset->id);
         
         try {
             // Generate QR code menggunakan bacon/bacon-qr-code
