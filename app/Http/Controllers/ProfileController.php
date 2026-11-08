@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\Facades\Hash;
 use App\Models\AssetRequest;
 
@@ -44,7 +45,7 @@ class ProfileController extends Controller
         if ($request->has('update_password')) {
             $validated = $request->validate([
                 'current_password' => ['required', 'current_password'],
-                'password' => ['required', 'string', 'min:8', 'confirmed'],
+                'password' => ['required', 'string', 'confirmed', 'different:current_password', Password::defaults()],
             ]);
 
             $user->update([
