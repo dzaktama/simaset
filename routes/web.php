@@ -116,6 +116,7 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('returns', AssetReturnController::class)->only(['index', 'store']);
     // [PRESENTASI FR-05 #1] Route verifikasi pengembalian oleh admin. Pengembalian dua tahap: staf
     //     mengajukan, admin memverifikasi.
+    Route::get('/returns/{return}/receipt', [AssetReturnController::class, 'receipt'])->name('returns.receipt');
     Route::post('/returns/{return}/verify', [AssetReturnController::class, 'verify'])->name('returns.verify');
     Route::post('/returns/{return}/reject', [AssetReturnController::class, 'reject'])->name('returns.reject');
     // Denda: user unggah bukti bayar, admin/teknisi konfirmasi / tolak bukti / bebaskan

@@ -206,6 +206,10 @@
                                     <p class="text-xs text-slate-600">Dibebaskan oleh {{ $ret->fineConfirmer->name ?? 'Admin' }}: {{ $ret->fine_note }}</p>
                                 @endif
 
+                                @if(in_array($ret->fine_status, ['paid', 'waived']) && (auth()->id() === $borrowing->user_id || auth()->user()->can('return.verify')))
+                                    <a href="{{ route('returns.receipt', $ret->id) }}" target="_blank" class="inline-flex items-center px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg">Lihat / Cetak Kwitansi</a>
+                                @endif
+
                                 @if($ret->fine_note && in_array($ret->fine_status, ['unpaid', 'proof_submitted']))
                                     <p class="text-xs text-gray-600 italic">Catatan: {{ $ret->fine_note }}</p>
                                 @endif

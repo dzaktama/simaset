@@ -58,6 +58,22 @@ class AssetReturnController extends Controller
             $query->orderByDesc('created_at');
         }
 
+        // Pencarian peminjam / aset / nomor seri
+        $search = trim((string) $request->query('q', ''));
+        if ($search !== '') {
+            $like = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $search) . '%';
+            $query->where(function ($q) use ($like) {
+                $q->whereHas('user', fn ($u) => $u->where('name', 'like', $like)->orWhere('email', 'like', $like))
+                  ->orWhereHas('asset', fn ($a) => $a->where('name', 'like', $like)->orWhere('serial_number', 'like', $like));
+            });
+        }
+
+        // Filter status denda (hanya relevan di tab riwayat)
+        $fineFilter = $request->query('fine');
+        if ($tab === 'all' && in_array($fineFilter, ['unpaid', 'proof_submitted', 'paid', 'waived', 'none'], true)) {
+            $query->where('status', 'approved')->where('fine_status', $fineFilter);
+        }
+
         $returns = $query->paginate(10)->withQueryString();
 
         // Hitung dari seluruh data, bukan hanya halaman yang tampil
@@ -66,9 +82,30 @@ class AssetReturnController extends Controller
             'fine' => AssetReturn::whereIn('fine_status', [AssetReturn::FINE_UNPAID, AssetReturn::FINE_PROOF])->count(),
             'proof' => AssetReturn::where('fine_status', AssetReturn::FINE_PROOF)->count(),
             'outstanding' => (float) AssetReturn::whereIn('fine_status', [AssetReturn::FINE_UNPAID, AssetReturn::FINE_PROOF])->sum('fine'),
+            'collected' => (float) AssetReturn::where('fine_status', AssetReturn::FINE_PAID)->sum('fine'),
         ];
 
         return view('returns.index', compact('returns', 'tab', 'counts'));
+    }
+
+    /**
+     * Kwitansi / bukti penyelesaian denda (dapat dicetak). Admin atau peminjam yang bersangkutan.
+     */
+    public function receipt($id)
+    {
+        $return = AssetReturn::with(['asset', 'user', 'admin', 'fineConfirmer', 'assetRequest'])->findOrFail($id);
+
+        abort_unless(
+            $return->user_id === auth()->id() || \Illuminate\Support\Facades\Gate::allows('return.verify'),
+            403,
+            'Anda tidak berhak melihat kwitansi ini.'
+        );
+
+        if (!in_array($return->fine_status, [AssetReturn::FINE_PAID, AssetReturn::FINE_WAIVED], true)) {
+            return back()->with('error', 'Kwitansi hanya tersedia untuk denda yang sudah lunas atau dibebaskan.');
+        }
+
+        return view('returns.receipt', compact('return'));
     }
 
     /**
