@@ -113,10 +113,16 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/borrowing/{id}/return', [BorrowingController::class, 'returnAsset'])->name('borrowing.return')->middleware('can:borrow.action');
 
     // Verifikasi Pengembalian
-    Route::resource('returns', AssetReturnController::class)->only(['index', 'show', 'update', 'store']);
+    Route::resource('returns', AssetReturnController::class)->only(['index', 'store']);
     // [PRESENTASI FR-05 #1] Route verifikasi pengembalian oleh admin. Pengembalian dua tahap: staf
     //     mengajukan, admin memverifikasi.
     Route::post('/returns/{return}/verify', [AssetReturnController::class, 'verify'])->name('returns.verify');
+    Route::post('/returns/{return}/reject', [AssetReturnController::class, 'reject'])->name('returns.reject');
+    // Denda: user unggah bukti bayar, admin/teknisi konfirmasi / tolak bukti / bebaskan
+    Route::post('/returns/{return}/fine/proof', [AssetReturnController::class, 'submitFineProof'])->name('returns.fine.proof');
+    Route::post('/returns/{return}/fine/confirm', [AssetReturnController::class, 'confirmFine'])->name('returns.fine.confirm');
+    Route::post('/returns/{return}/fine/reject-proof', [AssetReturnController::class, 'rejectFineProof'])->name('returns.fine.reject_proof');
+    Route::post('/returns/{return}/fine/waive', [AssetReturnController::class, 'waiveFine'])->name('returns.fine.waive');
 
     // Rute Penyamaran (Mode Override - Login sebagai user lain)
     Route::get('/impersonate/leave', [AuthController::class, 'leaveImpersonation'])->name('impersonate.leave');

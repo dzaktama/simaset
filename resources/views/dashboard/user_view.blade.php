@@ -1,3 +1,5 @@
+@include('partials.fine-alert', ['fines' => $myFines ?? collect()])
+
 {{-- HERO SECTION: BUTUH ALAT KERJA --}}
 <div class="mt-4 mb-8">
     <div class="relative bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl shadow-xl overflow-hidden">
@@ -138,6 +140,8 @@
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">Menunggu</span>
                         @elseif($activity->status == 'approved' && !$activity->returned_at)
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">Dipinjam</span>
+                        @elseif($activity->status == 'pending_return')
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">Verifikasi Kembali</span>
                         @elseif($activity->status == 'rejected')
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">Ditolak</span>
                         @elseif($activity->returned_at)

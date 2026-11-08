@@ -7,6 +7,8 @@
         <p class="mt-2 text-gray-600">Daftar inventaris yang saat ini menjadi tanggung jawab Anda.</p>
     </div>
 
+    @include('partials.fine-alert', ['fines' => $myFines ?? collect()])
+
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         @if($myAssets->isEmpty())
             <div class="p-12 text-center flex flex-col items-center">
@@ -85,12 +87,23 @@
                                         $assignedDate = $item->borrowed_at;
                                     @endphp
                                     
+                                    @if($item->status === 'pending_return')
+                                        <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">
+                                            Menunggu Verifikasi Admin
+                                        </span>
+                                    @else
                                     {{-- Kirim ID Request Peminjaman ($item->id) bukan ID Aset --}}
-                                    <button onclick="openReturnModal({{ $item->id }}, '{{ $item->asset->name }}', '{{ $item->asset->serial_number }}', '{{ $imgUrl }}', '{{ $assignedDate }}')"
+                                    <button data-name="{{ $item->asset->name }}" data-sn="{{ $item->asset->serial_number }}" data-img="{{ $imgUrl }}" onclick="openReturnModal({{ $item->id }}, this.dataset.name, this.dataset.sn, this.dataset.img, '')"
                                             class="text-white bg-indigo-600 hover:bg-indigo-700 border border-transparent px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm flex items-center">
                                         Kembalikan
                                     </button>
+                                    @endif
                                 </div>
+                                @if($item->status === 'approved' && $item->assetReturn?->status === 'rejected')
+                                    <p class="mt-1.5 text-xs text-rose-600 text-right max-w-xs ml-auto">
+                                        Pengembalian ditolak: {{ $item->assetReturn->admin_note ?: 'Silakan ajukan ulang.' }}
+                                    </p>
+                                @endif
                             </td>
                         </tr>
                         @endforeach
@@ -218,8 +231,9 @@
         
         <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md">
             {{-- PERBAIKAN: Form POST ke route borrowing.return --}}
-            <form id="returnForm" method="POST" action=""> 
+            <form id="returnForm" method="POST" action="{{ route('returns.store') }}" enctype="multipart/form-data">
                 @csrf
+                <input type="hidden" name="asset_request_id" id="returnRequestId" value="{{ old('asset_request_id') }}">
                 {{-- Header --}}
                 <div class="bg-white px-6 pt-6 pb-2">
                     <h3 class="text-xl font-bold text-gray-900">Form Pengembalian Aset</h3>
@@ -248,9 +262,18 @@
                             <select name="condition" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" required>
                                 <option value="" disabled selected>-- Pilih Kondisi --</option>
                                 <option value="good">Baik (Layak Pakai)</option>
-                                <option value="minor_damage">Rusak Ringan</option>
-                                <option value="major_damage">Rusak Berat</option>
+                                <option value="maintenance">Perlu Servis / Rusak Ringan</option>
+                                <option value="broken">Rusak Berat</option>
                             </select>
+                            <p class="text-xs text-gray-400 mt-1">Admin akan memeriksa ulang kondisi fisik. Kerusakan dapat dikenakan denda.</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">Foto Bukti Kondisi <span class="text-rose-500">*</span></label>
+                            <input type="file" name="photo_proof_1" accept="image/*" required class="block w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:text-indigo-700 file:font-bold">
+                            <input type="file" name="photo_proof_2" accept="image/*" class="block w-full text-sm text-gray-600 mt-2 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-600">
+                            <input type="file" name="photo_proof_3" accept="image/*" class="block w-full text-sm text-gray-600 mt-2 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-gray-100 file:text-gray-600">
+                            <p class="text-xs text-gray-400 mt-1">Foto 1 wajib, foto 2-3 opsional. Maks. 2MB per file.</p>
                         </div>
 
                         <div>
@@ -325,10 +348,8 @@
 
     // --- LOGIC RETURN ASET ---
     function openReturnModal(reqId, assetName, assetSN, assetImgUrl, assignedDateRaw) {
-        // PERBAIKAN: Action URL diarahkan ke route khusus user (borrowing.return_user)
-        // Route: Route::post('/borrowing/{id}/return-user', ...)
-        const form = document.getElementById('returnForm');
-        form.action = `/borrowing/${reqId}/return-user`;
+        // Form memakai returns.store (foto bukti + verifikasi admin), ID peminjaman dikirim lewat input hidden.
+        document.getElementById('returnRequestId').value = reqId;
 
         document.getElementById('returnAssetName').innerText = assetName;
         document.getElementById('returnAssetSN').innerText = assetSN;

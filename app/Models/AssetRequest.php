@@ -56,6 +56,7 @@ class AssetRequest extends Model
 
     public function assetReturn()
     {
-        return $this->hasOne(AssetReturn::class);
+        // Pengajuan terbaru (user bisa mengajukan ulang setelah ditolak admin)
+        return $this->hasOne(AssetReturn::class)->latestOfMany();
     }
 }

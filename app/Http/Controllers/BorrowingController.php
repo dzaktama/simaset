@@ -55,6 +55,8 @@ class BorrowingController extends Controller
         // [LOGIC] Filter Status Peminjaman
         if ($request->borrowing_status === 'active') {
             $query->where('status', 'approved')->whereNull('returned_at');
+        } elseif ($request->borrowing_status === 'pending_return') {
+            $query->where('status', 'pending_return');
         } elseif ($request->borrowing_status === 'returned') {
             $query->whereNotNull('returned_at');
         } elseif ($request->borrowing_status === 'rejected') {
@@ -78,8 +80,9 @@ class BorrowingController extends Controller
         $borrowings->getCollection()->transform(function($item) {
             $status = 'pending';
             if ($item->status === 'rejected') $status = 'rejected';
-            elseif ($item->status === 'approved' && $item->returned_at) $status = 'returned';
-            elseif ($item->status === 'approved' && !$item->returned_at) $status = 'active';
+            elseif ($item->status === 'pending_return') $status = 'pending_return';
+            elseif ($item->returned_at) $status = 'returned';
+            elseif ($item->status === 'approved') $status = 'active';
             $item->borrowing_status = $status;
             return $item;
         });
@@ -90,6 +93,7 @@ class BorrowingController extends Controller
             'active' => AssetRequest::where('status', 'approved')->whereNull('returned_at')->count(),
             'pending' => AssetRequest::where('status', 'pending')->count(),
             'returned' => AssetRequest::whereNotNull('returned_at')->count(),
+            'pending_return' => AssetRequest::where('status', 'pending_return')->count(),
         ];
 
         return view('borrowing.index', [
@@ -388,7 +392,7 @@ class BorrowingController extends Controller
     public function userHistory()
     {
         $borrowings = AssetRequest::where('user_id', auth()->id())
-            ->with('asset')
+            ->with(['asset', 'assetReturn'])
             ->latest()
             ->paginate(20);
 
@@ -410,13 +414,17 @@ class BorrowingController extends Controller
     {
         $request->validate([
             'condition' => 'required|in:good,minor_damage,major_damage',
-            'notes' => 'nullable|string|max:500'
+            'notes' => 'nullable|string|max:500',
+            'fine' => 'nullable|numeric|min:0|max:999999999',
+        ], [
+            'fine.numeric' => 'Denda harus berupa angka.',
+            'fine.min' => 'Denda tidak boleh negatif.',
         ]);
 
         try {
             DB::beginTransaction();
 
-            $borrowing = AssetRequest::with('asset')->findOrFail($id);
+            $borrowing = AssetRequest::with('asset')->lockForUpdate()->findOrFail($id);
 
             // [SECURITY] Cek hak akses return
             $canReturnAny = \Illuminate\Support\Facades\Gate::allows('borrow.action') || \Illuminate\Support\Facades\Gate::allows('borrow.return');
@@ -425,10 +433,43 @@ class BorrowingController extends Controller
                 abort(403);
             }
 
+            // Peminjam biasa wajib lewat form pengembalian (foto bukti + verifikasi admin),
+            // agar kondisi, stok, dan denda selalu tervalidasi.
+            if (!$canReturnAny) {
+                DB::rollBack();
+                return redirect()->route('assets.my')->with('error', 'Gunakan tombol "Kembalikan" di halaman Aset Saya agar pengembalian diverifikasi admin.');
+            }
+
+            if ($borrowing->status === 'pending_return') {
+                DB::rollBack();
+                return back()->with('error', 'Pengembalian sedang menunggu verifikasi. Proses lewat menu Verifikasi Pengembalian.');
+            }
+
+            if ($borrowing->status !== 'approved' || $borrowing->returned_at) {
+                DB::rollBack();
+                return back()->with('error', 'Aset ini tidak sedang dipinjam atau sudah dikembalikan.');
+            }
+
             $borrowing->update([
+                'status' => 'returned',
                 'returned_at' => now(),
                 'condition' => $request->condition,
                 'return_notes' => $request->notes,
+            ]);
+
+            // Catat sebagai pengembalian terverifikasi agar denda (jika ada) masuk alur pembayaran
+            $fine = (float) ($request->input('fine') ?? 0);
+            \App\Models\AssetReturn::create([
+                'asset_request_id' => $borrowing->id,
+                'user_id' => $borrowing->user_id,
+                'asset_id' => $borrowing->asset_id,
+                'return_date' => now(),
+                'condition' => ['good' => 'good', 'minor_damage' => 'maintenance', 'major_damage' => 'broken'][$request->condition],
+                'notes' => $request->notes,
+                'status' => 'approved',
+                'admin_id' => auth()->id(),
+                'fine' => $fine,
+                'fine_status' => $fine > 0 ? \App\Models\AssetReturn::FINE_UNPAID : \App\Models\AssetReturn::FINE_NONE,
             ]);
 
             // [DATABASE] Kembalikan Stok Aset
@@ -449,7 +490,7 @@ class BorrowingController extends Controller
             ]);
 
             DB::commit();
-            return back()->with('success', 'Aset berhasil dikembalikan');
+            return back()->with('success', 'Aset berhasil dikembalikan' . ($fine > 0 ? '. Denda Rp ' . number_format($fine, 0, ',', '.') . ' dicatat dan menunggu pembayaran.' : ''));
 
         } catch (Exception $e) {
             DB::rollBack();

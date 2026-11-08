@@ -192,6 +192,7 @@ class AssetController extends Controller
             'activeAssetsCount' => $myAssetsCount, 
             'pendingRequests' => $pendingRequests,
             'pendingRequestsCount' => $pendingRequests,
+            'myFines' => self::outstandingFinesFor($user->id),
             'recentActivities' => $recentActivities,
             'myActiveAssets' => $myActiveAssets,
             'activities' => AssetHistory::with(['asset:id,name', 'user.role'])->latest()->take(self::DASHBOARD_LOG_LIMIT)->get(), 
@@ -204,6 +205,16 @@ class AssetController extends Controller
             'listPending' => collect([]),
             'recentRequests' => collect([])
         ]);
+    }
+
+    /** Denda milik user yang belum lunas / belum dibebaskan (untuk banner peringatan). */
+    public static function outstandingFinesFor(int $userId)
+    {
+        return \App\Models\AssetReturn::with('asset:id,name')
+            ->where('user_id', $userId)
+            ->whereIn('fine_status', [\App\Models\AssetReturn::FINE_UNPAID, \App\Models\AssetReturn::FINE_PROOF])
+            ->latest()
+            ->get();
     }
 
     // --- ADD STOCK FEATURE ---
@@ -317,15 +328,17 @@ class AssetController extends Controller
     {
         // Ambil data dari tabel AssetRequest (Peminjaman Aktif)
         // Syarat: User yang login + Status Approved + Belum dikembalikan
-        $myAssets = AssetRequest::with('asset')
+        // pending_return = sudah diajukan kembali, menunggu verifikasi admin (barang masih tercatat di user)
+        $myAssets = AssetRequest::with(['asset', 'assetReturn'])
             ->where('user_id', auth()->id())
-            ->where('status', 'approved')
+            ->whereIn('status', ['approved', 'pending_return'])
             ->whereNull('returned_at')
             ->latest('borrowed_at')
             ->get();
 
         return view('assets.my_assets', [
             'myAssets' => $myAssets,
+            'myFines' => self::outstandingFinesFor(auth()->id()),
             'title' => 'Aset Saya'
         ]);
     }

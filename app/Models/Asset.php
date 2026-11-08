@@ -124,7 +124,7 @@ class Asset extends Model
     {
         // [PERF] without('asset'): AssetRequest punya $with = ['user','asset'];
         // relasi asset tidak perlu dimuat ulang karena parent-nya sudah aset ini.
-        return $this->hasOne(AssetRequest::class)->where('status', 'approved')->latest()->without('asset');
+        return $this->hasOne(AssetRequest::class)->whereIn('status', ['approved', 'pending_return'])->latest()->without('asset');
     }
 
     // [PERF] Tiket perbaikan yang sedang berjalan (dipakai tombol aksi katalog, menggantikan query per baris)

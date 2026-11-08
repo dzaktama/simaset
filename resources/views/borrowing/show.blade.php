@@ -38,6 +38,10 @@
                     <span class="w-2 h-2 bg-green-600 rounded-full mr-2 animate-pulse"></span>
                     Peminjaman Aktif (Disetujui)
                 </span>
+            @elseif($borrowing->status === 'pending_return')
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800">
+                    Menunggu Verifikasi Pengembalian
+                </span>
             @elseif($borrowing->status === 'returned' || $borrowing->returned_at)
                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
                     <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -149,6 +153,22 @@
                 </div>
             </div>
 
+            {{-- Status pengajuan pengembalian yang belum selesai --}}
+            @if($borrowing->status === 'pending_return')
+                <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg p-4 text-sm">
+                    <p class="font-bold">Pengembalian menunggu verifikasi admin</p>
+                    <p class="mt-1">Serahkan barang ke admin untuk diperiksa. Setelah diverifikasi, status akan berubah menjadi dikembalikan{{ auth()->id() === $borrowing->user_id ? ' dan jika ada denda, informasinya muncul di halaman ini.' : '.' }}</p>
+                    @can('return.verify')
+                        <a href="{{ route('returns.index') }}" class="inline-block mt-2 font-bold underline">Buka Verifikasi Pengembalian</a>
+                    @endcan
+                </div>
+            @elseif($borrowing->status === 'approved' && $borrowing->assetReturn?->status === 'rejected')
+                <div class="bg-rose-50 border border-rose-200 text-rose-800 rounded-lg p-4 text-sm">
+                    <p class="font-bold">Pengajuan pengembalian sebelumnya ditolak</p>
+                    <p class="mt-1">{{ $borrowing->assetReturn->admin_note ?: 'Silakan ajukan ulang pengembalian.' }}</p>
+                </div>
+            @endif
+
             {{-- [FITUR BARU] HASIL PEMERIKSAAN PENGEMBALIAN (Ada Denda/Kerusakan) --}}
             @if($borrowing->assetReturn && $borrowing->assetReturn->status == 'approved')
                 <div class="bg-white rounded-lg shadow overflow-hidden border-l-4 border-red-500">
@@ -161,16 +181,94 @@
                         </h2>
                     </div>
                     <div class="px-6 py-4 space-y-4">
-                        {{-- Denda Information --}}
-                        @if($borrowing->assetReturn->fine > 0)
-                            <div class="flex items-center justify-between bg-red-50 p-4 rounded-lg border border-red-200">
-                                <div>
-                                    <p class="text-sm font-bold text-red-700 uppercase tracking-wider">Denda / Biaya Perbaikan</p>
-                                    <p class="text-xs text-red-600 mt-1">Harap segera selesaikan pembayaran denda ini.</p>
+                        {{-- Denda & status pembayaran --}}
+                        @php $ret = $borrowing->assetReturn; @endphp
+                        @if($ret->fine > 0)
+                            @php [$fineLabel, $fineClass] = \App\Models\AssetReturn::fineLabel($ret->fine_status); @endphp
+                            <div class="bg-red-50 p-4 rounded-lg border border-red-200 space-y-3">
+                                <div class="flex items-center justify-between gap-3">
+                                    <div>
+                                        <p class="text-sm font-bold text-red-700 uppercase tracking-wider">Denda / Biaya Perbaikan</p>
+                                        <span class="inline-flex mt-1 items-center px-2 py-0.5 rounded text-xs font-bold border {{ $fineClass }}">{{ $fineLabel }}</span>
+                                    </div>
+                                    <div class="text-xl font-bold text-red-800 font-mono">Rp {{ number_format($ret->fine, 0, ',', '.') }}</div>
                                 </div>
-                                <div class="text-xl font-bold text-red-800 font-mono">
-                                    Rp {{ number_format($borrowing->assetReturn->fine, 0, ',', '.') }}
-                                </div>
+
+                                @if($ret->fine_status === 'unpaid')
+                                    <p class="text-xs text-red-600">
+                                        {{ auth()->id() === $borrowing->user_id ? 'Silakan bayar denda ke admin (transfer / tunai), lalu unggah bukti pembayaran agar dikonfirmasi.' : 'Menunggu peminjam membayar dan mengunggah bukti, atau konfirmasi langsung jika dibayar tunai.' }}
+                                    </p>
+                                @elseif($ret->fine_status === 'proof_submitted')
+                                    <p class="text-xs text-amber-700">Bukti bayar dikirim {{ $ret->fine_proof_submitted_at?->translatedFormat('d F Y, H:i') }} &middot; {{ $ret->fine_payment_method === 'cash' ? 'Tunai' : 'Transfer' }}. Menunggu konfirmasi admin.</p>
+                                @elseif($ret->fine_status === 'paid')
+                                    <p class="text-xs text-emerald-700">Dibayar {{ $ret->fine_paid_at?->translatedFormat('d F Y, H:i') }} ({{ $ret->fine_payment_method === 'cash' ? 'Tunai' : 'Transfer' }}), dikonfirmasi oleh {{ $ret->fineConfirmer->name ?? 'Admin' }}.</p>
+                                @elseif($ret->fine_status === 'waived')
+                                    <p class="text-xs text-slate-600">Dibebaskan oleh {{ $ret->fineConfirmer->name ?? 'Admin' }}: {{ $ret->fine_note }}</p>
+                                @endif
+
+                                @if($ret->fine_note && in_array($ret->fine_status, ['unpaid', 'proof_submitted']))
+                                    <p class="text-xs text-gray-600 italic">Catatan: {{ $ret->fine_note }}</p>
+                                @endif
+
+                                @if($ret->fine_payment_proof)
+                                    <a href="{{ asset('storage/' . $ret->fine_payment_proof) }}" target="_blank" class="inline-block">
+                                        <img src="{{ asset('storage/' . $ret->fine_payment_proof) }}" alt="Bukti pembayaran" class="h-24 rounded-lg border border-gray-200 object-cover hover:opacity-80">
+                                    </a>
+                                @endif
+
+                                {{-- Peminjam: unggah bukti bayar --}}
+                                @if(auth()->id() === $borrowing->user_id && in_array($ret->fine_status, ['unpaid', 'proof_submitted']))
+                                    <form action="{{ route('returns.fine.proof', $ret->id) }}" method="POST" enctype="multipart/form-data" class="space-y-2 pt-2 border-t border-red-200">
+                                        @csrf
+                                        <p class="text-xs font-bold text-gray-700">{{ $ret->fine_status === 'proof_submitted' ? 'Ganti bukti pembayaran' : 'Unggah bukti pembayaran' }}</p>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            <select name="fine_payment_method" required class="rounded-lg border-gray-300 text-sm">
+                                                <option value="transfer">Transfer</option>
+                                                <option value="cash">Tunai (struk / tanda terima)</option>
+                                            </select>
+                                            <input type="file" name="fine_payment_proof" accept="image/*" required class="text-sm text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-red-100 file:text-red-700 file:font-bold">
+                                        </div>
+                                        <input type="text" name="fine_note" maxlength="255" placeholder="Catatan (opsional)" class="w-full rounded-lg border-gray-300 text-sm">
+                                        <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-lg">Kirim Bukti Pembayaran</button>
+                                    </form>
+                                @endif
+
+                                {{-- Admin / teknisi: konfirmasi --}}
+                                @can('return.verify')
+                                    @if(in_array($ret->fine_status, ['unpaid', 'proof_submitted']))
+                                        <div class="pt-2 border-t border-red-200 space-y-2" x-data="{ mode: null }">
+                                            <div class="flex flex-wrap gap-2">
+                                                <button type="button" @click="mode = mode === 'confirm' ? null : 'confirm'" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg">Konfirmasi Lunas</button>
+                                                @if($ret->fine_status === 'proof_submitted')
+                                                    <button type="button" @click="mode = mode === 'reject' ? null : 'reject'" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg">Tolak Bukti</button>
+                                                @endif
+                                                <button type="button" @click="mode = mode === 'waive' ? null : 'waive'" class="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-xs font-bold rounded-lg">Bebaskan Denda</button>
+                                            </div>
+
+                                            <form x-show="mode === 'confirm'" x-cloak action="{{ route('returns.fine.confirm', $ret->id) }}" method="POST" class="space-y-2" onsubmit="return confirm('Konfirmasi denda Rp {{ number_format($ret->fine, 0, ',', '.') }} sudah dibayar?')">
+                                                @csrf
+                                                <select name="fine_payment_method" class="w-full rounded-lg border-gray-300 text-sm">
+                                                    <option value="cash" @selected($ret->fine_payment_method !== 'transfer')>Dibayar tunai</option>
+                                                    <option value="transfer" @selected($ret->fine_payment_method === 'transfer')>Dibayar via transfer</option>
+                                                </select>
+                                                <input type="text" name="fine_note" maxlength="255" placeholder="Catatan (opsional)" class="w-full rounded-lg border-gray-300 text-sm">
+                                                <button type="submit" class="px-4 py-2 bg-emerald-600 text-white text-sm font-bold rounded-lg">Simpan: Sudah Lunas</button>
+                                            </form>
+
+                                            <form x-show="mode === 'reject'" x-cloak action="{{ route('returns.fine.reject_proof', $ret->id) }}" method="POST" class="space-y-2">
+                                                @csrf
+                                                <input type="text" name="fine_note" required minlength="5" maxlength="255" placeholder="Alasan bukti ditolak (wajib)" class="w-full rounded-lg border-gray-300 text-sm">
+                                                <button type="submit" class="px-4 py-2 bg-amber-500 text-white text-sm font-bold rounded-lg">Tolak Bukti</button>
+                                            </form>
+
+                                            <form x-show="mode === 'waive'" x-cloak action="{{ route('returns.fine.waive', $ret->id) }}" method="POST" class="space-y-2" onsubmit="return confirm('Bebaskan denda ini? Tindakan tercatat di riwayat aset.')">
+                                                @csrf
+                                                <input type="text" name="fine_note" required minlength="5" maxlength="255" placeholder="Alasan pembebasan (wajib, untuk audit)" class="w-full rounded-lg border-gray-300 text-sm">
+                                                <button type="submit" class="px-4 py-2 bg-gray-700 text-white text-sm font-bold rounded-lg">Bebaskan Denda</button>
+                                            </form>
+                                        </div>
+                                    @endif
+                                @endcan
                             </div>
                         @endif
 
@@ -179,10 +277,10 @@
                                 <p class="text-sm text-gray-600">Kondisi Akhir Aset</p>
                                 @php $cond = $borrowing->assetReturn->condition; @endphp
                                 <span class="inline-block px-3 py-1 rounded-full text-sm font-bold mt-1
-                                    @if($cond === 'good') bg-green-100 text-green-800
+                                    @if(in_array($cond, ['good', 'available'])) bg-green-100 text-green-800
                                     @elseif($cond === 'maintenance') bg-yellow-100 text-yellow-800
                                     @else bg-red-100 text-red-800 @endif">
-                                    {{ ucfirst($cond) }}
+                                    {{ ['good' => 'Baik', 'available' => 'Baik', 'maintenance' => 'Perlu Servis', 'broken' => 'Rusak'][$cond] ?? ucfirst($cond) }}
                                 </span>
                             </div>
                             <div>
@@ -418,6 +516,10 @@
                     <span class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-100 text-green-800 font-semibold">
                         <span class="w-3 h-3 bg-green-600 rounded-full animate-pulse"></span>
                         Aktif
+                    </span>
+                @elseif($borrowing->status === 'pending_return')
+                    <span class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-100 text-amber-800 font-semibold">
+                        Menunggu Verifikasi
                     </span>
                 @elseif($borrowing->status === 'returned' || $borrowing->returned_at)
                     <span class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-100 text-blue-800 font-semibold">
@@ -668,6 +770,15 @@
                             </div>
                         </div>
                     </div>
+
+                    @if(in_array(auth()->user()->role?->slug, ['admin', 'super_admin']))
+                        <div>
+                            <label class="block text-sm font-bold text-gray-900 mb-1.5">Denda Kerusakan / Keterlambatan (Opsional)</label>
+                            <input type="number" name="fine" min="0" step="1000" value="{{ old('fine') }}" placeholder="0"
+                                   class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:border-indigo-600 focus:ring-0">
+                            <p class="text-xs text-gray-400 mt-1">Dalam Rupiah. Jika diisi, peminjam diminta membayar dan Anda mengonfirmasinya di halaman ini.</p>
+                        </div>
+                    @endif
 
                     {{-- Catatan --}}
                     <div>
