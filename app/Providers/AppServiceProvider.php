@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,6 +21,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // [SECURITY] Kebijakan password standar untuk seluruh form (tambah user, edit user, ganti password).
+        // Hash sudah aman (bcrypt, BCRYPT_ROUNDS=12); peringatan "sandi terekspos" dari Chrome muncul karena
+        // password yang dipakai (mis. admin123) ada di daftar kebocoran publik. Aturan ini mencegah password
+        // lemah/bocor dipakai lagi. uncompromised() memeriksa ke Have I Been Pwned memakai k-anonymity
+        // (hanya 5 karakter awal hash SHA-1 yang dikirim, password tidak pernah keluar dari server).
+        Password::defaults(function () {
+            $rule = Password::min(8)->letters()->mixedCase()->numbers()->symbols();
+
+            return app()->environment('testing') ? $rule : $rule->uncompromised();
+        });
+
         
         try {
             // Ambil daftar izin dari Cache atau Database (Cache 24 Jam)

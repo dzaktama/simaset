@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 use App\Models\Role;
 
 class UserController extends Controller
@@ -24,7 +25,7 @@ class UserController extends Controller
     public function index()
     {
         return view('users.index', [
-            'users' => User::with('role')->latest()->paginate(10),
+            'users' => User::with(['role', 'assets.activeRequest.user'])->latest()->paginate(10), // [PERF] eager load assets (sebelumnya N+1 per baris)
             'title' => 'Daftar Pengguna'
         ]);
     }
@@ -49,7 +50,7 @@ class UserController extends Controller
         $validatedData = $request->validate([
             'name' => 'required|max:255',
             'email' => 'required|email:dns|unique:users',
-            'password' => 'required|min:5',
+            'password' => ['required', Password::defaults()], // [SECURITY] sebelumnya min:5
             'role' => 'required|exists:roles,slug', // Cek apakah slug role ada di table roles
             'phone' => 'nullable|max:15',
             'department' => 'required|max:100',
@@ -144,12 +145,18 @@ class UserController extends Controller
         if($request->employee_id != $user->employee_id) {
             $rules['employee_id'] = 'required|unique:users|max:20';
         }
+        // [SECURITY] Password baru (opsional) wajib memenuhi kebijakan password; sebelumnya tidak divalidasi sama sekali
+        if ($request->filled('password')) {
+            $rules['password'] = ['required', Password::defaults()];
+        }
 
         $validatedData = $request->validate($rules);
 
         // Jika password diisi, hash password baru.
-        if($request->password) {
-            $validatedData['password'] = Hash::make($request->password);
+        if($request->filled('password')) {
+            $validatedData['password'] = Hash::make($validatedData['password']);
+        } else {
+            unset($validatedData['password']);
         }
 
         // Ambil ID Role Baru

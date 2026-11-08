@@ -262,7 +262,7 @@
     function getImg(path) { return path ? `/storage/${path}` : ''; }
     function formatDateID(dateStr) { if(!dateStr) return '-'; const d = new Date(dateStr); return d.toLocaleDateString('id-ID', {day:'numeric',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})+' WIB'; }
 
-    let currentSlide=0, totalSlides=0;
+    var currentSlide=0, totalSlides=0;
     function updateCarousel() {
         document.getElementById('carouselSlides').style.transform = `translateX(-${currentSlide * 100}%)`;
         const dots = document.getElementById('carouselIndicators').children;
@@ -276,8 +276,8 @@
     function goToSlide(i){ currentSlide=i; updateCarousel(); }
 
     // Helper Global
-    let currentAssetData = null;
-    const authRole = "{{ auth()->user()->role?->slug }}";
+    var currentAssetData = null;
+    var authRole = "{{ auth()->user()->role?->slug }}";
 
     // Update Function: Menerima qrCodeBase64
     function openDetailModal(asset, holder, qrCodeBase64) {

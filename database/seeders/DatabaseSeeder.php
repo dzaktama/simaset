@@ -8,6 +8,7 @@ use App\Models\AssetHistory;
 use App\Models\AssetRequest;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 use App\Models\Role; // Import Model Role
 
@@ -25,12 +26,17 @@ class DatabaseSeeder extends Seeder
         $adminRole = Role::where('slug', 'admin')->first();
         $userRole = Role::where('slug', 'user')->first();
 
+        // [SECURITY] Password seed tidak lagi 'admin123'/'user123' (ada di daftar kebocoran publik,
+        // memicu peringatan "sandi terekspos" di browser). Atur lewat .env, atau dibuat acak lalu ditampilkan.
+        $adminPassword = env('SEED_ADMIN_PASSWORD') ?: Str::password(16);
+        $userPassword = env('SEED_USER_PASSWORD') ?: Str::password(16);
+
         // 1. BUAT USER (1 ADMIN + 9 KARYAWAN)
         $admin = User::create([
             'name' => 'Administrator IT',
             'email' => 'admin@vitech.asia',
             'role_id' => $adminRole->id, // Gunakan Relasi Role ID
-            'password' => Hash::make('admin123'), 
+            'password' => Hash::make($adminPassword),
         ]);
 
         $users = [];
@@ -53,9 +59,12 @@ class DatabaseSeeder extends Seeder
                 'department' => $data['department'],
                 'position' => $data['position'],
                 'role_id' => $userRole->id, // Gunakan Relasi Role ID
-                'password' => Hash::make('user123'),
+                'password' => Hash::make($userPassword),
             ]);
         }
+
+        $this->command?->warn("Password admin@vitech.asia: {$adminPassword}");
+        $this->command?->warn("Password semua karyawan (budi@, siti@, ...): {$userPassword}");
 
         // 2. BUAT DATA ASET KANTOR (100 ASET DUMMY)
         $assetNames = [

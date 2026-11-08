@@ -201,17 +201,17 @@
 </div>
 
 <script>
-    const pdfUrl = "{{ route('reports.pdf') }}"; 
+    var pdfUrl = "{{ route('reports.pdf') }}"; 
     
     // Status Options Data
-    const assetStatuses = [
+    var assetStatuses = [
         {val: 'all', text: 'Semua Status'},
         {val: 'available', text: 'Available'},
         {val: 'deployed', text: 'Deployed'},
         {val: 'maintenance', text: 'Maintenance'},
         {val: 'broken', text: 'Broken'}
     ];
-    const borrowingStatuses = [
+    var borrowingStatuses = [
         {val: 'all', text: 'Semua Status'},
         {val: 'pending', text: 'Menunggu Persetujuan'},
         {val: 'approved', text: 'Sedang Dipinjam'},

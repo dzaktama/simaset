@@ -225,9 +225,9 @@
 
 <script>
     // const allAssets = @ json($assets); // REMOVED
-    const initialAssetId = "{{ $selectedAsset->id ?? '' }}";
+    var initialAssetId = "{{ $selectedAsset->id ?? '' }}";
     // Prepare initial data manual (karena allAssets sudah tidak ada)
-    const initialAsset = @json($selectedAsset);
+    var initialAsset = @json($selectedAsset);
 
     function maintenanceForm() {
         return {

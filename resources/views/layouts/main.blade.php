@@ -179,9 +179,17 @@
             main.style.pointerEvents = 'none';
 
             try {
+                // [FIX] Jangan kirim X-Requested-With: controller yang memakai $request->ajax()
+                // (mis. Katalog Aset) mengira ini request AJAX dan hanya mengembalikan potongan tabel,
+                // sehingga navigasi gagal lalu memuat ulang halaman penuh (dua kali request).
                 const response = await fetch(url, {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    headers: { 'X-SPA-Navigation': '1', 'Accept': 'text/html' }
                 });
+
+                if (!response.ok) {
+                    window.location.href = url; // tampilkan halaman error asli dari server
+                    return;
+                }
                 
                 if (response.redirected) {
                     window.location.href = response.url;
@@ -193,10 +201,16 @@
                 // Parse HTML to get Title and Container Content
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
-                const newContent = doc.getElementById('page-container').innerHTML;
+                const container = doc.getElementById('page-container');
+                if (!container) {
+                    // Respons bukan halaman layout utama (mis. halaman login/standalone) -> muat penuh
+                    window.location.href = url;
+                    return;
+                }
+                const newContent = container.innerHTML;
                 const title = doc.title;
 
-                updateContent(newContent, title, true, url);
+                await updateContent(newContent, title, true, url);
                 
             } catch (error) {
                 console.error('Navigation error:', error);
@@ -219,7 +233,12 @@
             scripts.forEach(script => script.remove()); // Remove from temp to prevent auto-execution (though innerHTML normally doesn't exec scripts)
             
             // 3. Update DOM
-            main.innerHTML = tempDiv.innerHTML;
+            // [FIX] Alpine mengamati DOM dan langsung meng-init x-data begitu HTML baru masuk, padahal
+            // fungsi x-data (mis. maintenanceForm()) baru didefinisikan oleh script halaman di langkah 4.
+            // mutateDom() menunda observer Alpine; init dilakukan manual di langkah 5 setelah script jalan.
+            if (window.Alpine && window.Alpine.destroyTree) window.Alpine.destroyTree(main);
+            const swap = () => { main.innerHTML = tempDiv.innerHTML; };
+            if (window.Alpine && window.Alpine.mutateDom) window.Alpine.mutateDom(swap); else swap();
             document.title = title;
 
             if (pushState && url) {

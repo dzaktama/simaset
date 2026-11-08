@@ -4,10 +4,10 @@
     function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
     function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
-    const sidebar = document.getElementById('sidebar');
-    const sidebarOverlay = document.getElementById('sidebarOverlay');
-    const openSidebarBtn = document.getElementById('openSidebar');
-    const closeSidebarBtn = document.getElementById('closeSidebar');
+    var sidebar = document.getElementById('sidebar');
+    var sidebarOverlay = document.getElementById('sidebarOverlay');
+    var openSidebarBtn = document.getElementById('openSidebar');
+    var closeSidebarBtn = document.getElementById('closeSidebar');
 
     function toggleSidebar() {
         if(sidebar) sidebar.classList.toggle('-translate-x-full');
