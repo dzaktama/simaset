@@ -167,6 +167,13 @@ class MaintenanceController extends Controller
                 return back()->with('error', 'Aset sedang dipinjam (Status: Deployed). Harap proses pengembalian terlebih dahulu.');
             }
 
+            \App\Models\AssetHistory::create([
+                'asset_id' => $asset->id,
+                'user_id' => auth()->id(),
+                'action' => 'maintenance',
+                'notes' => 'Laporan kerusakan dibuat. Aset masuk perbaikan.',
+            ]);
+
             Maintenance::create([
                 'asset_id' => $request->asset_id,
                 'user_id' => auth()->id(), // Teknisi yang membuat tiket
@@ -196,7 +203,8 @@ class MaintenanceController extends Controller
     public function update(Request $request, Maintenance $maintenance)
     {
         // [SECURITY]
-        if (\Illuminate\Support\Facades\Gate::denies('asset.edit')) {
+        // Teknisi memakai izin 'maintenance.action'; Admin memakai 'asset.edit'
+        if (\Illuminate\Support\Facades\Gate::none(['asset.edit', 'maintenance.action'])) {
             return redirect()->back()->with('error', 'Anda tidak memiliki hak akses untuk mengubah status perbaikan.');
         }
         $request->validate([
@@ -230,6 +238,17 @@ class MaintenanceController extends Controller
             }
 
             $maintenance->update($request->all());
+
+            if (in_array($request->status, ['completed', 'cancelled'])) {
+                \App\Models\AssetHistory::create([
+                    'asset_id' => $maintenance->asset_id,
+                    'user_id' => auth()->id(),
+                    'action' => 'maintenance',
+                    'notes' => $request->status === 'completed'
+                        ? 'Perbaikan selesai. Aset kembali tersedia.'
+                        : 'Perbaikan dibatalkan. Aset ditandai rusak.',
+                ]);
+            }
 
             // Jika Selesai, kembalikan status aset
             // Jika Selesai, kembalikan status aset
