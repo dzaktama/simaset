@@ -16,7 +16,11 @@ class UserController extends Controller
      */
     public function __construct()
     {
-        // Middleware handled in routes or via gates in index
+        // Batasi manajemen pengguna sesuai izin (sebelumnya semua akun login bisa mengakses)
+        $this->middleware('can:user.view')->only(['index', 'show']);
+        $this->middleware('can:user.create')->only(['create', 'store']);
+        $this->middleware('can:user.edit')->only(['edit', 'update']);
+        $this->middleware('can:user.delete')->only(['destroy']);
     }
 
     /**
